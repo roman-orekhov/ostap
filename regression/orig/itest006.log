@@ -1,0 +1,4 @@
+Parsed: (None, None, A, C), rest: 
+Parsed: (Some A, Some B, A, C), rest: 
+Parsed: (None, Some B, A, C), rest: 
+Parsed: (Some A, None, A, C), rest: 
