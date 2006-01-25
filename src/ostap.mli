@@ -20,7 +20,7 @@
 (** The name of this library originates from Ostap Bender --- the central character
     of the Ilya Ilf and Eugene Petrov's comedy "The Twelve Chairs". Bender is
     generally referred to as "The Great Combinator" since the word
-    "combinator" is Russian means also "swindler", "a sly man" etc.
+    "combinator" is Russian means also "a swindler", "a sly man" etc.
 *)
 
 (** {1 Main parsing types } *)
@@ -81,14 +81,21 @@ val (|>)  : ('a, 'b, 'd) parse -> ('a, 'c, 'd) parse -> ('a, 'b * 'c, 'd) parse
 (** Infix synonym for [seb] *)
 val (||>) : ('d -> ('a, 'b, 'e) parse) -> ('b -> ('a, 'c, 'e) parse) -> ('d -> ('a, 'b * 'c, 'e) parse)
  
-(** Alternative combinator. [alt x y] returns parse function that eats that either [x] or [y] eat *)
+(** Alternative combinator. [alt x y] returns parse function that eats that that either [x] or [y] eat *)
 val alt : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
-
-(** Optional combinator. [opt x] returns parse function that eats either [x] or nothing *)
-val opt : ('a, 'b, 'c) parse -> ('a, 'b option, 'c) parse
 
 (** Infix synonym for [alt] *)
 val (<|>) : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
+
+(** Pruned alternative combinator. [alt x y] returns {U non-backtracking} parse function that eats 
+    that that either [x] or [y] eat *)
+val alp : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
+
+(** Infix synonym for [alp] *)
+val (<!>) : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
+
+(** Optional combinator. [opt x] returns parse function that eats either [x] or nothing *)
+val opt : ('a, 'b, 'c) parse -> ('a, 'b option, 'c) parse
 
 (** Infix synonym fpr [opt] *)
 val (<?>) : ('a, 'b, 'c) parse -> ('a, 'b option, 'c) parse

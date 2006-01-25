@@ -24,14 +24,29 @@ and  ('a, 'b, 'c) parse  = 'a -> ('a, 'b, 'c) result
       
 let fail _ = Fail []
 
+let rec alp x y =
+  (fun s ->
+    LOG (printf "running alp\n");
+    match x s with
+    | Ok (b, rest, s') -> 
+	LOG (printf "alp left part okeyed\n"); 
+	Ok (b, fail, s')
+	  
+    | Fail _ -> 
+	LOG (printf "alp left part failed, trying its right part\n"); 
+	y s
+  )
+
+let (<!>) = alp
+
 let rec alt x y =
   (fun s ->
     LOG (printf "running alt\n");
     match x s with
     | Ok (b, rest, s') -> 
 	LOG (printf "alt left part okeyed\n"); 
-	Ok (b, alt rest y, s')
-
+	Ok (b, alt rest y, s') 
+	  
     | Fail _ -> 
 	LOG (printf "alt left part failed, trying its right part\n"); 
 	y s
@@ -95,9 +110,9 @@ let rec opt x =
 	LOG (printf "opt okeyed\n"); 
 	Ok (Some b, opt rest, s')
 
-    | Fail _ -> 
+    | Fail x -> 
 	LOG (printf "opt failed, None returned\n"); 
-	Ok (None, fail, s)
+	Ok (None, (fun _ -> Fail x), s)
   )    
 
 let (<?>) = opt
@@ -140,9 +155,9 @@ let rec iterz x =
 	   s''
 	  )
 
-   | Fail _ -> 
+   | Fail x -> 
        LOG (printf "iterz's x failed, returning []\n"); 
-       Ok ([], fail, s) 
+       Ok ([], (fun _ -> Fail x), s) 
   )
 
 let (<*>) = iterz

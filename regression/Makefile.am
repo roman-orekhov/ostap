@@ -1,5 +1,5 @@
 # List all tests to run
-TESTS = test001 test002 test003 test004 test005 test006 test007 test008 test009 test010 test011 test012 test013 test014 test015 test016 test017 test018 test019 test020 test021 test022 itest001 itest002 itest003 itest004 itest005 itest006 itest007 itest008 itest009 itest010 itest011 itest012 itest013 itest014 itest015 itest016 itest017 
+TESTS = test001 test002 test003 test004 test005 test006 test007 test008 test009 test010 test011 test012 test013 test014 test015 test016 test017 test018 test019 test020 test021 test022 test023 test024 itest001 itest002 itest003 itest004 itest005 itest006 itest007 itest008 itest009 itest010 itest011 itest012 itest013 itest014 itest015 itest016 itest017 
 
 # Set testing script with optional environment valiables
 #TESTS_ENVIRONMENT = YARD=$(top_srcdir)/yard.byte $(srcdir)/test.sh
@@ -92,6 +92,12 @@ test021: test021.ml
 	$(OCAMLC)  $(BFLAGS) $(EXTRA_CMA) $(P4FLAGS) -o $@$(EXEEXT) $< 
 
 test022: test022.ml
+	$(OCAMLC)  $(BFLAGS) $(EXTRA_CMA) $(P4FLAGS) -o $@$(EXEEXT) $< 
+
+test023: test023.ml
+	$(OCAMLC)  $(BFLAGS) $(EXTRA_CMA) $(P4FLAGS) -o $@$(EXEEXT) $< 
+
+test024: test024.ml
 	$(OCAMLC)  $(BFLAGS) $(EXTRA_CMA) $(P4FLAGS) -o $@$(EXEEXT) $< 
 
 itest001: itest001.ml

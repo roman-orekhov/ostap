@@ -11,8 +11,8 @@ else
 endif
 
 # type in sources here
-SOURCES = ostap.ml
-MLI = ostap.mli
+SOURCES = ostap.ml memo.ml
+MLI = ostap.mli memo.mli
 
 # sort sources before use
 # (sorting is required for correct link order)
