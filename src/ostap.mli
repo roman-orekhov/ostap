@@ -20,7 +20,7 @@
 (** The name of this library originates from Ostap Bender --- the central character
     of the Ilya Ilf and Eugene Petrov's comedy "The Twelve Chairs". Bender is
     generally referred to as "The Great Combinator" since the word
-    "combinator" is Russian means also "a swindler", "a sly man" etc.
+    "combinator" is Russian also means "a swindler", "a sly man" etc.
 *)
 
 (** {1 Main parsing types } *)
@@ -97,7 +97,7 @@ val (<!>) : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 (** Optional combinator. [opt x] returns parse function that eats either [x] or nothing *)
 val opt : ('a, 'b, 'c) parse -> ('a, 'b option, 'c) parse
 
-(** Infix synonym fpr [opt] *)
+(** Infix synonym for [opt] *)
 val (<?>) : ('a, 'b, 'c) parse -> ('a, 'b option, 'c) parse
 
 (** Zero-or-more iteration. [iterz x] returns parse function that eats zero of more
