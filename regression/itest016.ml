@@ -27,7 +27,7 @@ let d = function "D" :: tl -> Ok ("D", fail, tl) | _ -> Fail []
 let pl = List.fold_left (^) ""
 
 let _ = 
-  let parse = map (fun (x, (y, z)) -> x, y, z) ((<*>) (a <|> b) |> ((<?>) d |> c)) in
+  let parse = map (fun (x, (y, z)) -> x, y, z) ((<*>) (a <!> b) |!> ((<?>) d |!> c)) in
   let print = function
     | Ok ((x, y, z), _, s) -> 
 	printf "Parsed: (%s, %s, %s), rest: %s\n" 

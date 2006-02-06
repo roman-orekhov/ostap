@@ -76,23 +76,38 @@ val seq : ('a, 'b, 'd) parse -> ('a, 'c, 'd) parse -> ('a, 'b * 'c, 'd) parse
 val seb : ('d -> ('a, 'b, 'e) parse) -> ('b -> ('a, 'c, 'e) parse) -> ('d -> ('a, 'b * 'c, 'e) parse)
 
 (** Infix synonym for [seq] *)
-val (|>)  : ('a, 'b, 'd) parse -> ('a, 'c, 'd) parse -> ('a, 'b * 'c, 'd) parse
+val (|!>)  : ('a, 'b, 'd) parse -> ('a, 'c, 'd) parse -> ('a, 'b * 'c, 'd) parse
 
 (** Infix synonym for [seb] *)
+val (||!>) : ('d -> ('a, 'b, 'e) parse) -> ('b -> ('a, 'c, 'e) parse) -> ('d -> ('a, 'b * 'c, 'e) parse)
+
+(** [sec x y] operates similar to [seq] but avoids backtracking *)
+val sec : ('a, 'b, 'd) parse -> ('a, 'c, 'd) parse -> ('a, 'b * 'c, 'd) parse
+
+(** [secb x y] operates similar to [seb] but avoids backtracking *)
+val secb : ('d -> ('a, 'b, 'e) parse) -> ('b -> ('a, 'c, 'e) parse) -> ('d -> ('a, 'b * 'c, 'e) parse)
+
+(** Infix synonym for [sec] *)
+val (|>)  : ('a, 'b, 'd) parse -> ('a, 'c, 'd) parse -> ('a, 'b * 'c, 'd) parse
+
+(** Infix synonym for [secb] *)
 val (||>) : ('d -> ('a, 'b, 'e) parse) -> ('b -> ('a, 'c, 'e) parse) -> ('d -> ('a, 'b * 'c, 'e) parse)
+
+(** [cut x] cuts the backtracking of parser function [x] *)
+val cut : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
  
 (** Alternative combinator. [alt x y] returns parse function that eats that that either [x] or [y] eat *)
 val alt : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 
 (** Infix synonym for [alt] *)
-val (<|>) : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
+val (<!>) : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 
 (** Pruned alternative combinator. [alt x y] returns {U non-backtracking} parse function that eats 
     that that either [x] or [y] eat *)
 val alp : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 
 (** Infix synonym for [alp] *)
-val (<!>) : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
+val (<|>) : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 
 (** Optional combinator. [opt x] returns parse function that eats either [x] or nothing *)
 val opt : ('a, 'b, 'c) parse -> ('a, 'b option, 'c) parse

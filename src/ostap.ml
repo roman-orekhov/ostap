@@ -24,20 +24,12 @@ and  ('a, 'b, 'c) parse  = 'a -> ('a, 'b, 'c) result
       
 let fail _ = Fail []
 
-let rec alp x y =
+let cut x =
   (fun s ->
-    LOG (printf "running alp\n");
     match x s with
-    | Ok (b, rest, s') -> 
-	LOG (printf "alp left part okeyed\n"); 
-	Ok (b, fail, s')
-	  
-    | Fail _ -> 
-	LOG (printf "alp left part failed, trying its right part\n"); 
-	y s
+    | Ok (b, rest, s') -> Ok (b, fail, s')
+    | y -> y 
   )
-
-let (<!>) = alp
 
 let rec alt x y =
   (fun s ->
@@ -52,7 +44,11 @@ let rec alt x y =
 	y s
   )
 
-let (<|>) = alt
+let (<!>) = alt
+
+let alp x y = cut (alt x y)
+
+let (<|>) = alp
 
 let rec seq x y =
   (fun s -> 
@@ -77,7 +73,7 @@ let rec seq x y =
     | Fail x -> Fail x
   )
 
-let (|>) = seq
+let (|!>) = seq
   
 let rec seb x y =
   (fun context ->
@@ -100,7 +96,55 @@ let rec seb x y =
     )
   )
 
-let (||>) = seb
+let (||!>) = seb
+
+let rec sec x y =
+  (fun s -> 
+    LOG (printf "running sec\n");
+    match x s with
+    | Ok (b, rest, s') -> 
+	LOG (printf "sec's left part okeyed, trying its right part\n");
+	begin match y s' with
+	| Ok (b', rest', s'') -> 
+	    LOG (printf "sec's right part okeyed\n"); 
+	    Ok 
+	      (
+	       (b, b'), 
+	       alp (seq rest y) (seq x rest'), 
+	       s''
+	      )
+	| Fail x -> 
+	    LOG (printf "sec's right part failed, running seq rest\n"); 
+	    Fail x
+	end
+	  
+    | Fail x -> Fail x
+  )
+
+let (|>) = sec
+  
+let rec secb x y =
+  (fun context ->
+    (fun s -> 
+      match x context s with
+      | Ok (b, rest, s') -> 
+	  begin match y b s' with
+	  | Ok (b', rest', s'') -> 
+	      Ok 
+		(
+		 (b, b'), 
+		 alp ((secb (fun _ -> rest) y) context) ((secb x (fun _ -> rest')) context), 
+		 s''
+		)
+
+	  | Fail x -> Fail x
+	  end
+	    
+      | Fail x -> Fail x
+    )
+  )
+
+let (||>) = secb
 
 let rec opt x =
   (fun s ->
@@ -157,7 +201,7 @@ let rec iterz x =
 
    | Fail x -> 
        LOG (printf "iterz's x failed, returning []\n"); 
-       Ok ([], (fun _ -> Fail x), s) 
+       Ok ([], fail, s) 
   )
 
 let (<*>) = iterz

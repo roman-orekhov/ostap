@@ -36,7 +36,7 @@ let b = eat "B"
 let c = eat "C"
 
 let _ = 
-  let parse = map (fun ((x, y), (z, t)) -> x, y, z, t) ((a |> (<?>) b) |> (b |> c)) in
+  let parse = map (fun ((x, y), (z, t)) -> x, y, z, t) ((a |!> (<?>) b) |!> (b |!> c)) in
   let print = function
     | Ok ((x, y, z, t), _, s) -> 
 	printf "Parsed: (%s, %s, %s, %s), rest: %s\n" 
