@@ -179,8 +179,8 @@ let rec map f =
 
 let rec iterz  =
   (** common sub-expression*)
-  let common p1 p2= map (function None -> [] | Some (hd, tail) -> hd :: tail)  
-                  (opt (seq p1 p2))
+  let common p = map (function None -> [] | Some (hd, tail) -> hd :: tail)  
+                  (opt p)
   in
   fun x ->
   (fun s ->
@@ -193,9 +193,10 @@ let rec iterz  =
 	    Parsed 
 	      (
 	       b :: tail, 
-	       (alt   (common x    rest') 
-			      (common rest (iterz x))
- 		   ), 
+	       common 
+		    (alt   (seq x    rest') 
+			      (seq rest (iterz x))
+ 		    ), 
 	       s''
 	      )
 	| Failed x -> Parsed ([b], iterz rest, s')
