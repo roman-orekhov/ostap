@@ -177,7 +177,12 @@ let rec map f =
     )
   )
 
-let rec iterz x =
+let rec iterz  =
+  (** common sub-expression*)
+  let common p1 p2= map (function None -> [] | Some (hd, tail) -> hd :: tail)  
+                  (opt (seq p1 p2))
+  in
+  fun x ->
   (fun s ->
     LOG (printf "running iterz\n");
     match x s with
@@ -188,22 +193,9 @@ let rec iterz x =
 	    Parsed 
 	      (
 	       b :: tail, 
-	       (alt 
-		  (map 
-		     (function None -> [] | Some (hd, tail) -> hd :: tail) 
-		     (opt (seq x rest'))
-		  )	      
-		  (alt
-		     (map 
-			(function None -> [] | Some (hd, tail) -> hd :: tail) 
-			(opt (seq rest rest'))
-		     )	       
-		     (map 
-			(function None -> [] | Some (hd, tail) -> hd :: tail) 
-			(opt (seq rest (iterz x)))
-		     )
-		  )
-	       ), 
+	       (alt   (common x    rest') 
+			      (common rest (iterz x))
+ 		   ), 
 	       s''
 	      )
 	| Failed x -> Parsed ([b], iterz rest, s')
