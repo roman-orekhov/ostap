@@ -49,7 +49,6 @@ dnl library name, modules to open,
 dnl 1st dir <space> 2nd dir <space> etc., library homepage.
 AC_CHECK_OCAML_MODULE(typeutil, View, ../typeutil/src, http://oops.tepkom.ru/projects/typeutil)
 dnl more module checks
-AC_CHECK_OCAML_MODULE(checked, Checked, ../checked/src, http://oops.tepkom.ru/projects/checked)
 AC_CHECK_OCAML_MODULE(str, Str, , http://caml.inria.fr)
 AC_SUBST(MODULE_INCLUDES)
 AC_SUBST(EXTRA_CMA)

@@ -25,16 +25,20 @@
 
 (** {1 Main parsing types } *)
 
+(** Type pattern for result of parsing. Result is either parsed value, an error with a list of 
+    error details or a failure with a list of details *)
+type ('a, 'b) tag = Parsed of 'a | Error of 'b list | Failed of 'b list
+
 (** The type 
 
-    {C [type ('stream, 'parsed, 'error) result = ('parsed * ('stream, 'parsed, 'error) parse * 'stream, 'error) Checked.t]}
+    {C [type ('stream, 'parsed, 'error) result = ('parsed * ('stream, 'parsed, 'error) parse * 'stream, 'error) tag]}
 
     denotes a result of parsing a stream with a parse function. This result
     is either successful parse comprising parsed value of type ['parsed], the alternative
     parse function [('stream, 'parsed, 'error) parse], and the residual stream of type
     ['stream], or an error data of type ['error]
 *)
-type ('stream, 'parsed, 'error) result = ('parsed * ('stream, 'parsed, 'error) parse * 'stream, 'error) Checked.t
+type ('stream, 'parsed, 'error) result = ('parsed * ('stream, 'parsed, 'error) parse * 'stream, 'error) tag
 
 (** The type 
 
@@ -67,31 +71,30 @@ val seq : ('a, 'b, 'd) parse -> ('a, 'c, 'd) parse -> ('a, 'b * 'c, 'd) parse
 (** [seb x y] is similar to [seq] but allows for passing the eaten by [x] value to [y].
     For example 
 
-    {C [seb (fun x -> map (fun y -> (int_of_string y) + x) "1") (fun y -> map (fun z -> y + (int_of_string z)) "2")]}
+    {C [seb "1" (fun y -> map (fun z -> y + (int_of_string z)) "2")]}
 
-    returns a function that takes an integer [x] and returns parse function [p] that eats successively
-    ["1"] and ["2"], converts them into integers and sums with [x]. For example [(p 16) "1" "2"] returns [19].
-    The name of combinator originates from "sequence with binding"
+    returns a parse function [p] that eats successively ["1"] and ["2"], converts them into 
+    integers and sums them. The name of combinator originates from "sequence with binding"
 *)
-val seb : ('d -> ('a, 'b, 'e) parse) -> ('b -> ('a, 'c, 'e) parse) -> ('d -> ('a, 'b * 'c, 'e) parse)
+val seb : ('a, 'b, 'e) parse -> ('b -> ('a, 'c, 'e) parse) -> ('a, 'b * 'c, 'e) parse
 
 (** Infix synonym for [seq] *)
 val (|!>)  : ('a, 'b, 'd) parse -> ('a, 'c, 'd) parse -> ('a, 'b * 'c, 'd) parse
 
 (** Infix synonym for [seb] *)
-val (||!>) : ('d -> ('a, 'b, 'e) parse) -> ('b -> ('a, 'c, 'e) parse) -> ('d -> ('a, 'b * 'c, 'e) parse)
+val (||!>) : ('a, 'b, 'e) parse -> ('b -> ('a, 'c, 'e) parse) -> ('a, 'b * 'c, 'e) parse
 
 (** [sec x y] operates similar to [seq] but avoids backtracking *)
 val sec : ('a, 'b, 'd) parse -> ('a, 'c, 'd) parse -> ('a, 'b * 'c, 'd) parse
 
 (** [secb x y] operates similar to [seb] but avoids backtracking *)
-val secb : ('d -> ('a, 'b, 'e) parse) -> ('b -> ('a, 'c, 'e) parse) -> ('d -> ('a, 'b * 'c, 'e) parse)
+val secb : ('a, 'b, 'e) parse -> ('b -> ('a, 'c, 'e) parse) -> ('a, 'b * 'c, 'e) parse
 
 (** Infix synonym for [sec] *)
 val (|>)  : ('a, 'b, 'd) parse -> ('a, 'c, 'd) parse -> ('a, 'b * 'c, 'd) parse
 
 (** Infix synonym for [secb] *)
-val (||>) : ('d -> ('a, 'b, 'e) parse) -> ('b -> ('a, 'c, 'e) parse) -> ('d -> ('a, 'b * 'c, 'e) parse)
+val (||>) : ('a, 'b, 'e) parse -> ('b -> ('a, 'c, 'e) parse) -> ('a, 'b * 'c, 'e) parse
 
 (** [cut x] cuts the backtracking of parser function [x] *)
 val cut : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
@@ -102,9 +105,9 @@ val alt : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 (** Infix synonym for [alt] *)
 val (<!>) : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 
-(** Pruned alternative combinator. [alt x y] returns {U non-backtracking} parse function that eats 
+(** Pruned alternative combinator. [alc x y] returns {U non-backtracking} parse function that eats 
     that that either [x] or [y] eat *)
-val alp : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
+val alc : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 
 (** Infix synonym for [alp] *)
 val (<|>) : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
@@ -131,6 +134,8 @@ val (<*>) : ('a, 'b, 'c) parse -> ('a, 'b list, 'c) parse
 (** Infix synonym for [iter] *)
 val (<+>) : ('a, 'b, 'c) parse -> ('a, 'b list, 'c) parse
 
-(** Guarded parse function constructor. [(guard predicate p) x] is [p]
-    if [predicate x = true] and [fail] otherwise *)    
-val guard : ('d -> bool) -> ('a, 'b, 'c) parse -> ('d -> ('a, 'b, 'c) parse)
+(** Guarded parse function constructor. [guard p predicate] is 
+    checks [predicate] against successfull parsed by [p] value and 
+    turns it into [Failed []] if this check failed.
+*)    
+val guard : ('a, 'b, 'c) parse -> ('b -> bool) -> ('a, 'b, 'c) parse

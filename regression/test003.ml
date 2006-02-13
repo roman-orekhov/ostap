@@ -15,23 +15,22 @@
  * (enclosed in the file COPYING).
  *)
 
-open Checked
 open Ostap
 open Printf
 
-let a = function "A" :: tl -> Ok ("A", fail, tl) | _ -> Fail []
-let b = function "B" :: tl -> Ok ("B", fail, tl) | _ -> Fail []
-let c = function "C" :: tl -> Ok ("C", fail, tl) | _ -> Fail []
+let a = function "A" :: tl -> Parsed ("A", fail, tl) | _ -> Failed []
+let b = function "B" :: tl -> Parsed ("B", fail, tl) | _ -> Failed []
+let c = function "C" :: tl -> Parsed ("C", fail, tl) | _ -> Failed []
     
 let pl = List.fold_left (^) ""
 
 let _ = 
   let parse = map (fun (x, (y, z)) -> x, y, z) (seq a (seq b c)) in
   let print = function
-    | Ok ((x, y, z), _, s) -> 
+    | Parsed ((x, y, z), _, s) -> 
 	printf "Parsed: (%s, %s, %s), rest: %s\n" x y z (pl s)
 
-    | Fail _ -> 
+    | Failed _ -> 
 	printf "Failed\n"
   in
   print (parse ["B"]);

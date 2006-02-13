@@ -15,7 +15,6 @@
  * (enclosed in the file COPYING).
  *)
 
-open Checked
 open Ostap
 open Printf
 
@@ -26,9 +25,9 @@ let eat s =
     LOG (printf "looking \"%s\" for \"%s\"..." (pl x) s); 
     match x with 
     | hd :: tl when hd = s -> 
-	LOG (printf "ok, tail=%s\n" (pl tl)); Ok ("A", fail, tl) 
+	LOG (printf "ok, tail=%s\n" (pl tl)); Parsed ("A", fail, tl) 
     | _ -> 
-	LOG (printf "fail\n"); Fail []
+	LOG (printf "fail\n"); Failed []
   )
 
 let a = eat "A"
@@ -38,7 +37,7 @@ let c = eat "C"
 let _ = 
   let parse = map (fun ((x, y), (z, t)) -> x, y, z, t) ((a |!> (<?>) b) |!> (b |!> c)) in
   let print = function
-    | Ok ((x, y, z, t), _, s) -> 
+    | Parsed ((x, y, z, t), _, s) -> 
 	printf "Parsed: (%s, %s, %s, %s), rest: %s\n" 
 	  x 
 	  (match y with None -> "None" | Some x -> "Some " ^ x)
@@ -46,7 +45,7 @@ let _ =
 	  t
 	  (pl s)
 
-    | Fail _ -> 
+    | Failed _ -> 
 	printf "Failed\n"
   in
   print (parse ["A"; "B"; "C"]);

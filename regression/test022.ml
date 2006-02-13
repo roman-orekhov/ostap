@@ -15,7 +15,6 @@
  * (enclosed in the file COPYING).
  *)
 
-open Checked
 open Ostap
 open Printf
 
@@ -25,7 +24,7 @@ type stream = {data: string; pos: int}
 
 let ofString s = {data=s; pos=0}
 
-let eof s = if s.pos = String.length s.data then Ok ('$', fail, s) else Fail []
+let eof s = if s.pos = String.length s.data then Parsed ('$', fail, s) else Failed []
 
 let between x y = 
   (fun s ->
@@ -33,9 +32,9 @@ let between x y =
     then 
       let a = s.data.[s.pos] in
       if a >= x && a <= y 
-      then Ok (a, fail, {s with pos=s.pos+1})
-      else Fail []
-    else Fail []
+      then Parsed (a, fail, {s with pos=s.pos+1})
+      else Failed []
+    else Failed []
   )
 
 let isA x = 
@@ -44,9 +43,9 @@ let isA x =
     then 
       let a = s.data.[s.pos] in
       if a = x 
-      then Ok (a, fail, {s with pos=s.pos+1})
-      else Fail []
-    else Fail []
+      then Parsed (a, fail, {s with pos=s.pos+1})
+      else Failed []
+    else Failed []
   )
 
 let whitespace = (isA ' ') <|> (isA '\n') <|> (isA '\t')
@@ -64,7 +63,7 @@ let lexem =
 let _ = 
   let parse = (<*>) lexem |> eof in
   let print = function
-    | Ok ((list, _), _, s) -> 
+    | Parsed ((list, _), _, s) -> 
 	printf "Parsed: ";
 	List.iter 
 	  (fun lexem ->
@@ -74,11 +73,11 @@ let _ =
 	  list;
 	printf ", rest=%s\n" (pl s)
 
-    | Fail _ -> 
+    | Failed _ -> 
 	printf "Failed\n"
   in
   match parse (ofString "int x; x+1;") with
-  | Ok ((list, _), _, s) -> 
+  | Parsed ((list, _), _, s) -> 
 	printf "Parsed: ";
 	List.iter 
 	  (fun lexem ->
@@ -88,6 +87,6 @@ let _ =
 	  list;
 	printf "\n"
 
-  | Fail _ -> printf "Failed\n"
+  | Failed _ -> printf "Failed\n"
 
 

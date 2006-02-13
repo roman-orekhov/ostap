@@ -2,7 +2,6 @@
 TESTS = test001 test002 test003 test004 test005 test006 test007 test008 test009 test010 test011 test012 test013 test014 test015 test016 test017 test018 test019 test020 test021 test022 test023 test024 itest001 itest002 itest003 itest004 itest005 itest006 itest007 itest008 itest009 itest010 itest011 itest012 itest013 itest014 itest015 itest016 itest017 
 
 # Set testing script with optional environment valiables
-#TESTS_ENVIRONMENT = YARD=$(top_srcdir)/yard.byte $(srcdir)/test.sh
 TESTS_ENVIRONMENT = $(srcdir)/test.sh
 
 #PARSER_INCLUDES += -I $(top_srcdir)/src

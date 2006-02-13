@@ -17,17 +17,18 @@
 
 open Printf
 open List
-open Checked
 
-type ('a, 'b, 'c) result = ('b * ('a, 'b, 'c) parse * 'a, 'c) Checked.t
+type ('a, 'b) tag = Parsed of 'a | Error of 'b list | Failed of 'b list
+
+type ('a, 'b, 'c) result = ('b * ('a, 'b, 'c) parse * 'a, 'c) tag
 and  ('a, 'b, 'c) parse  = 'a -> ('a, 'b, 'c) result
       
-let fail _ = Fail []
+let fail _ = Failed []
 
 let cut x =
   (fun s ->
     match x s with
-    | Ok (b, rest, s') -> Ok (b, fail, s')
+    | Parsed (b, rest, s') -> Parsed (b, fail, s')
     | y -> y 
   )
 
@@ -35,65 +36,65 @@ let rec alt x y =
   (fun s ->
     LOG (printf "running alt\n");
     match x s with
-    | Ok (b, rest, s') -> 
+    | Parsed (b, rest, s') -> 
 	LOG (printf "alt left part okeyed\n"); 
-	Ok (b, alt rest y, s') 
+	Parsed (b, alt rest y, s') 
 	  
-    | Fail _ -> 
+    |  _ -> 
 	LOG (printf "alt left part failed, trying its right part\n"); 
 	y s
   )
 
 let (<!>) = alt
 
-let alp x y = cut (alt x y)
+let alc x y = cut (alt x y)
 
-let (<|>) = alp
+let (<|>) = alc
 
 let rec seq x y =
   (fun s -> 
     LOG (printf "running seq\n");
     match x s with
-    | Ok (b, rest, s') -> 
+    | Parsed (b, rest, s') -> 
 	LOG (printf "seq's left part okeyed, trying its right part\n");
 	begin match y s' with
-	| Ok (b', rest', s'') -> 
+	| Parsed (b', rest', s'') -> 
 	    LOG (printf "seq's right part okeyed\n"); 
-	    Ok 
+	    Parsed 
 	      (
 	       (b, b'), 
 	       alt (seq rest y) (seq x rest'), 
 	       s''
 	      )
-	| Fail _ -> 
+	|  _ -> 
 	    LOG (printf "seq's right part failed, running seq rest\n"); 
 	    seq rest y s
 	end
 	  
-    | Fail x -> Fail x
+    | Failed x -> Failed x
+    | Error  x -> Error  x
   )
 
 let (|!>) = seq
   
 let rec seb x y =
-  (fun context ->
-    (fun s -> 
-      match x context s with
-      | Ok (b, rest, s') -> 
-	  begin match y b s' with
-	  | Ok (b', rest', s'') -> 
-	      Ok 
-		(
-		 (b, b'), 
-		 alt ((seb (fun _ -> rest) y) context) ((seb x (fun _ -> rest')) context), 
-		 s''
-		)
-
-	  | Fail _ -> (seb (fun _ -> rest) y) context s
-	  end
-	    
-      | Fail x -> Fail x
-    )
+  (fun s -> 
+    match x s with
+    | Parsed (b, rest, s') -> 
+	begin match y b s' with
+	| Parsed (b', rest', s'') -> 
+	    Parsed 
+	      (
+	       (b, b'), 
+	       alt (seb rest y) (seb x (fun _ -> rest')), 
+	       s''
+	      )
+	      
+	| _ -> (seb rest y) s
+	end
+	  
+    | Failed x -> Failed x
+    | Error  x -> Error  x
   )
 
 let (||!>) = seb
@@ -102,46 +103,46 @@ let rec sec x y =
   (fun s -> 
     LOG (printf "running sec\n");
     match x s with
-    | Ok (b, rest, s') -> 
+    | Parsed (b, rest, s') -> 
 	LOG (printf "sec's left part okeyed, trying its right part\n");
 	begin match y s' with
-	| Ok (b', rest', s'') -> 
+	| Parsed (b', rest', s'') -> 
 	    LOG (printf "sec's right part okeyed\n"); 
-	    Ok 
+	    Parsed 
 	      (
 	       (b, b'), 
-	       alp (seq rest y) (seq x rest'), 
+	       alc (seq rest y) (seq x rest'), 
 	       s''
 	      )
-	| Fail x -> 
+	| Failed x | Error x -> 
 	    LOG (printf "sec's right part failed, running seq rest\n"); 
-	    Fail x
+	    Error x
 	end
 	  
-    | Fail x -> Fail x
+    | Failed x -> Failed x
+    | Error  x -> Error  x
   )
 
 let (|>) = sec
   
 let rec secb x y =
-  (fun context ->
-    (fun s -> 
-      match x context s with
-      | Ok (b, rest, s') -> 
-	  begin match y b s' with
-	  | Ok (b', rest', s'') -> 
-	      Ok 
-		(
-		 (b, b'), 
-		 alp ((secb (fun _ -> rest) y) context) ((secb x (fun _ -> rest')) context), 
-		 s''
-		)
-
-	  | Fail x -> Fail x
-	  end
-	    
-      | Fail x -> Fail x
-    )
+  (fun s -> 
+    match x s with
+    | Parsed (b, rest, s') -> 
+	begin match y b s' with
+	| Parsed (b', rest', s'') -> 
+	    Parsed 
+	      (
+	       (b, b'), 
+	       alc (secb rest y) (secb x (fun _ -> rest')), 
+	       s''
+	      )
+	      
+	| Failed x | Error x -> Error x
+	end
+	  
+    | Failed x -> Failed x
+    | Error  x -> Error  x
   )
 
 let (||>) = secb
@@ -150,13 +151,18 @@ let rec opt x =
   (fun s ->
     LOG (printf "running opt\n");
     match x s with
-    | Ok (b, rest, s') -> 
+    | Parsed (b, rest, s') -> 
 	LOG (printf "opt okeyed\n"); 
-	Ok (Some b, opt rest, s')
+	Parsed (Some b, opt rest, s')
 
-    | Fail x -> 
+    | Failed x -> 
 	LOG (printf "opt failed, None returned\n"); 
-	Ok (None, (fun _ -> Fail x), s)
+	Parsed (None, (fun _ -> Failed x), s)
+
+    | Error x ->
+	LOG (printf "opt failed, None returned\n"); 
+	Parsed (None, (fun _ -> Error x), s)
+
   )    
 
 let (<?>) = opt
@@ -165,8 +171,9 @@ let rec map f =
   (fun p ->
     (fun s ->
       match p s with
-      | Ok (b, rest, s') -> Ok (f b, (map f rest), s')
-      | Fail x -> Fail x
+      | Parsed (b, rest, s') -> Parsed (f b, (map f rest), s')
+      | Failed x -> Failed x
+      | Error  x -> Error  x
     )
   )
 
@@ -174,34 +181,42 @@ let rec iterz x =
   (fun s ->
     LOG (printf "running iterz\n");
     match x s with
-    | Ok (b, rest, s') -> 
+    | Parsed (b, rest, s') -> 
 	LOG (printf "iterz's x okeyed\n");
-	let Ok (tail, rest', s'') = iterz x s' in
-	Ok 
-	  (
-	   b :: tail, 
-	   (alt 
-	      (map 
-		 (function None -> [] | Some (hd, tail) -> hd :: tail) 
-		 (opt (seq x rest'))
-	      )	      
-	      (alt
-		 (map 
-		    (function None -> [] | Some (hd, tail) -> hd :: tail) 
-		    (opt (seq rest rest'))
-		 )	       
-		 (map 
-		    (function None -> [] | Some (hd, tail) -> hd :: tail) 
-		    (opt (seq rest (iterz x)))
-		 )
+        begin match iterz x s' with
+	| Parsed (tail, rest', s'') ->
+	    Parsed 
+	      (
+	       b :: tail, 
+	       (alt 
+		  (map 
+		     (function None -> [] | Some (hd, tail) -> hd :: tail) 
+		     (opt (seq x rest'))
+		  )	      
+		  (alt
+		     (map 
+			(function None -> [] | Some (hd, tail) -> hd :: tail) 
+			(opt (seq rest rest'))
+		     )	       
+		     (map 
+			(function None -> [] | Some (hd, tail) -> hd :: tail) 
+			(opt (seq rest (iterz x)))
+		     )
+		  )
+	       ), 
+	       s''
 	      )
-	   ), 
-	   s''
-	  )
+	| Failed x -> Parsed ([b], iterz rest, s')
+	| Error  x -> Error  x
+	end
 
-   | Fail x -> 
+   | Failed _ -> 
        LOG (printf "iterz's x failed, returning []\n"); 
-       Ok ([], fail, s) 
+       Parsed ([], fail, s) 
+
+   | Error x ->
+       LOG (printf "iterz's x error reported, returning error\n");
+       Error x
   )
 
 let (<*>) = iterz
@@ -210,4 +225,9 @@ let iter x = map (fun (hd, tl) -> hd :: tl) (seq x (iterz x))
 
 let (<+>) = iter
 
-let guard f p = (fun x -> if f x then p else fail)
+let guard p f = 
+  (fun s ->
+    match p s with
+    | (Parsed (b, rest, s') as x) -> if f b then x else Failed []
+    | y -> y
+  )
