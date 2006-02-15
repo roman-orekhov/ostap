@@ -105,7 +105,7 @@ val alt : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 (** Infix synonym for [alt] *)
 val (<!>) : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 
-(** Pruned alternative combinator. [alc x y] returns {U non-backtracking} parse function that eats 
+(** Pruned alternative combinator. [alc x y] returns {b non-backtracking} parse function that eats 
     that that either [x] or [y] eat *)
 val alc : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 
