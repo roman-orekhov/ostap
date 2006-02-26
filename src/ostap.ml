@@ -39,8 +39,15 @@ let rec alt x y =
     | Parsed (b, rest, s') -> 
 	LOG (printf "alt left part okeyed\n"); 
 	Parsed (b, alt rest y, s') 
-	  
-    |  _ -> 
+
+    | Error x -> 
+	begin match y s with
+	| (Parsed _) as x -> x
+	| Failed e -> Failed (x @ e)
+	| x -> x
+	end
+
+    | Failed _ -> 
 	LOG (printf "alt left part failed, trying its right part\n"); 
 	y s
   )
@@ -162,7 +169,6 @@ let rec opt x =
     | Error x ->
 	LOG (printf "opt failed, None returned\n"); 
 	Parsed (None, (fun _ -> Error x), s)
-
   )    
 
 let (<?>) = opt
@@ -179,9 +185,7 @@ let rec map f =
 
 let rec iterz  =
   (** common sub-expression*)
-  let common p = map (function None -> [] | Some (hd, tail) -> hd :: tail)  
-                  (opt p)
-  in
+  let common p = map (function None -> [] | Some (hd, tail) -> hd :: tail) (opt p) in
   fun x ->
   (fun s ->
     LOG (printf "running iterz\n");
@@ -193,10 +197,7 @@ let rec iterz  =
 	    Parsed 
 	      (
 	       b :: tail, 
-	       common 
-		    (alt   (seq x    rest') 
-			      (seq rest (iterz x))
- 		    ), 
+	       common (alt (seq x rest') (seq rest (iterz x))), 
 	       s''
 	      )
 	| Failed x -> Parsed ([b], iterz rest, s')
