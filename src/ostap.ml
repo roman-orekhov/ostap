@@ -41,9 +41,10 @@ let rec alt x y =
 	Parsed (b, alt rest y, s') 
 
     | Error x -> 
+	LOG (printf "alt left part error, trying its right part\n"); 
 	begin match y s with
 	| (Parsed _) as x -> x
-	| Failed e -> Failed (x @ e)
+	| Failed e -> Error (x @ e)
 	| x -> x
 	end
 
@@ -115,15 +116,12 @@ let rec sec x y =
 	begin match y s' with
 	| Parsed (b', rest', s'') -> 
 	    LOG (printf "sec's right part okeyed\n"); 
-	    Parsed 
-	      (
-	       (b, b'), 
-	       alc (seq rest y) (seq x rest'), 
-	       s''
-	      )
+	    Parsed ((b, b'), fail, s'')
+
 	| Failed x | Error x -> 
-	    LOG (printf "sec's right part failed, running seq rest\n"); 
+	    LOG (printf "sec's right part failed, returning error\n"); 
 	    Error x
+
 	end
 	  
     | Failed x -> Failed x
@@ -135,17 +133,16 @@ let (|>) = sec
 let rec secb x y =
   (fun s -> 
     match x s with
-    | Parsed (b, rest, s') -> 
+    | Parsed (b, _, s') -> 
+	LOG (printf "secb's left part okeyed, trying its right part\n");
 	begin match y b s' with
-	| Parsed (b', rest', s'') -> 
-	    Parsed 
-	      (
-	       (b, b'), 
-	       alc (secb rest y) (secb x (fun _ -> rest')), 
-	       s''
-	      )
+	| Parsed (b', _, s'') -> 
+	    LOG (printf "secb's right part okeyed\n"); 
+	    Parsed ((b, b'), fail, s'')
 	      
-	| Failed x | Error x -> Error x
+	| Failed x | Error x -> 
+	    LOG (printf "sec's right part failed, returning error\n"); 
+	    Error x
 	end
 	  
     | Failed x -> Failed x
@@ -213,11 +210,39 @@ let rec iterz  =
        Error x
   )
 
-let (<*>) = iterz
+let (<!*>) = iterz
 
 let iter x = map (fun (hd, tl) -> hd :: tl) (seq x (iterz x))
 
-let (<+>) = iter
+let (<!+>) = iter
+
+let rec iterzc  =
+  fun x ->
+    (fun s ->
+      LOG (printf "running iterzc\n");
+      match x s with
+      | Parsed (b, _, s') -> 
+	  LOG (printf "iterzc's x okeyed\n");
+          begin match iterzc x s' with
+	  | Parsed (tail, _, s'') -> Parsed (b :: tail, fail, s'')
+	  | Failed x -> Parsed ([b], fail, s')
+	  | Error  x -> Error  x
+	  end
+	    
+      | Failed _ -> 
+	  LOG (printf "iterzc's x failed, returning []\n"); 
+	  Parsed ([], fail, s) 
+	    
+      | Error x ->
+	  LOG (printf "iterzc's x error reported, returning error\n");
+	  Error x
+    )
+
+let (<*>) = iterzc
+
+let iterc x = map (fun (hd, tl) -> hd :: tl) (sec x (iterzc x))
+
+let (<+>) = iterc
 
 let guard p f = 
   (fun s ->

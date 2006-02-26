@@ -129,9 +129,25 @@ val iterz : ('a, 'b, 'c) parse -> ('a, 'b list, 'c) parse
 val iter : ('a, 'b, 'c) parse -> ('a, 'b list, 'c) parse
 
 (** Infix synonym for [iterz] *)
-val (<*>) : ('a, 'b, 'c) parse -> ('a, 'b list, 'c) parse
+val (<!*>) : ('a, 'b, 'c) parse -> ('a, 'b list, 'c) parse
 
 (** Infix synonym for [iter] *)
+val (<!+>) : ('a, 'b, 'c) parse -> ('a, 'b list, 'c) parse
+
+(** Zero-or-more iteration with no backtracking. [iterzc x] returns parse function that 
+    eats zero of more sucessive occurencies of items eaten by [x] 
+*)
+val iterzc : ('a, 'b, 'c) parse -> ('a, 'b list, 'c) parse
+
+(** One-or-more iteration with no backtracking. [iterc x] returns parse function that 
+    eats one of more sucessive occurencies of items eaten by [x] 
+*)
+val iterc : ('a, 'b, 'c) parse -> ('a, 'b list, 'c) parse
+
+(** Infix synonym for [iterzc] *)
+val (<*>) : ('a, 'b, 'c) parse -> ('a, 'b list, 'c) parse
+
+(** Infix synonym for [iterc] *)
 val (<+>) : ('a, 'b, 'c) parse -> ('a, 'b list, 'c) parse
 
 (** Guarded parse function constructor. [guard p predicate] is 
