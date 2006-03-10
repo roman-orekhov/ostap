@@ -45,7 +45,7 @@ let rec alt x y =
 	begin match y s with
 	| (Parsed _) as x -> x
 	| Failed e -> Error (x @ e)
-	| x -> x
+	| Error y -> Error (x @ y)
 	end
 
     | Failed _ -> 
