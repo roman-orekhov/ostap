@@ -12,7 +12,7 @@ endif
 
 # type in sources here
 SOURCES = ostap.ml msg.ml matcher.ml
-MLI = ostap.mli msg.mli matcher.mli
+MLI = ostap.mli msg.mli matcher.mli 
 
 # sort sources before use
 # (sorting is required for correct link order)

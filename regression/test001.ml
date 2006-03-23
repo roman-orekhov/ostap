@@ -18,24 +18,29 @@
 open Ostap
 open Printf
 
-let a = function "A" :: tl -> Parsed ("A", fail, tl) | _ -> Failed []
-let b = function "B" :: tl -> Parsed ("B", fail, tl) | _ -> Failed []
-let c = function "C" :: tl -> Parsed ("C", fail, tl) | _ -> Failed []
+let a = function "A" :: tl -> Parsed ("A", tl) | _ -> Failed []
+let b = function "B" :: tl -> Parsed ("B", tl) | _ -> Failed []
+let c = function "C" :: tl -> Parsed ("C", tl) | _ -> Failed []
     
 let pl = List.fold_left (^) ""
 
 let _ = 
-  let parse = seq (iterz (alt a b)) b in
-  let print = function
-    | Parsed ((x, y), _, s) -> 
-	printf "Parsed: (%s, %s), rest: %s\n" (pl x) y (pl s)
+  let parse = seq_bt (alt_bt a b) (alt_bt b c) in
+  match parse ["A"; "C"] with
+  | Parsed ((_, rest), _) ->
+      printf "AC - parsed\n";
+      begin match rest ["B"; "B"] with
+      | Parsed ((_, rest), _) -> 
+	  printf "BB - parsed\n";
+      | _ -> printf "BB - failed\n"
+      end;
+      begin match rest ["A"; "B"] with
+      | Parsed ((_, rest), _) -> printf "AB - parsed\n"
+      | _ -> printf "AB - failed\n"
+      end;
+      begin match rest ["B"; "C"] with
+      | Parsed ((_, rest), _) -> printf "BC - parsed\n"
+      | _ -> printf "BC - failed\n"
+      end;
 
-    | Failed _ -> 
-	printf "Failed\n"
-  in
-  print (parse ["B"]);
-  print (parse ["A"; "A"; "B"]);
-  print (parse ["A"; "B"]);
-  print (parse ["B"; "B"]);
-  print (parse ["A"])
-
+  | Failed _ -> printf "AC - failed\n"
