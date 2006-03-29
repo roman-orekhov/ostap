@@ -61,7 +61,15 @@ class virtual ['a] matcher (make : string -> int -> Msg.Coord.t -> 'a) s p coord
       else 
 	Failed [Msg.make (sprintf "%s expected" name) [||] (Msg.Locator.Point coord)]
 
-    method look str   = self#get str (regexp_string str)
+    method look str = 
+      let p, coord = self#skip in
+      try 
+	let l = String.length str in
+	let m = String.sub s p l in
+	if str = m 
+	then Parsed ((m, coord), make s (p+l) (shiftPos coord m 0 (length m)))
+	else Failed [Msg.make (sprintf "%s expected" str) [||] (Msg.Locator.Point coord)]
+      with Invalid_argument _ -> Failed [Msg.make (sprintf "%s expected" str) [||] (Msg.Locator.Point coord)]
 
     method getEOF = 
       let p, coord = self#skip in

@@ -51,13 +51,18 @@ type ('stream, 'parsed, 'error) parse  = 'stream -> ('stream, 'parsed, 'error) r
 
 (** {1 General parse functions } *)
 
+(** [rise s] returns [Parsed (s, s)] and so "rises" the stream [s] as a successful
+    parse result
+*)
+val rise : ('a, 'a, 'b) parse
+
+(** {1 General parsing combinators} *)
+
 (** [map f p] applies [f] to the result of [p], if [p] succeeded, or fails otherwise. *)
 val map : ('b -> 'c) -> ('a, 'b, 'd) parse -> ('a, 'c, 'd) parse 
 
 (** Infix synonim for [map]. Note: the order of parameters is inverted. *)
 val (-->) : ('a, 'b, 'd) parse -> ('b -> 'c) -> ('a, 'c, 'd) parse
-
-(** {1 General parsing combinators} *)
 
 (** [seq x y] is constructs a parser function to parse successively by [x] and [y]. Parsed by
     [x] value is passed as a context to [y] 

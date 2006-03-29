@@ -35,6 +35,8 @@ let map f p =
 
 let (-->) p f = map f p
 
+let rise s = Parsed (s, s)
+
 let alt x y =
   (fun s ->
     LOG (printf "running alt\n");
@@ -106,4 +108,3 @@ let guard p f =
     | y -> y
   )
 
-let rise s = Parsed (s, s)
