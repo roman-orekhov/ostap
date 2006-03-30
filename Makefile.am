@@ -1,4 +1,4 @@
-SUBDIRS = src doc regression
+SUBDIRS = src camlp4 doc
 
 .PHONY: doc
 doc:
