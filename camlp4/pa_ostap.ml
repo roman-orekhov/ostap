@@ -1,5 +1,5 @@
 (*
- * Pa_yard: a camlp4 extension to wrap Ostap's combinators.
+ * Pa_ostap: a camlp4 extension to wrap Ostap's combinators.
  * Copyright (C) 2006
  * Dmitri Boulytchev, St.Petersburg State University
  * 
@@ -14,6 +14,69 @@
  * See the GNU Library General Public License version 2 for more details
  * (enclosed in the file COPYING).
  *)
+
+(** Pa_ostap --- a camlp4 syntax extension for BNF-like grammar definitions *)
+
+(**
+
+  {2 General description}
+
+  [Pa_ostap] extends Objective Caml grammar with two constructions: [rule] and [rules].
+  The latter represents a set of (mutually recursive) {b grammar entries definitions} 
+at the structure level while the former denotes the single {b grammar expression}. Both 
+constructions are converted into pure OCaml using [Ostap] parser combinators.
+  
+
+  {2 Grammar expression}
+
+
+  The syntax of {b grammar expression} is as follows:
+
+  
+  [expr] {b :} [alternative]{_[1]} {b | } [alternative]{_[2]} {b | ... |} [alternative]{_[k]}
+
+  [alternative] {b :} [prefixed+] {b \[ } [action]  {b \] }
+
+  [prefixed] {b : } {b \[ } [-] {b \] } [basic]    
+
+  [basic] {b : } {b \[ } [binding] {b \] } [postfix] {b \[ } [predicate] {b \]}
+
+  [postfix] {b : } [primary] {b | } [postfix] {b ( } [*] {b | } [+] {b | } [?] {b ) }
+
+  [primary] {b : } {i UIDENT} {b | } {i LIDENT} {b \[ } [parameters] {b \] } {b | } {i STRING} {b | ( } [expr] {b )}
+
+  [parameters] {b : } [\[] {i EXPR}{_1} {i EXPR}{_2} {b ...} {i EXPR}{_k} [\]]
+
+  [binding] {b : } [<] {i PATT} [>=]
+
+  [predicate] {b : } [=> {] {i EXPR}  [}=>]
+
+  [action] {b : } [{] {i EXPR} [}]
+
+  {2 Rule definition}
+
+  [rule] construction serves to embed a single grammar expression into the program code. The
+syntax is as follows:
+
+  [rule] {b : } {b rule} [expr] {b end}
+
+  For example, the following code
+
+  [let intPair = rule integer integer end]
+
+  binds identifier [intPair] to parse function that parses and returns a pair of integers. Here
+  assumed that [integer] is a parse function to parse integer literals.
+
+  {2 Grammar entries}
+ 
+
+  [rules] {b : } {b rules} [entry]{_[1]} {b ;} [entry]{_[2]} {b ;} ... {b ;} [entry]{_[k]} {b end}
+
+  [entry] {b : } {i LIDENT} {b \[ } arguments {b \] } {b : } [expr]
+
+  [arguments] {b : } [\[] {i PATT}{_1} {i PATT}{_2} {b ...} {i PATT}{_k} [\]]   
+
+*)
 
 (**/**)
 
