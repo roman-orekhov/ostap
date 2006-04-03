@@ -47,26 +47,28 @@ let make      phrase args loc = {phrase=phrase; args=args; loc=loc}
 let phrase    phrase          = make phrase [||] Locator.No
 let orphan    phrase args     = make phrase args Locator.No
 
+let string t = 
+  let parmExpr = Str.regexp "%\\([0-9]+\\)" in
+  Str.global_substitute 
+    parmExpr  
+    (fun s -> 
+      try 
+        t.args.(int_of_string (Str.replace_matched "\\1" s))
+      with
+      | Failure "int_of_string" -> 
+          raise (Failure 
+                   (sprintf "invalid integer parameter specification in message phrase \"%s\"" s)
+                )
+	    
+      | Invalid_argument "index out of bounds" ->
+          raise (Failure 
+                   (sprintf "index out of bound while accessing message parameter in \"%s\"" s)
+                )
+    )
+    t.phrase
+    
 let toString t =
-    let parmExpr = Str.regexp "%\\([0-9]+\\)" in
-    let message  = Str.global_substitute 
-           parmExpr  
-           (fun s -> 
-                try 
-                  t.args.(int_of_string (Str.replace_matched "\\1" s))
-                with
-                | Failure "int_of_string" -> 
-                    raise (Failure 
-                       (sprintf "invalid integer parameter specification in message phrase \"%s\"" s)
-                    )
-
-                | Invalid_argument "index out of bounds" ->
-                    raise (Failure 
-                       (sprintf "index out of bound while accessing message parameter in \"%s\"" s)
-                    )
-           )
-           t.phrase
-    in
+  let message = string t in
     match Locator.toString t.loc with
     | ""  -> message
     | loc -> message ^ " at " ^ loc

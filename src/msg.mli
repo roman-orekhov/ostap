@@ -62,6 +62,9 @@ val phrase : string -> t
 (** No locators *)
 val orphan : string -> string array -> t
 
+(** Substitute parameters *)
+val string : t -> string
+
 (** Visualization with parameter substitution *)
 val toString : t -> string
 
