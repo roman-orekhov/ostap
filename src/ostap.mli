@@ -20,10 +20,10 @@
 (** The name of this library originates from Ostap Bender --- the central character
     of Ilya Ilf and Eugene Petrov's comedy "The Twelve Chairs". Bender is
     generally referred to as "The Great Combinator" since the word
-    "combinator" is Russian also means "a swindler", "a sly man" etc.
+    "combinator" in Russian also means "a swindler", "a sly man" etc.
 *)
 
-(** {1 Main parsing types } *)
+(** {2 Main parsing types } *)
 
 (** Type pattern for result of parsing. Result is either a parsed value, an error with a list of 
     error details or a failure with a list of details. 
@@ -49,14 +49,14 @@ type ('stream, 'parsed, 'error) result = ('parsed * 'stream, 'error) tag
 *)
 type ('stream, 'parsed, 'error) parse  = 'stream -> ('stream, 'parsed, 'error) result
 
-(** {1 General parse functions } *)
+(** {2 General parse functions } *)
 
 (** [rise s] returns [Parsed (s, s)] and so "rises" the stream [s] as a successful
     parse result
 *)
 val rise : ('a, 'a, 'b) parse
 
-(** {1 General parsing combinators} *)
+(** {2 General parsing combinators} *)
 
 (** [map f p] applies [f] to the result of [p], if [p] succeeded, or fails otherwise. *)
 val map : ('b -> 'c) -> ('a, 'b, 'd) parse -> ('a, 'c, 'd) parse 
@@ -64,52 +64,53 @@ val map : ('b -> 'c) -> ('a, 'b, 'd) parse -> ('a, 'c, 'd) parse
 (** Infix synonim for [map]. Note: the order of parameters is inverted. *)
 val (-->) : ('a, 'b, 'd) parse -> ('b -> 'c) -> ('a, 'c, 'd) parse
 
-(** [seq x y] is constructs a parser function to parse successively by [x] and [y]. Parsed by
-    [x] value is passed as a context to [y] 
+(** Sequence combinator. [seq x y] is constructs a parser function to parse successively by [x] and [y]. 
+    Parsed by [x] value is passed to [y] as a context 
 *)
 val seq : ('a, 'b, 'e) parse -> ('b -> ('a, 'c, 'e) parse) -> ('a, 'c, 'e) parse
 
-(** Infix synonym for [seq] *)
+(** Infix synonym for [seq]. *)
 val (|>)  : ('a, 'b, 'e) parse -> ('b -> ('a, 'c, 'e) parse) -> ('a, 'c, 'e) parse
  
 (** Alternative combinator. [alt x y] returns parse function that eats that that either [x] or [y] eat.
     [alt x y] tries [y] even if [x] returned [Error].
- *)
+*)
 val alt : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 
-(** Infix synonym for [alt] *)
+(** Infix synonym for [alt]. *)
 val (<|>) : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 
 (** Pruned alternative combinator. [alc x y] returns parse function that eats 
-    that that either [x] or [y] eat; if [x] returned [Error] then [y] is not tried *)
+    that that either [x] or [y] eat; if [x] returned [Error] then [y] is not tried.
+*)
 val alc : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 
-(** Infix synonym for [alc] *)
+(** <!> is infix synonym for [alc]. *)
 val (<!>) : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 
-(** Optional combinator. [opt x] returns parse function that eats either [x] or nothing *)
+(** Optional combinator. [opt x] returns parse function that eats either [x] or nothing. *)
 val opt : ('a, 'b, 'c) parse -> ('a, 'b option, 'c) parse
 
-(** Infix synonym for [opt] *)
+(** <?> is infix synonym for [opt]. *)
 val (<?>) : ('a, 'b, 'c) parse -> ('a, 'b option, 'c) parse
 
-(** Zero-or-more iteration. [many x] returns parse function that eats zero of more
-    sucessive occurencies of items eaten by [x] 
+(** Zero-or-more iteration. [many x] returns parse function that {b eagerly} eats zero of more
+    sucessive occurencies of items eaten by [x]. 
 *)
 val many : ('a, 'b, 'c) parse -> ('a, 'b list, 'c) parse
 
-(** One-or-more iteration. [some x] returns parse function that eats one of more
-    sucessive occurencies of items eaten by [x] 
+(** One-or-more iteration. [some x] returns parse function that {b eagerly} eats one of more
+    sucessive occurencies of items eaten by [x]. 
 *)
 val some : ('a, 'b, 'c) parse -> ('a, 'b list, 'c) parse
 
-(** Infix synonym for [many] *)
+(** Infix synonym for [many]. *)
 val (<*>) : ('a, 'b, 'c) parse -> ('a, 'b list, 'c) parse
 
-(** Infix synonym for [some] *)
+(** Infix synonym for [some]. *)
 val (<+>) : ('a, 'b, 'c) parse -> ('a, 'b list, 'c) parse
 
-(** Guarded parse function constructor. [guard p predicate] is 
+(** Guarded parse function constructor. [guard p predicate] 
     checks [predicate] against successfull parsed by [p] value and 
     turns it into [Failed []] if this check failed.
 *)    

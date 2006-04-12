@@ -21,7 +21,7 @@
 
   {2 General description}
 
-  [Pa_ostap] extends Objective Caml grammar with two constructions: [rule] and [rules].
+  [Pa_ostap] extends Objective Caml grammar with two constructs: [rule] and [rules].
   The latter represents a set of (mutually recursive) {b grammar entries definitions} 
 at the structure level while the former denotes the single {b grammar expression}. Both 
 constructions are converted into pure OCaml using [Ostap] parser combinators.
