@@ -15,32 +15,34 @@
  * (enclosed in the file COPYING).
  *)
 
-(** {1 Messaging operations} *)
+(** Parsing messages interface. *)
 
-(** Text coordinate *)
+(** {2 Messaging operations} *)
+
+(** Text coordinate. *)
 module Coord :
   sig
 
-    (** Type synonim: line, column *)  
+    (** Type synonim: line, column. *)  
     type t = int * int
 
-    (** Visualization *)
+    (** Visualization. *)
     val toString : t -> string
 
   end
 
-(** Various ways to denote the location in the source text *)
+(** Various ways to denote the location in the source text. *)
 module Locator :
   sig
 
-    (** Locator type *)
+    (** Locator type. *)
     type t =
         No                             (** No location defined *)
       | Point    of Coord.t            (** One point in the text *)
       | Interval of Coord.t * Coord.t  (** Contiguous interval of points *)
       | Set      of t list             (** Non-contiguous set of locations *)
 
-    (** Visualization *)
+    (** Visualization. *)
     val toString : t -> string
 
   end
@@ -50,26 +52,26 @@ module Locator :
     form ["%0"], ["%1"], ["%2"] etc. These referencies to be substituted with corresponding actual
     values (e.f. [args.(0)], [args.(1)] etc.) during toString vizualization. For example,
     [toString {phrase="%0 %1 not found"; args=[|"type"; "int"|]; loc=No}] is
-    ["type int not found"] *)
+    ["type int not found"]. *)
 type t = {phrase: string; args: string array; loc: Locator.t} 
 
-(** General constructor *) 
+(** General constructor. *) 
 val make : string -> string array -> Locator.t -> t
 
-(** No parameters, no locator *)
+(** No parameters, no locator. *)
 val phrase : string -> t
 
-(** No locators *)
+(** No locators. *)
 val orphan : string -> string array -> t
 
-(** Substitute parameters *)
+(** Substitute parameters. *)
 val string : t -> string
 
-(** Visualization with parameter substitution *)
+(** Visualization with parameter substitution. *)
 val toString : t -> string
 
-(** Augment the message with the location (replaces [Locator.No] with the [loc]) *)
+(** Augment the message with the location (replaces [Locator.No] with the [loc]). *)
 val augment : t -> Locator.t -> t
 
-(** Augment the list of messages with the location *)
+(** Augment the list of messages with the location. *)
 val augmentList : t list -> Locator.t -> t list

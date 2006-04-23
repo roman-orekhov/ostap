@@ -1,5 +1,5 @@
 (*
- * Ostap: basic set of parser combinators.
+ * Ostap: a common set of parser combinators.
  * Copyright (C) 2006
  * Dmitri Boulytchev, St.Petersburg State University
  * 
@@ -15,7 +15,7 @@
  * (enclosed in the file COPYING).
  *)
 
-(** Ostap --- a common set of parser combinators *)
+(** Ostap --- a common set of parser combinators. *)
 
 (** The name of this library originates from Ostap Bender --- the central character
     of Ilya Ilf and Eugene Petrov's comedy "The Twelve Chairs". Bender is
@@ -26,7 +26,12 @@
 (** {2 Main parsing types } *)
 
 (** Type pattern for result of parsing. Result is either a parsed value, an error with a list of 
-    error details or a failure with a list of details. 
+    error details or a failure with a list of details. The difference between error and failure is 
+    that error indicates the real error that has to be reported while failure only means that 
+    taken way to parse the source was unsuccessful (but some other may be ok). For example,
+    parsing the stream "B" with rule "A", "B" results in failure since no items was consumed from
+    the stream; on the other hand parsing "AC" with the same rule returns error since "A" was
+    succesfully matched against the stream, but "B" then failed.
 *)
 type ('a, 'b) tag = Parsed of 'a | Error of 'b list | Failed of 'b list
 
@@ -36,7 +41,7 @@ type ('a, 'b) tag = Parsed of 'a | Error of 'b list | Failed of 'b list
 
     denotes a result of parsing a stream with a parse function. This result
     is either successful parse comprising parsed value of type ['parsed] and the residual 
-    stream of type ['stream], or an error/failure data of type ['error]
+    stream of type ['stream], or an error/failure data of type ['error].
 *)
 type ('stream, 'parsed, 'error) result = ('parsed * 'stream, 'error) tag
 
@@ -45,14 +50,14 @@ type ('stream, 'parsed, 'error) result = ('parsed * 'stream, 'error) tag
     {C [type ('stream, 'parsed, 'error) parse  = 'stream -> ('stream, 'parsed, 'error) result]}
 
     corresponds to a parse function. Parse function takes a stream of type ['stream] and
-    returns parsing result
+    returns parsing result.
 *)
 type ('stream, 'parsed, 'error) parse  = 'stream -> ('stream, 'parsed, 'error) result
 
 (** {2 General parse functions } *)
 
 (** [rise s] returns [Parsed (s, s)] and so "rises" the stream [s] as a successful
-    parse result
+    parse result.
 *)
 val rise : ('a, 'a, 'b) parse
 
@@ -65,7 +70,7 @@ val map : ('b -> 'c) -> ('a, 'b, 'd) parse -> ('a, 'c, 'd) parse
 val (-->) : ('a, 'b, 'd) parse -> ('b -> 'c) -> ('a, 'c, 'd) parse
 
 (** Sequence combinator. [seq x y] is constructs a parser function to parse successively by [x] and [y]. 
-    Parsed by [x] value is passed to [y] as a context 
+    Parsed by [x] value is passed to [y] as a context. 
 *)
 val seq : ('a, 'b, 'e) parse -> ('b -> ('a, 'c, 'e) parse) -> ('a, 'c, 'e) parse
 
