@@ -24,8 +24,13 @@
   [Pa_ostap] extends Objective Caml grammar with two constructs: [rule] and [rules].
   The latter represents a set of (mutually recursive) {b grammar entries definitions} 
 at the structure level while the former denotes the single {b grammar expression}. Both 
-constructions are converted into pure OCaml using [Ostap] parser combinators.
-  
+constructions are converted into pure OCaml using {!Ostap} parser combinators.
+
+  While [Ostap] is purely abstract with regard to stream implementation [Pa_ostap] 
+additionaly allows for convinient integration of parsing and lexing by considering {i streams
+as objects}. Namely, the stream of tokens [L]{_1}, [L]{_2}, ..., [L]{_k} is represented by an object
+with member functions [getL]{_1}, [getL]{_2}, ..., [getL]{_k}. 
+
   {2 Grammar expression}
 
 
@@ -51,6 +56,52 @@ constructions are converted into pure OCaml using [Ostap] parser combinators.
 
   [action] {b : } [{] {i EXPR} [}]
 
+  Here {i UIDENT} and {i LIDENT} stand for identifiers starting from uppercase and lowercase letter
+  correspondingly, {i EXPR} --- for OCaml expression, {i PATT} --- for OCaml pattern.
+
+  {i LIDENT} within grammar expression denotes a {i parse function} that applied to a stream to
+  obtain parsed value and residual stream (see module {!Ostap}). {i UIDENT} is treated as a lexeme reference;
+  thought generally speaking parsing with Ostap does not require any lexer to be provided (you must instead supply
+  a set of basic parse functions in any way you find convinient) [Pa_ostap] additionally operates with some predefined
+  representation of streams as objects (see module {!Matcher}). This representation does not interfere with the
+  common approach and you need not use this feature unless you explicitly apply to it. There are only two constructions
+  that refer to object implementation of streams: {i UIDENT} and {i STRING}. If you use {i UIDENT} in grammar 
+  expression, for example {i NAME}, then the stream to parse with this expression has to provide a memeber function
+  {i getName}. Similarly using {i STRING} in expression requires stream to provide a member {i look}. 
+
+  We will not describe the meaning of all constructions in all details since generally it follows the common
+  BNF style; instead we demonstrate some examples that cover all cases of their exploration. 
+
+  {b Examples:}
+
+  {ol
+    {li ["(" expression ")"] is a grammar expression to define a function that matches a stream against successive 
+     occurences of ["("], that that parsed by [expression], and [")"]. On success this function returns {i a triple}:
+     the token for ["("], the value parsed by [expression], and the token for [")"]. There are generally two ways
+     to exclude ["("] and [")"] from the result. The first way is to bind the result of [expression] to some name 
+     and then explicitly specify the result of grammar expression as follows:
+
+     ["(" <e>=expression ")" {e}]
+  
+     The second is just to say to omit brackets:
+
+     [-"(" expression -")"].
+
+     Note that you may specify any pattern in the left part of binding; note also that you {i must not} split
+     the symbol [">="] in binding specification (so, [<e> =expression] won't be parsed by [Pa_ostap]). Prefix
+     omitting operator "[-]" may also be applied to any grammar expression, enclosed in brackets.
+    }
+    {li [<hd>=item <tl>=(-"," item)* {hd :: tl}] defines a function to parse a list of items}
+    {li [(<s>=string {`Str s} | <x>=integer {`Int x})*] defines a function to parse a list of strings or integers}
+    {li [<hd>=integer <tl>=(-(","?) integer)* {hd :: tl}] parses a list of integers delimited by optional commas}
+    {li [<x>=integer => {x > 0} => {x}] parses positive integer value}
+    {li [<x>=(integer?) => {match x with Some 0 -> false | _ -> true} => {x}] parses optional non-zero integer value}    
+  }
+ 
+  In all examples above we assume that [integer] parses integer value, [string] --- string value.
+  Additionally you may specify parameters to parse functions used in grammar expression by
+  enclosing them in square brackets.
+
   {2 Rule definition}
 
   [rule] construction serves to embed a single grammar expression into the program code. The
@@ -65,8 +116,18 @@ syntax is as follows:
   binds identifier [intPair] to parse function that parses and returns a pair of integers. Here
   assumed that [integer] is a parse function to parse integer literals.
 
+  You may, of course, define a custom parser combinator: 
+
+  [let inBrackets what = rule -"(" what -")" end]
+
+  or
+
+  [let listOf item delim = rule <hd>=item <tl>=(-delim item)* {hd :: tl} end]
+
   {2 Grammar entries}
  
+  The following construction allows to define a set of mutually recursive grammar definitions
+  at the structure (module implementation) level:
 
   [rules] {b : } {b rules} [entry]{_[1]} {b ;} [entry]{_[2]} {b ;} ... {b ;} [entry]{_[k]} {b end}
 
@@ -74,6 +135,20 @@ syntax is as follows:
 
   [arguments] {b : } [\[] {i PATT}{_1} {i PATT}{_2} {b ...} {i PATT}{_k} [\]]   
 
+  For example,
+
+  [rules]
+ 
+  [   sequence[start]: item[start] | <next>=item[start] sequence[next];]
+
+  [   item[start]: <x>=integer {x+start} | ";" {start}];
+
+  [   entry: sequence[0]]
+
+  [end]
+
+  declares (among others) the parser function [entry] that parses and sums a semicolon-terminated 
+  sequence of integers.
 *)
 
 (**/**)
