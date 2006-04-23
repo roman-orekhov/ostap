@@ -15,7 +15,7 @@
  * (enclosed in the file COPYING).
  *)
 
-(** Pa_ostap --- a camlp4 syntax extension for BNF-like grammar definitions *)
+(** Pa_ostap --- a camlp4 syntax extension for BNF-like grammar definitions. *)
 
 (**
 
@@ -26,12 +26,10 @@
 at the structure level while the former denotes the single {b grammar expression}. Both 
 constructions are converted into pure OCaml using [Ostap] parser combinators.
   
-
   {2 Grammar expression}
 
 
   The syntax of {b grammar expression} is as follows:
-
   
   [expr] {b :} [alternative]{_[1]} {b | } [alternative]{_[2]} {b | ... |} [alternative]{_[k]}
 
