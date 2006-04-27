@@ -29,7 +29,9 @@ constructions are converted into pure OCaml using {!Ostap} parser combinators.
   While [Ostap] is purely abstract with regard to stream implementation [Pa_ostap] 
 additionaly allows for convinient integration of parsing and lexing by considering {i streams
 as objects}. Namely, the stream of tokens [L]{_1}, [L]{_2}, ..., [L]{_k} is represented by an object
-with member functions [getL]{_1}, [getL]{_2}, ..., [getL]{_k}. 
+with member functions [getL]{_1}, [getL]{_2}, ..., [getL]{_k}. Such a representation allows
+to freely combine various parser functions that operate on different types of streams with no
+type limitations at construction time.
 
   {2 Grammar expression}
 
@@ -67,7 +69,7 @@ with member functions [getL]{_1}, [getL]{_2}, ..., [getL]{_k}.
   common approach and you need not use this feature unless you explicitly apply to it. There are only two constructions
   that refer to object implementation of streams: {i UIDENT} and {i STRING}. If you use {i UIDENT} in grammar 
   expression, for example {i NAME}, then the stream to parse with this expression has to provide a memeber function
-  {i getName}. Similarly using {i STRING} in expression requires stream to provide a member {i look}. 
+  {i getNAME}. Similarly using {i STRING} in expression requires stream to provide a member {i look}. 
 
   We will not describe the meaning of all constructions in all details since generally it follows the common
   BNF style; instead we demonstrate some examples that cover all cases of their exploration. 
