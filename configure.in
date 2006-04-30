@@ -69,6 +69,6 @@ doc/Makefile
 src/Makefile
 camlp4/Makefile
 camlp4/regression/Makefile
-regression/Makefile
+sample/Makefile
 ])
 AC_OUTPUT

@@ -22,16 +22,19 @@
   {2 General description}
 
   [Pa_ostap] extends Objective Caml grammar with two constructs: [rule] and [rules].
-  The latter represents a set of (mutually recursive) {b grammar entries definitions} 
-at the structure level while the former denotes the single {b grammar expression}. Both 
-constructions are converted into pure OCaml using {!Ostap} parser combinators.
+  The latter represents a set of (mutually recursive) {b grammar entries definitions}  
+  at the structure level while the former denotes the single {b grammar expression}. Both 
+  constructions are converted into pure OCaml using {!Ostap} parser combinators.
 
   While [Ostap] is purely abstract with regard to stream implementation [Pa_ostap] 
-additionaly allows for convinient integration of parsing and lexing by considering {i streams
-as objects}. Namely, the stream of tokens [L]{_1}, [L]{_2}, ..., [L]{_k} is represented by an object
-with member functions [getL]{_1}, [getL]{_2}, ..., [getL]{_k}. Such a representation allows
-to freely combine various parser functions that operate on different types of streams with no
-type limitations at construction time.
+  additionaly allows for convinient integration of parsing and lexing by considering {i streams
+  as objects}. Namely, the stream of tokens [L]{_1}, [L]{_2}, ..., [L]{_k} is represented by an object
+  with member functions [getL]{_1}, [getL]{_2}, ..., [getL]{_k}. Such a representation allows
+  to freely combine various parser functions that operate on different types of streams with almost no
+  type limitations at construction time.
+
+  Additionally to this documentation we provide a closed example of how to use [Pa_ostap] (see
+  [sample] directory of the distribution.
 
   {2 Grammar expression}
 
@@ -58,7 +61,7 @@ type limitations at construction time.
 
   [action] {b : } [{] {i EXPR} [}]
 
-  Here {i UIDENT} and {i LIDENT} stand for identifiers starting from uppercase and lowercase letter
+  Here {i UIDENT} and {i LIDENT} stand for identifiers starting from uppercase and lowercase letters
   correspondingly, {i EXPR} --- for OCaml expression, {i PATT} --- for OCaml pattern.
 
   {i LIDENT} within grammar expression denotes a {i parse function} that applied to a stream to
