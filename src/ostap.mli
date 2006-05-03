@@ -29,7 +29,7 @@
     error details or a failure with a list of details. The difference between error and failure is 
     that error indicates the real error that has to be reported while failure only means that 
     taken way to parse the source was unsuccessful (but some other may be ok). For example,
-    parsing the stream "B" with rule "A", "B" results in failure since no items was consumed from
+    parsing the stream "B" with rule "A", "B" results in failure since no items were consumed from
     the stream; on the other hand parsing "AC" with the same rule returns error since "A" was
     succesfully matched against the stream, but "B" then failed.
 *)
