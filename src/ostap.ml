@@ -35,7 +35,8 @@ let map f p =
 
 let (-->) p f = map f p
 
-let rise s = Parsed (s, s)
+let empty s = Parsed ((), s)
+let rise  s = Parsed (s, s)
 
 let alt x y =
   (fun s ->

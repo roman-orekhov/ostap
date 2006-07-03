@@ -357,13 +357,29 @@ EXTEND
   ];
 
   y_reference: [
-    [ p=LIDENT -> <:expr<$lid:p$>> ] |
+    [ y_path ] |
     [ "@"; p=y_qualified -> p ]
   ];
 
   y_qualified: [
-    [ p=LIDENT -> <:expr<$lid:p$>> ] |
+    [ y_path ] |
     [ q=UIDENT; "."; p=y_qualified -> <:expr< $uid:q$.$p$ >> ]
+  ];
+
+  y_path: [
+    [ p=LIDENT; t=y_tail -> 
+      match t with [
+        `Empty    -> <:expr< $lid:p$ >>
+      | `Field  q -> <:expr< $lid:p$ . $q$ >>
+      | `Method q -> <:expr< $lid:p$ # $lid:q$ >>
+      ]
+    ] 
+  ];
+
+  y_tail:[
+    [ "."; p=y_path -> `Field  p ] |
+    [ "#"; p=LIDENT -> `Method p ] |
+    [ -> `Empty ] 
   ];
 
   y_parameters: [
