@@ -10,7 +10,7 @@ MODULE_INCLUDES += -I $(top_srcdir)/src
 EXTRA_CMA += $(PACKAGE).cma
 
 # OCaml parser call with flags
-AM_P4FLAGS := -pp "$(CAMLP4O) $(PARSER_INCLUDES) pa_ostap.cmo pr_dump.cmo"
+AM_P4FLAGS = -pp "$(CAMLP4O) $(PARSER_INCLUDES) pa_ostap.cmo pr_dump.cmo"
 
 TARGET = 
 
