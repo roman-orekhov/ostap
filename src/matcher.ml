@@ -56,7 +56,7 @@ class virtual ['a] matcher (make : string -> int -> Msg.Coord.t -> 'a) s p coord
 	let m = matched_string s in
 	LOG (printf "Ok, repr=%s\n" m);
 	let p = p + length m in	
-	Parsed ((m, coord), make s p (shiftPos coord m 0 (length m)))
+	Parsed (((m, coord), make s p (shiftPos coord m 0 (length m))), [])
       end
       else 
 	Failed [Msg.make (sprintf "%s expected" name) [||] (Msg.Locator.Point coord)]
@@ -67,7 +67,7 @@ class virtual ['a] matcher (make : string -> int -> Msg.Coord.t -> 'a) s p coord
 	let l = String.length str in
 	let m = String.sub s p l in
 	if str = m 
-	then Parsed ((m, coord), make s (p+l) (shiftPos coord m 0 (length m)))
+	then Parsed (((m, coord), make s (p+l) (shiftPos coord m 0 (length m))), [])
 	else Failed [Msg.make (sprintf "%s expected" str) [||] (Msg.Locator.Point coord)]
       with Invalid_argument _ -> Failed [Msg.make (sprintf "%s expected" str) [||] (Msg.Locator.Point coord)]
 
@@ -75,14 +75,13 @@ class virtual ['a] matcher (make : string -> int -> Msg.Coord.t -> 'a) s p coord
       let p, coord = self#skip in
       LOG (printf "Trying <EOF> at %s\n" (sub s p (min 10 (length s - p)))); 
       if p = length s 
-      then Parsed (("<EOF>", coord), make s p coord)
+      then Parsed ((("<EOF>", coord), make s p coord), [])
       else Failed [Msg.make "<EOF> expected" [||] (Msg.Locator.Point coord)]
 
     method getFIRST   = self#look ""
     method getLAST    = 
       (
-       Parsed (("", coord), make s p coord) : 
-	 ((string * Msg.Coord.t) * 'a, Msg.t) Ostap.tag
+       Parsed ((("", coord), make s p coord), []) : ((string * Msg.Coord.t) * 'a, Msg.t) Ostap.tag
       )
 
   end

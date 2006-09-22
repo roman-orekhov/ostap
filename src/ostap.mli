@@ -25,15 +25,17 @@
 
 (** {2 Main parsing types } *)
 
-(** Type pattern for result of parsing. Result is either a parsed value, an error with a list of 
-    error details or a failure with a list of details. The difference between error and failure is 
-    that error indicates the real error that has to be reported while failure only means that 
-    taken way to parse the source was unsuccessful (but some other may be ok). For example,
+(** Type pattern for result of parsing. Result is either a parsed value and a list of deferred errors, 
+    an error with a list of error details or a failure with a list of details. Deferred errors are those
+    which has to be ponentially signalled in the future. For example, parsing the string "A, B" with
+    then rule ("A" "B")? has to return parsed value with deferred error message "B expected". The difference 
+    between Error and Failure is that error indicates the real error that has to be reported while failure 
+    only means that taken way to parse the source was unsuccessful (but some other may be ok). For example,
     parsing the stream "B" with rule "A", "B" results in failure since no items were consumed from
     the stream; on the other hand parsing "AC" with the same rule returns error since "A" was
-    succesfully matched against the stream, but "B" then failed.
+    succesfully matched against the stream, but "B" then failed. 
 *)
-type ('a, 'b) tag = Parsed of 'a | Error of 'b list | Failed of 'b list
+type ('a, 'b) tag = Parsed of 'a * 'b list | Error of 'b list | Failed of 'b list
 
 (** The type 
 
@@ -55,6 +57,9 @@ type ('stream, 'parsed, 'error) result = ('parsed * 'stream, 'error) tag
 type ('stream, 'parsed, 'error) parse  = 'stream -> ('stream, 'parsed, 'error) result
 
 (** {2 General parse functions } *)
+
+(** [empty s] consumes no items from the stream; always returns success *)
+val empty : ('a, unit, 'b) parse
 
 (** [rise s] returns [Parsed (s, s)] and so "rises" the stream [s] as a successful
     parse result.
@@ -84,14 +89,6 @@ val alt : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 
 (** Infix synonym for [alt]. *)
 val (<|>) : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
-
-(** Pruned alternative combinator. [alc x y] returns parse function that eats 
-    that that either [x] or [y] eat; if [x] returned [Error] then [y] is not tried.
-*)
-val alc : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
-
-(** <!> is infix synonym for [alc]. *)
-val (<!>) : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
 
 (** Optional combinator. [opt x] returns parse function that eats either [x] or nothing. *)
 val opt : ('a, 'b, 'c) parse -> ('a, 'b option, 'c) parse

@@ -1,5 +1,5 @@
 (*
- * Test006: simplest ocamlyard test.
+ * Test009: simplest ocamlyard test.
  * Copyright (C) 2006
  * Dmitri Boulytchev, St.Petersburg State University
  * 
@@ -64,21 +64,32 @@ class lexer s p =
       
   end
 
-let list = rule <hd>=IDENT <tl>=(-"," IDENT)* {hd :: tl} end 
-let list = rule <hd>=list <tl>=(-";" list)* {hd :: tl} end
-let m = rule list -EOF end
+module X =
+  struct
+
+    let parse = rule "," end
+
+  end
+
+class ['a] ppp =
+  object (self)
+
+    method list (elem : 'a) = rule <hd>=elem <tl>=(- @X.parse elem)* {hd :: tl} end
+    method m = rule self#list[rule IDENT end] -EOF end 
+    
+  end 
+
 let _ =
-  begin match m (new lexer "r,t , f , g ,     u, i; u, g " 0) with
+  let p = new ppp in
+  begin match p#m (new lexer "r,t , f , g ,     u, i " 0) with
   | Parsed ((str, _), _) -> 
-      Printf.printf "Parsed: %s\n" 
-	(List.fold_left (fun s l -> List.fold_left (^) s l) "" str)
+      Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)
 	
   | _ -> Printf.printf "Failed.\n"
   end;
-  begin match m (new lexer " abc; def " 0) with
+  begin match p#m (new lexer " abc; def " 0) with
   | Parsed ((str, _), _) -> 
-      Printf.printf "Parsed: %s\n" 
-	(List.fold_left (fun s l -> List.fold_left (^) s l) "" str)
+      Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)
   | _ -> Printf.printf "Failed.\n"
   end;
   

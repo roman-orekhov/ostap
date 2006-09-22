@@ -51,7 +51,11 @@
 
   [postfix] {b : } [primary] {b | } [postfix] {b ( } [*] {b | } [+] {b | } [?] {b ) }
 
-  [primary] {b : } {i UIDENT} {b | } {i LIDENT} {b \[ } [parameters] {b \] } {b | } {i STRING} {b | ( } [expr] {b )}
+  [primary] {b : } {i UIDENT} {b | } {i reference} {b \[ } [parameters] {b \] } {b | } {i STRING} {b | ( } [expr] {b )}
+
+  [reference] {b : } {i LIDENT} {b | } {b @} [qualified]
+
+  [qualified] {i LIDENT} {b | } {i UIDENT} {b .} [qualified]
 
   [parameters] {b : } [\[] {i EXPR}{_1} {i EXPR}{_2} {b ...} {i EXPR}{_k} [\]]
 
@@ -64,8 +68,10 @@
   Here {i UIDENT} and {i LIDENT} stand for identifiers starting from uppercase and lowercase letters
   correspondingly, {i EXPR} --- for OCaml expression, {i PATT} --- for OCaml pattern.
 
-  {i LIDENT} within grammar expression denotes a {i parse function} that applied to a stream to
-  obtain parsed value and residual stream (see module {!Ostap}). {i UIDENT} is treated as a lexeme reference;
+  [reference] within grammar expression denotes a {i parse function} that applied to a stream to
+  obtain parsed value and residual stream (see module {!Ostap}). Each reference is either a {i LIDENT} or
+  a qualified reference as per OCaml, prefixed by @ to distinguish from {i UIDENT}. 
+  {i UIDENT} is treated as a lexeme reference;
   thought generally speaking parsing with Ostap does not require any lexer to be provided (you must instead supply
   a set of basic parse functions in any way you find convinient) [Pa_ostap] additionally operates with some predefined
   representation of streams as objects (see module {!Matcher}). This representation does not interfere with the
@@ -101,6 +107,7 @@
     {li [<hd>=integer <tl>=(-(","?) integer)* {hd :: tl}] parses a list of integers delimited by optional commas}
     {li [<x>=integer => {x > 0} => {x}] parses positive integer value}
     {li [<x>=(integer?) => {match x with Some 0 -> false | _ -> true} => {x}] parses optional non-zero integer value}    
+    {li [<x>=@MyParseLibrary.MyModule.parseIt] parses the source with parse function specified by qualified name}    
   }
  
   In all examples above we assume that [integer] parses integer value, [string] --- string value.
@@ -314,12 +321,11 @@ EXTEND
   ];
 
   y_primary: [
-    [ p=LIDENT; args=OPT y_parameters -> 
+    [ p=y_reference; args=OPT y_parameters -> 
           match args with [
-             None      -> <:expr<$lid:p$>>
+             None      -> p 
            | Some args -> 
-               let p = <:expr<$lid:p$>> in
-	       List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args
+               List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args
           ]
     ] |
     [ p=UIDENT ->  
@@ -348,6 +354,32 @@ EXTEND
           <:expr<fun [$list:pwel$]>>
     ] |
     [ "("; p=y_alternatives; ")" -> p ]   
+  ];
+
+  y_reference: [
+    [ y_path ] |
+    [ "@"; p=y_qualified -> p ]
+  ];
+
+  y_qualified: [
+    [ y_path ] |
+    [ q=UIDENT; "."; p=y_qualified -> <:expr< $uid:q$.$p$ >> ]
+  ];
+
+  y_path: [
+    [ p=LIDENT; t=y_tail -> 
+      match t with [
+        `Empty    -> <:expr< $lid:p$ >>
+      | `Field  q -> <:expr< $lid:p$ . $q$ >>
+      | `Method q -> <:expr< $lid:p$ # $lid:q$ >>
+      ]
+    ] 
+  ];
+
+  y_tail:[
+    [ "."; p=y_path -> `Field  p ] |
+    [ "#"; p=LIDENT -> `Method p ] |
+    [ -> `Empty ] 
   ];
 
   y_parameters: [
