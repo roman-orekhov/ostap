@@ -60,21 +60,6 @@ let alt x y =
     
 let (<|>) = alt
 
-let alc x y =
-  (fun s ->
-    LOG (printf "running alc\n");
-    match x s with
-    | Failed x -> 
-	LOG (printf "alc left part failed, trying its right part\n"); 
-	y s
-	  
-    | x -> 
-	LOG (printf "alc left part parsed\n"); 
-	x
-  )
-    
-let (<!>) = alc
-
 let seq x y =
   (fun s -> 
     LOG (printf "running seq\n");
@@ -99,7 +84,7 @@ let (<?>) = opt
     
 let rec many p = 
   (fun s ->
-    ((p |> (fun h -> many p --> (fun t -> h :: t))) <!> return []) s
+    ((p |> (fun h -> many p --> (fun t -> h :: t))) <|> return []) s
   )
   
 let (<*>) = many
