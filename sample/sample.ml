@@ -4,6 +4,10 @@ open Str
 open Ostap 
 
 let p = rule <name>=IDENT -"(" (<h>=IDENT <t>=(-"," IDENT)* {h::t}) -")" end
+
+let q = rule "{" IDENT+ "}" {()} | IDENT {()} end
+let t = rule "match" q? "in" IDENT end
+
 let ws      = regexp "[ \n\t\r]+"
 let ident   = regexp "[a-zA-Z_]\([a-zA-Z_0-9]\)*"
 
@@ -33,13 +37,12 @@ let ofString s = new lexer s 0 (1, 1)
 
 let parse s =
   let module P = View.NamedPair (struct let first = "name" let second = "args" end) (Token) (View.List (Token)) in
-  match p (ofString s) with
-  | Parsed (x, _) -> Printf.printf "Success: %s\n" (P.toString x)
+  match t (ofString s) with
+  | Parsed (x, _) -> Printf.printf "Success\n" (*P.toString x*)
   | Failed msgs | Error msgs -> Printf.printf "Unsuccess: %s\n" (let module M = View.List (Msg) in M.toString msgs)
 
 let _ =
-  parse "a (b, c, d)";
-  parse "a"
+  parse "match {b c, d} in x"
   
 
 

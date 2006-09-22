@@ -33,7 +33,7 @@
     the stream; on the other hand parsing "AC" with the same rule returns error since "A" was
     succesfully matched against the stream, but "B" then failed.
 *)
-type ('a, 'b) tag = Parsed of 'a | Error of 'b list | Failed of 'b list
+type ('a, 'b) tag = Parsed of 'a * 'b list | Error of 'b list | Failed of 'b list
 
 (** The type 
 

@@ -18,37 +18,40 @@
 open Printf
 open List
 
-type ('a, 'b) tag = Parsed of 'a | Error of 'b list | Failed of 'b list
+type ('a, 'b) tag = Parsed of 'a * 'b list | Error of 'b list | Failed of 'b list
 
 type ('a, 'b, 'c) result = ('b * 'a, 'c) tag
 and  ('a, 'b, 'c) parse  = 'a -> ('a, 'b, 'c) result
       
-let return x = (fun s -> Parsed (x, s))
+let return x = (fun s -> Parsed ((x, s), []))
 let cast     = function Error x -> Error x | Failed x -> Failed x | _ -> invalid_arg "Ostap.cast"
 
 let map f p = 
   (fun s ->
     match p s with
-    | Parsed (b, s') -> Parsed (f b, s')
+    | Parsed ((b, s'), e) -> Parsed ((f b, s'), e)
     | x -> cast x
   )
 
 let (-->) p f = map f p
 
-let empty s = Parsed ((), s)
-let rise  s = Parsed (s, s)
+let empty s = Parsed (((), s), [])
+let rise  s = Parsed ((s, s), [])
 
 let alt x y =
   (fun s ->
     LOG (printf "running alt\n");
-    match x s with
+    match x s with 
     | Error x -> 
 	LOG (printf "alt left part error, trying its right part\n"); 
-	(match y s with Error y | Failed y -> Error (x @ y) | x -> x)
+	begin match y s with 
+	| Error y | Failed y -> Error (x @ y) 
+	| Parsed (ok, err) -> Parsed (ok, x @ err)
+	end
 	  
     | Failed x -> 
 	LOG (printf "alt left part failed, trying its right part\n"); 
-	y s
+	y s 
 	  
     | x -> 
 	LOG (printf "alt left part parsed\n"); 
@@ -76,9 +79,12 @@ let seq x y =
   (fun s -> 
     LOG (printf "running seq\n");
     match x s with
-    | Parsed (b, s') ->	
+    | Parsed ((b, s'), err) ->	
 	LOG (printf "seq right part parsed, trying its left part\n");
-	(match y b s' with Failed x | Error x -> Error x | x -> x)	
+	begin match y b s' with 
+	| Failed x | Error x -> Error (err @ x) 
+	| x -> x
+	end
 
     | x -> 
 	LOG (printf "seq left part failed\n");
@@ -105,7 +111,7 @@ let (<+>) = some
 let guard p f = 
   (fun s ->
     match p s with
-    | (Parsed (b, _) as x) -> if f b then x else Failed []
+    | (Parsed ((b, _), _) as x) -> if f b then x else Failed []
     | y -> y
   )
 

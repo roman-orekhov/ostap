@@ -34,7 +34,7 @@ class lexer s p =
       if string_match ident s p
       then 
 	let m = matched_string s in
-	Parsed (m, new lexer s (p+(String.length m)))
+	Parsed ((m, new lexer s (p+(String.length m))), [])
       else
 	Failed [()]	
 
@@ -47,7 +47,7 @@ class lexer s p =
       if string_match (regexp (quote x)) s p
       then 
 	let m = matched_string s in
-	Parsed (m, new lexer s (p+(String.length m)))
+	Parsed ((m, new lexer s (p+(String.length m))), [])
       else
 	Failed [()]	      
 
@@ -59,7 +59,7 @@ class lexer s p =
       in
       if p = String.length s 
       then
-	Parsed ("<EOF>", new lexer s p)
+	Parsed (("<EOF>", new lexer s p), [])
       else
 	Failed [()]	      
       
@@ -69,11 +69,11 @@ let list = rule <hd>=IDENT <tl>=(-"," IDENT)* {hd :: tl} end
 let m = rule list -EOF end
 let _ =
   begin match m (new lexer "r,t , f , g ,     u, i " 0) with
-  | Parsed (str, _) -> Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)
+  | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)
   | _ -> Printf.printf "Failed.\n"
   end;
   begin match m (new lexer " abc " 0) with
-  | Parsed (str, _) -> Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)
+  | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)
   | _ -> Printf.printf "Failed.\n"
   end;
   
