@@ -38,7 +38,6 @@
 
   {2 Grammar expression}
 
-
   The syntax of {b grammar expression} is as follows:
   
   [expr] {b :} [alternative]{_[1]} {b | } [alternative]{_[2]} {b | ... |} [alternative]{_[k]}
@@ -57,7 +56,7 @@
 
   [qualified] {i LIDENT} {b | } {i UIDENT} {b .} [qualified]
 
-  [parameters] {b : } [\[] {i EXPR}{_1} {i EXPR}{_2} {b ...} {i EXPR}{_k} [\]]
+  [parameters] {b : } [\[] {i EXPR} [\]]
 
   [binding] {b : } [<] {i PATT} [>=]
 
@@ -145,7 +144,7 @@ syntax is as follows:
 
   [entry] {b : } {i LIDENT} {b \[ } arguments {b \] } {b : } [expr]
 
-  [arguments] {b : } [\[] {i PATT}{_1} {i PATT}{_2} {b ...} {i PATT}{_k} [\]]   
+  [arguments] {b : } [\[] {i PATT} [\]]   
 
   For example,
 
