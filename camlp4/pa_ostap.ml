@@ -175,19 +175,25 @@ module TeX =
 
     value enabled = ref False;
 
-    value opt   str = sprintf "\\bopt %s \\eopt" str;
-    value plus  str = sprintf "%s\\niter" str;
-    value aster str = sprintf "%s\\diter" str;
-    value group str = sprintf "\\bgrp %s \\egrp" str;
-    value nt    str = sprintf "\\nt{%s}" str;
-    value alt   lst = List.fold_left (fun acc x -> (if acc = "" then "" else acc ^ "\\ralt ") ^ x) "" lst;
-    value seq   lst = List.fold_left (fun acc x -> (if acc = "" then "" else acc ^ "\\rb ") ^ x) "" lst;
-    value list  f x = List.fold_left (fun acc x -> (if acc = "" then "" else acc ^ ", ") ^ f x) "" x;
-    value args  str = sprintf "[%s]" str;
-    value term  str = sprintf "\\term{%s}" str;
-    value str   arg = sprintf "\\term{%S}" arg;
-    value rule  x y = sprintf "\\grule{%s}{%s}\n" x y;
-    value print str = if enabled.val then fprintf stderr "%s" str else ();
+    value opt   str   = sprintf "\\bopt %s \\eopt" str;
+    value plus  str   = sprintf "%s\\niter" str;
+    value aster str   = sprintf "%s\\iter" str;
+    value group str   = sprintf "\\bgrp %s \\egrp" str;
+    value nt    str   = sprintf "\\nt{%s}" str;
+    value pnt   x y   = sprintf "\\pnt{%s}{%s}" x y;
+    value alt   lst   = List.fold_left (fun acc x -> (if acc = "" then "" else acc ^ "\\ralt ") ^ x) "" lst;
+    value seq   lst   = List.fold_left (fun acc x -> (if acc = "" then "" else acc ^ "\\rb ") ^ x) "" lst;
+    value list  f x   = List.fold_left (fun acc x -> (if acc = "" then "" else acc ^ ", ") ^ f x) "" x;
+    value args  str   = sprintf "[%s]" str;
+    value term  str   = sprintf "\\term{%s}" str;
+    value str   arg   = sprintf "\\term{%S}" arg;
+    value rule  x y   = sprintf "\\grule{%s}{%s\\rend}\n\n" x y;
+    value prule x y z = sprintf "\\prule{%s}{%s}{%s\\rend}\n\n" x y z;
+    value print str   = if enabled.val then fprintf stderr "%s" str else ();
+
+    value hash        = (Hashtbl.create 1024 : Hashtbl.t string string);
+    value connect x y = Hashtbl.add hash x y;
+    value protect x   = try Hashtbl.find hash x with [Not_found -> x];
 
   end;
  
@@ -203,8 +209,12 @@ EXTEND
       let body = <:expr< $p$ s >> in
       let pwel = [(<:patt< s >>, None, body)] in
       do {
-        TeX.print (TeX.rule "<anonymous>" image);
-        <:expr< fun [$list:pwel$] >> 
+        let rule = <:expr< fun [$list:pwel$] >> in
+        if TeX.enabled.val
+	then TeX.connect (string_of pr_expr rule) image
+	else ();
+	TeX.print image;
+        rule
       }
     ] |
     [ "let"; "rules"; "="; rules=y_rules; "end"; "in"; e=expr LEVEL "top" ->       
@@ -235,7 +245,16 @@ EXTEND
       let pwel = [(<:patt< s >>, None, body)] in
       let rule = <:expr< fun [$list:pwel$] >> in
       do {
-        TeX.print (TeX.rule name image);
+        match args with [
+	  None      -> TeX.print (TeX.rule name image)
+	| Some p ->
+	    let p =
+	      if TeX.enabled.val 
+	      then string_of pr_patt p
+	      else ""
+	    in
+	    TeX.print (TeX.prule name p image)
+	];        
         (name, args, rule)
       }
     ]
@@ -352,8 +371,8 @@ EXTEND
   y_primary: [
     [ (p, s)=y_reference; args=OPT y_parameters -> 
           match args with [
-             None           -> (p, s)
-           | Some (args, a) -> (List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args, s ^ a)
+             None           -> (p, TeX.nt s)
+           | Some (args, a) -> (List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args, TeX.pnt s a)
           ]
     ] |
     [ p=UIDENT ->  
@@ -385,8 +404,8 @@ EXTEND
   ];
 
   y_reference: [
-    [ (p, s)=y_path -> (p, TeX.nt s) ] |
-    [ "@"; (p, s)=y_qualified -> (p, TeX.nt s) ]
+    [ (p, s)=y_path -> (p, s) ] |
+    [ "@"; (p, s)=y_qualified -> (p, s) ]
   ];
 
   y_qualified: [
@@ -412,7 +431,9 @@ EXTEND
 
   y_parameters: [
     [ "["; e=LIST1 expr; "]" -> 
-      if TeX.enabled.val then (e, TeX.args (TeX.list (string_of pr_expr) e)) else (e, "")
+      if TeX.enabled.val 
+      then (e, TeX.list (fun e -> TeX.protect (string_of pr_expr e)) e) 
+      else (e, "")
     ]
   ];
 

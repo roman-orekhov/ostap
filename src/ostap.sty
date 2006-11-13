@@ -14,8 +14,8 @@
 \newcommand{\tab}{\qquad}
 \newcommand{\brend}{\par\qquad ;;\par\medskip}
 \newcommand{\rend}{\rb$;;$\par\medskip}
-\newcommand{\eopt}{\rb\textup{$)?$}}
-\newcommand{\bopt}{\rb\textup{$($}\rb}
+\newcommand{\eopt}{\rb\textup{\textbf{]}}}
+\newcommand{\bopt}{\rb\textup{\textbf{[}}\rb}
 \newcommand{\egrp}{\rb\textup{)}}
 \newcommand{\bgrp}{\rb\textup{(}\rb}
 \newcommand{\iter}{\textup{$*$}}
@@ -25,12 +25,20 @@
 \newcommand{\term}[1]{\textup{\textbf{#1}}}
 \newcommand{\rb}{\enskip}
 \newcommand{\nt}[1]{{#1}\rref{#1}}
+\newcommand{\pnt}[2]{{#1}\rref{#1}\rb\textup{[}{#2}\textup{]}}
 \newcommand{\ins}[1]{\mbox{\textit{#1}}}
 \newcommand{\grule}[2]%
 {%
 \refstepcounter{nrule}%
 \par(\texttt{\small\arabic{nrule}}){\itshape\rb{#1}\label{#1}\index{#1}%
 \isa{#2}}%
+}
+\newcommand{\prule}[3]%
+{%
+\refstepcounter{nrule}%
+\par(\texttt{\small\arabic{nrule}}){\itshape\rb{#1}\label{#1}\index{#1}%
+\rb\textup{[}{#2}\textup{]}
+\isa{#3}}%
 }
 \newcommand{\grupe}[1]{\par\bigskip{#1}\par\medskip}
 \newcommand{\sign}{\mathop{\rm sign}\nolimits}
