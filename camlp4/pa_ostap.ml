@@ -168,7 +168,29 @@ syntax is as follows:
 #load "q_MLast.cmo";
 
 open Pcaml;
+open Printf;
 
+module TeX =
+  struct
+
+    value enabled = ref False;
+
+    value opt   str = sprintf "\\bopt %s \\eopt" str;
+    value plus  str = sprintf "%s\\niter" str;
+    value aster str = sprintf "%s\\diter" str;
+    value group str = sprintf "\\bgrp %s \\egrp" str;
+    value nt    str = sprintf "\\nt{%s}" str;
+    value alt   lst = List.fold_left (fun acc x -> (if acc = "" then "" else acc ^ "\\ralt ") ^ x) "" lst;
+    value seq   lst = List.fold_left (fun acc x -> (if acc = "" then "" else acc ^ "\\rb ") ^ x) "" lst;
+    value list  f x = List.fold_left (fun acc x -> (if acc = "" then "" else acc ^ ", ") ^ f x) "" x;
+    value args  str = sprintf "[%s]" str;
+    value term  str = sprintf "\\term{%s}" str;
+    value str   arg = sprintf "\\term{%S}" arg;
+    value rule  x y = sprintf "\\grule{%s}{%s}\n" x y;
+    value print str = if enabled.val then fprintf stderr "%s" str else ();
+
+  end;
+ 
 EXTEND
   GLOBAL: expr patt str_item;
 
@@ -177,10 +199,13 @@ EXTEND
   ];
 
   expr: LEVEL "top" [
-    [ "rule"; p=y_alternatives; "end" ->
+    [ "rule"; (p, image)=y_alternatives; "end" ->
       let body = <:expr< $p$ s >> in
       let pwel = [(<:patt< s >>, None, body)] in
-      <:expr< fun [$list:pwel$] >>
+      do {
+        TeX.print (TeX.rule "<anonymous>" image);
+        <:expr< fun [$list:pwel$] >> 
+      }
     ] |
     [ "let"; "rules"; "="; rules=y_rules; "end"; "in"; e=expr LEVEL "top" ->       
       <:expr< let $opt:True$ $list:rules$ in $e$ >>
@@ -205,11 +230,14 @@ EXTEND
   ];
 
   y_rule: [
-    [ name=LIDENT; args=OPT y_formal_parameters; ":"; p=y_alternatives ->
+    [ name=LIDENT; args=OPT y_formal_parameters; ":"; (p, image)=y_alternatives ->
       let body = <:expr< $p$ s >> in
       let pwel = [(<:patt< s >>, None, body)] in
       let rule = <:expr< fun [$list:pwel$] >> in
-      (name, args, rule)
+      do {
+        TeX.print (TeX.rule name image);
+        (name, args, rule)
+      }
     ]
   ];
 
@@ -227,6 +255,7 @@ EXTEND
         match p with [
 	  [p] -> p
         |  _  -> 
+	    let (p, images) = List.split p in
 	    match
 	      List.fold_right 
 		(fun item expr -> 
@@ -237,7 +266,7 @@ EXTEND
 		) p None
 	    with [
 	      None -> raise (Failure "internal error - must not happen")
-	    | Some x -> x
+	    | Some x -> (x, TeX.alt images)
 	    ]
 	]
     ]
@@ -246,6 +275,7 @@ EXTEND
   y_alternativeItem: [
     [ p=LIST1 y_prefix; s=OPT y_semantic -> 
         let items = List.length p in
+	let (p, images) = List.split p in	
 	let s = 
 	  match s with [
 	    Some s -> s
@@ -295,42 +325,41 @@ EXTEND
 	      Some (combi p sfun, n)
             ) p None
 	with [
-	  Some (expr, _) -> expr
+	  Some (expr, _) -> (expr, TeX.seq images)
 	| None -> raise (Failure "internal error: empty list must not be eaten")
 	]
     ] 
   ];
 
   y_prefix: [
-    [ m=OPT "-"; p=y_basic -> 
+    [ m=OPT "-"; (p, s)=y_basic -> 
        let (binding, parse, f) = p in
-       (f, (m <> None), binding, parse)
+       ((f, (m <> None), binding, parse), s)
     ]
   ];
 
   y_basic: [
-    [ p=OPT y_binding; e=y_postfix; f=OPT y_predicate -> (p, e, f) ]
+    [ p=OPT y_binding; (e, s)=y_postfix; f=OPT y_predicate -> ((p, e, f), s) ]
   ];
 
   y_postfix: [
     [ y_primary ] |
-    [ e=y_postfix; "*" -> <:expr< Ostap.many $e$ >> ] |
-    [ e=y_postfix; "+" -> <:expr< Ostap.some $e$ >> ] |
-    [ e=y_postfix; "?" -> <:expr< Ostap.opt $e$ >> ]
+    [ (e, s)=y_postfix; "*" -> (<:expr< Ostap.many $e$ >>, TeX.aster s) ] |
+    [ (e, s)=y_postfix; "+" -> (<:expr< Ostap.some $e$ >>, TeX.plus  s) ] |
+    [ (e, s)=y_postfix; "?" -> (<:expr< Ostap.opt $e$  >>, TeX.opt   s) ]
   ];
 
   y_primary: [
-    [ p=y_reference; args=OPT y_parameters -> 
+    [ (p, s)=y_reference; args=OPT y_parameters -> 
           match args with [
-             None      -> p 
-           | Some args -> 
-               List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args
+             None           -> (p, s)
+           | Some (args, a) -> (List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args, s ^ a)
           ]
     ] |
     [ p=UIDENT ->  
           do {
-            let p = "get" ^ p in
-            let look = <:expr< s # $p$ >> in
+            let p' = "get" ^ p in
+            let look = <:expr< s # $p'$ >> in
             let pwel = [
 	      (
 	       <:patt< s >>, 
@@ -338,7 +367,7 @@ EXTEND
 	       look
 	      )
 	    ] in
-            <:expr<fun [$list:pwel$]>>
+            (<:expr<fun [$list:pwel$]>>, TeX.term p)
           }
     ] |
     [ p=STRING -> 
@@ -350,39 +379,41 @@ EXTEND
 	     look 
 	    )
 	  ] in
-          <:expr<fun [$list:pwel$]>>
+          (<:expr<fun [$list:pwel$]>>, TeX.str p)
     ] |
-    [ "("; p=y_alternatives; ")" -> p ]   
+    [ "("; (p, s)=y_alternatives; ")" -> (p, TeX.group s) ]   
   ];
 
   y_reference: [
-    [ y_path ] |
-    [ "@"; p=y_qualified -> p ]
+    [ (p, s)=y_path -> (p, TeX.nt s) ] |
+    [ "@"; (p, s)=y_qualified -> (p, TeX.nt s) ]
   ];
 
   y_qualified: [
     [ y_path ] |
-    [ q=UIDENT; "."; p=y_qualified -> <:expr< $uid:q$.$p$ >> ]
+    [ q=UIDENT; "."; (p, s)=y_qualified -> (<:expr< $uid:q$.$p$ >>, sprintf "%s.%s" q s) ]
   ];
 
   y_path: [
-    [ p=LIDENT; t=y_tail -> 
+    [ p=LIDENT; (t, s)=y_tail -> 
       match t with [
-        `Empty    -> <:expr< $lid:p$ >>
-      | `Field  q -> <:expr< $lid:p$ . $q$ >>
-      | `Method q -> <:expr< $lid:p$ # $lid:q$ >>
+        `Empty    -> (<:expr< $lid:p$ >>          , p)
+      | `Field  q -> (<:expr< $lid:p$ . $q$ >>    , sprintf "%s.%s" p s)
+      | `Method q -> (<:expr< $lid:p$ # $lid:q$ >>, sprintf "%s#%s" p s)
       ]
     ] 
   ];
 
   y_tail:[
-    [ "."; p=y_path -> `Field  p ] |
-    [ "#"; p=LIDENT -> `Method p ] |
-    [ -> `Empty ] 
+    [ "."; (p, s)=y_path -> (`Field  p, sprintf ".%s" s) ] |
+    [ "#";  p    =LIDENT -> (`Method p, sprintf "#%s" p) ] |
+    [ -> (`Empty, "") ] 
   ];
 
   y_parameters: [
-    [ "["; e=LIST1 expr; "]" -> e ]
+    [ "["; e=LIST1 expr; "]" -> 
+      if TeX.enabled.val then (e, TeX.args (TeX.list (string_of pr_expr) e)) else (e, "")
+    ]
   ];
 
   y_binding: [
@@ -398,3 +429,5 @@ EXTEND
   ];
 
 END;
+
+add_option "-tex" (Arg.Set TeX.enabled) " - print TeX documentation to stderr";
