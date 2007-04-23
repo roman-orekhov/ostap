@@ -75,3 +75,10 @@ val augment : t -> Locator.t -> t
 
 (** Augment the list of messages with the location. *)
 val augmentList : t list -> Locator.t -> t list
+
+(** Extend the message by some detailed information *)
+val extend : t -> string -> t
+
+(** Extend the list of messages by some detailed information *)
+val extendList : t list -> string -> t list
+

@@ -75,3 +75,6 @@ let toString t =
       
 let augment msg loc = match msg.loc with Locator.No -> {msg with loc = loc} | _ -> msg
 let augmentList msgs loc = List.map (fun x -> augment x loc) msgs
+
+let extend msg str = {msg with phrase=str ^ msg.phrase}
+let extendList msgs str = List.map (fun msg -> extend msg str) msgs
