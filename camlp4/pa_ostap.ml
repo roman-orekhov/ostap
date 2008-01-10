@@ -1,6 +1,6 @@
 (*
  * Pa_ostap: a camlp4 extension to wrap Ostap's combinators.
- * Copyright (C) 2006
+ * Copyright (C) 2006-2008
  * Dmitri Boulytchev, St.Petersburg State University
  * 
  * This software is free software; you can redistribute it and/or
@@ -27,7 +27,7 @@
   constructions are converted into pure OCaml using {!Ostap} parser combinators.
 
   While [Ostap] is purely abstract with regard to stream implementation [Pa_ostap] 
-  additionaly allows for convinient integration of parsing and lexing by considering {i streams
+  additionaly allows for convenient integration of parsing and lexing by considering {i streams
   as objects}. Namely, the stream of tokens [L]{_1}, [L]{_2}, ..., [L]{_k} is represented by an object
   with member functions [getL]{_1}, [getL]{_2}, ..., [getL]{_k}. Such a representation allows
   to freely combine various parser functions that operate on different types of streams with almost no
@@ -52,7 +52,7 @@
 
   [primary] {b : } {i UIDENT} {b | } {i reference} {b \[ } [parameters] {b \] } {b | } {i STRING} {b | ( } [expr] {b )}
 
-  [reference] {b : } {i LIDENT} {b | } {b @} [qualified]
+  [reference] {b : } {i LIDENT} {b | } {b !} [qualified]
 
   [qualified] {i LIDENT} {b | } {i UIDENT} {b .} [qualified]
 
@@ -69,14 +69,14 @@
 
   [reference] within grammar expression denotes a {i parse function} that applied to a stream to
   obtain parsed value and residual stream (see module {!Ostap}). Each reference is either a {i LIDENT} or
-  a qualified reference as per OCaml, prefixed by @ to distinguish from {i UIDENT}. 
+  a qualified reference as per OCaml, prefixed by ! to distinguish from {i UIDENT}. 
   {i UIDENT} is treated as a lexeme reference;
   thought generally speaking parsing with Ostap does not require any lexer to be provided (you must instead supply
-  a set of basic parse functions in any way you find convinient) [Pa_ostap] additionally operates with some predefined
+  a set of basic parse functions in any way you find convenient) [Pa_ostap] additionally operates with some predefined
   representation of streams as objects (see module {!Matcher}). This representation does not interfere with the
   common approach and you need not use this feature unless you explicitly apply to it. There are only two constructions
   that refer to object implementation of streams: {i UIDENT} and {i STRING}. If you use {i UIDENT} in grammar 
-  expression, for example {i NAME}, then the stream to parse with this expression has to provide a memeber function
+  expression, for example {i NAME}, then the stream to parse with this expression has to provide a member function
   {i getNAME}. Similarly using {i STRING} in expression requires stream to provide a member {i look}. 
 
   We will not describe the meaning of all constructions in all details since generally it follows the common
@@ -86,7 +86,7 @@
 
   {ol
     {li ["(" expression ")"] is a grammar expression to define a function that matches a stream against successive 
-     occurences of ["("], that that parsed by [expression], and [")"]. On success this function returns {i a triple}:
+     occurrences of ["("], that that parsed by [expression], and [")"]. On success this function returns {i a triple}:
      the token for ["("], the value parsed by [expression], and the token for [")"]. There are generally two ways
      to exclude ["("] and [")"] from the result. The first way is to bind the result of [expression] to some name 
      and then explicitly specify the result of grammar expression as follows:
@@ -106,7 +106,7 @@
     {li [<hd>=integer <tl>=(-(","?) integer)* {hd :: tl}] parses a list of integers delimited by optional commas}
     {li [<x>=integer => {x > 0} => {x}] parses positive integer value}
     {li [<x>=(integer?) => {match x with Some 0 -> false | _ -> true} => {x}] parses optional non-zero integer value}    
-    {li [<x>=@MyParseLibrary.MyModule.parseIt] parses the source with parse function specified by qualified name}    
+    {li [<x>= !MyParseLibrary.MyModule.parseIt] parses the source with parse function specified by qualified name}    
   }
  
   In all examples above we assume that [integer] parses integer value, [string] --- string value.

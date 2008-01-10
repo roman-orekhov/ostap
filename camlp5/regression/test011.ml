@@ -74,7 +74,7 @@ module X =
 class ['a] ppp =
   object (self)
 
-    method list (elem : 'a) = rule <hd>=elem <tl>=(- @X.parse elem)* {hd :: tl} end
+    method list (elem : 'a) = rule <hd>=elem <tl>=(- !X.parse elem)* {hd :: tl} end
     method m = rule self#list[rule IDENT end] -EOF end 
     
   end 

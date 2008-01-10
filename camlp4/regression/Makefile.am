@@ -12,6 +12,9 @@ EXTRA_CMA += $(PACKAGE).cma
 # OCaml parser call with flags
 AM_P4FLAGS = -pp "$(CAMLP4O) $(PARSER_INCLUDES) pa_ostap.cmo pr_dump.cmo"
 
+PXFLAGS = $(P4FLAGS)
+CAMLPXLIB = $(CAMLP4LIB)
+MODULE_INCLUDES += -I $(CAMLP4LIB)
 TARGET = 
 
 CLEAN_EXTRA += $(addsuffix .cmi, $(TESTS)) $(addsuffix .cmo, $(TESTS))
@@ -26,6 +29,6 @@ include $(top_srcdir)/m4/Makefile.am.targets
 
 # Rules to build tests
 %: %.ml
-	$(OCAMLC) $(BFLAGS) $(EXTRA_CMA) $(P4FLAGS) -o $@$(EXEEXT) $<
+	$(OCAMLC) $(BFLAGS) $(EXTRA_CMA) $(PXFLAGS) -o $@$(EXEEXT) $<
 
 include $(top_srcdir)/m4/Makefile.am.rules
