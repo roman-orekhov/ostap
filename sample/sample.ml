@@ -15,9 +15,9 @@ class lexer s p coord =
 
     object (self)
 
-       inherit [lexer] matcher (fun s p coord -> new lexer s p coord) s p coord
+       inherit matcher s p coord
 
-       method skip =
+       method skip p coord =
           
 	      if string_match ws s p
 

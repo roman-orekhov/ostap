@@ -1,6 +1,6 @@
 (*
  * Matcher: simple lexer pattern.
- * Copyright (C) 2006
+ * Copyright (C) 2006-2008
  * Dmitri Boulytchev, St.Petersburg State University
  * 
  * This software is free software; you can redistribute it and/or
@@ -43,46 +43,43 @@ let shiftPos (line, col) s b n =
   in
   inner b (line, col)
 
-class virtual ['a] matcher (make : string -> int -> Msg.Coord.t -> 'a) s p coord = 
+class virtual matcher s pi coordi = 
   object (self)
 
-    method virtual skip : int * Msg.Coord.t
+    val p     = pi
+    val coord = coordi
 
-    method get (name : string) regexp =
-      LOG (printf "Trying %s at %s\n" name (sub s p (min 10 (length s - p)))); 
-      let p, coord = self#skip in
+    method virtual skip : int -> Msg.Coord.t -> int * Msg.Coord.t
+
+    method private parsed x y c = Parsed (((x, c), y), ([] : Msg.t list))
+    method private failed x c   = Failed [Msg.make x [||] (Msg.Locator.Point c)]
+
+    method get name regexp =
+      let p, coord = self#skip p coord in
       if string_match regexp s p
-      then begin
+      then 
 	let m = matched_string s in
-	LOG (printf "Ok, repr=%s\n" m);
-	let p = p + length m in	
-	Parsed (((m, coord), make s p (shiftPos coord m 0 (length m))), [])
-      end
-      else 
-	Failed [Msg.make (sprintf "%s expected" name) [||] (Msg.Locator.Point coord)]
+        self#parsed m {< p = p + (length m);  coord = shiftPos coord m 0 (length m) >} coord
+      else self#failed (sprintf "\"%s\" expected" name) coord
 
     method look str = 
-      let p, coord = self#skip in
+      let p, coord = self#skip p coord in
       try 
 	let l = String.length str in
 	let m = String.sub s p l in
 	if str = m 
-	then Parsed (((m, coord), make s (p+l) (shiftPos coord m 0 (length m))), [])
-	else Failed [Msg.make (sprintf "%s expected" str) [||] (Msg.Locator.Point coord)]
-      with Invalid_argument _ -> Failed [Msg.make (sprintf "%s expected" str) [||] (Msg.Locator.Point coord)]
+	then self#parsed m {< p = p + l; coord = shiftPos coord m 0 (length m) >} coord
+	else self#failed (sprintf "\"%s\" expected" str) coord
+      with Invalid_argument _ -> self#failed (sprintf "\"%s\" expected" str) coord
 
     method getEOF = 
-      let p, coord = self#skip in
-      LOG (printf "Trying <EOF> at %s\n" (sub s p (min 10 (length s - p)))); 
+      let p, coord = self#skip p coord in
       if p = length s 
-      then Parsed ((("<EOF>", coord), make s p coord), [])
-      else Failed [Msg.make "<EOF> expected" [||] (Msg.Locator.Point coord)]
+      then self#parsed "<EOF>" {< p = p; coord = coord>} coord
+      else self#failed "<EOF> expected" coord
 
-    method getFIRST   = self#look ""
-    method getLAST    = 
-      (
-       Parsed ((("", coord), make s p coord), []) : ((string * Msg.Coord.t) * 'a, Msg.t) Ostap.tag
-      )
+    method getFIRST   = self#look   ""
+    method getLAST    = self#parsed "" {<>} coord
 
   end
 

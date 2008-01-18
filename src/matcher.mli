@@ -1,6 +1,6 @@
 (*
  * Matcher: simple lexer pattern.
- * Copyright (C) 2006
+ * Copyright (C) 2006-2008
  * Dmitri Boulytchev, St.Petersburg State University
  * 
  * This software is free software; you can redistribute it and/or
@@ -16,7 +16,6 @@
  *)
 
 (** Implementation of streams as objects. *)
-
 
 (** {2 General description} *)
 
@@ -143,8 +142,8 @@ val shiftPos : Msg.Coord.t -> string -> int -> int -> Msg.Coord.t
     expressions against string [s] starting from position [pos]. [loc] is the text coordinate of the 
     position [pos], [make] is a constructor to create residual parser (usually just a constructor
     of inherited class). *)
-class virtual ['a] matcher : (string -> int -> Msg.Coord.t -> 'a) -> string -> int -> Msg.Coord.t ->
-  object 
+class virtual matcher : string -> int -> Msg.Coord.t ->
+  object ('a)
 
     (** [get name expr] is a parse function that parses regular expression [expr] at the current
         position. [name] is just a name for diagnostic purposes. 
@@ -171,6 +170,6 @@ class virtual ['a] matcher : (string -> int -> Msg.Coord.t -> 'a) -> string -> i
         position and coordinates of first meaningful symbol. [skip] is implicitly
         called prior to all of the above methods except for the [getLAST].
     *)
-    method virtual skip : int * Msg.Coord.t
+    method virtual skip : int -> Msg.Coord.t -> int * Msg.Coord.t
 
   end
