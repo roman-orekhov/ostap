@@ -1,6 +1,6 @@
 (*
  * Ostap: basic set of parser combinators.
- * Copyright (C) 2006
+ * Copyright (C) 2006-2008
  * Dmitri Boulytchev, St.Petersburg State University
  * 
  * This software is free software; you can redistribute it and/or

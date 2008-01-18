@@ -15,16 +15,16 @@
  * (enclosed in the file COPYING).
  *)
 
-(** Implementation of streams as objects. *)
+(** Implementation of streams as objects *)
 
 (** {2 General description} *)
 
 (** This module provides a sample pattern for implementation of streams as objects.
-    We represent a stream by a number of methods each of which tries to
+    A stream is represented by a number of methods each of which tries to
     consume a certain lexeme from the stream. Thought Ostap is generally
     invariant with regard to stream implementation this approach helps to abstract
-    parsers from lexers. The main use case for such an implementation is to
-    provide lexers for parser functions created via {!Pa_ostap} syntax extensions,
+    parsers from lexers. The main use case for the implementation is to
+    provide lexers for parser functions created via [Pa_ostap] syntax extensions,
     but you may use it on your own.
  
     The pattern given below is in turn just a sample --- it implements some
@@ -50,13 +50,13 @@
       as 'a
     ]
 
-    Here ['a] is the type of stream itself, ['b] --- the type of data, returned by successfull
+    Here ['a] is the type of stream itself, ['b] --- the type of data, returned by successful
     application of [getIDENT], ['c] --- the type of data returned at error/failure, ['d] ---
-    the type of data, returned by succesfull application of [look]. [look] is just a member
+    the type of data, returned by succesful application of [look]. [look] is just a member
     function to match a string against the stream.
 
     Using [matcher] you may easily provide an appropriate stream implementation by
-    inheriting the pure absract class [matcher]. The detailed description is given
+    inheriting class [matcher]. The detailed description is given
     in the following section; for now we provide a simple example for the last
     grammar expression:
 
@@ -72,9 +72,9 @@
     {v class lexer s p coord = v} 
     {v     object (self) v}
 
-    {v        inherit [lexer] matcher (fun s p coord -> new lexer s p coord) s p coord v}
+    {v        inherit matcher s p coord v}
    
-    {v        method skip = v}
+    {v        method skip p coord = v}
     {v 	         if string_match ws s p v} 
     {v 	         then v}
     {v 	            let m = matched_string s in v}
@@ -89,12 +89,10 @@
        
     Lexer is an immutable object sprang over the triple of attributes: the
     string [s] to parse, the position [p] within this string and two-dimensional
-    coordinates [coord] of predefined type {!Coord.t}. Each time the lexem is consumed
+    coordinates [coord] of predefined type [Coord.t]. Each time the lexem is consumed
     from the stream the position and coordinates are shifted and a fresh instance
     of lexer is returned as the residual stream. The constructor of base class [matcher] 
-    takes the function to create residual lexer from string, position and coordinates as
-    its first argument. Generally this function refers to the constructor of
-    inherited class.
+    takes the string, position and coordinates as its arguments. 
 
     To turn [matcher] into true lexer we have to define the following methods:
 
@@ -133,20 +131,20 @@ module Token :
   end
 
 (** [shiftPos loc s b e] takes text coordinates [loc], string [s] and two indexes [b] and [e], 
-    scans [s] from [b] to [e] inclusively and shifts [loc] to take into account newlines.
+    scans [s] from [b] to [e] inclusively and shifts [loc] to take newlines into account
 *)
 val shiftPos : Msg.Coord.t -> string -> int -> int -> Msg.Coord.t
 
 (** Matcher pattern to inherit from to obtain the steream implementation. 
-    [matcher make s pos loc] creates an object that helps to match regular
+    [matcher s pos loc] creates an object that helps to match regular
     expressions against string [s] starting from position [pos]. [loc] is the text coordinate of the 
-    position [pos], [make] is a constructor to create residual parser (usually just a constructor
-    of inherited class). *)
+    position [pos]
+*)
 class virtual matcher : string -> int -> Msg.Coord.t ->
   object ('a)
 
-    (** [get name expr] is a parse function that parses regular expression [expr] at the current
-        position. [name] is just a name for diagnostic purposes. 
+    (** [get name expr] is a parse function which parses regular expression [expr] at the current
+        position. [name] is a name for diagnostic purposes
     *)
     method get : string -> Str.regexp -> ('a, Token.t, Msg.t) Ostap.result
 
@@ -154,21 +152,21 @@ class virtual matcher : string -> int -> Msg.Coord.t ->
     method getEOF : ('a, Token.t, Msg.t) Ostap.result
 
     (** [getFIRST] gets an empty token at the current position and serves to obtain
-        coordinate of first symol of constructon. 
+        coordinate of the first symol of current stream
     *)
     method getFIRST : ('a, Token.t, Msg.t) Ostap.result
 
     (** [getLAST] gets an empty token at the  current position and serves to obtain
-        coordinate of last symol of constructon. 
+        coordinate of last symbol  
     *)
     method getLAST : ('a, Token.t, Msg.t) Ostap.result
 
-    (** [look str] looks at the current stream for string [str]. *)
+    (** [look str] looks at the current stream for string [str] *)
     method look : string -> ('a, Token.t, Msg.t) Ostap.result
 
     (** Virtual method to skip meaningless symbols (e.g. whitespaces); returns
         position and coordinates of first meaningful symbol. [skip] is implicitly
-        called prior to all of the above methods except for the [getLAST].
+        called prior to all of the above methods except for the [getLAST]
     *)
     method virtual skip : int -> Msg.Coord.t -> int * Msg.Coord.t
 

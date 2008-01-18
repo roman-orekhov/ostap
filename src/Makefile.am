@@ -1,7 +1,7 @@
 
 # type in sources here
-SOURCES = ostap.ml msg.ml matcher.ml
-MLI = ostap.mli msg.mli matcher.mli
+SOURCES = bNF3.ml ostap.ml msg.ml matcher.ml
+MLI = bNF3.mli ostap.mli msg.mli matcher.mli
 
 include $(top_srcdir)/m4/Makefile.am.vars
 

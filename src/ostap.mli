@@ -15,7 +15,7 @@
  * (enclosed in the file COPYING).
  *)
 
-(** Ostap --- a common set of parser combinators. *)
+(** Ostap --- a general set of parser combinators *)
 
 (** The name of this library originates from Ostap Bender --- the central character
     of Ilya Ilf and Eugene Petrov's comedy "The Twelve Chairs". Bender is
