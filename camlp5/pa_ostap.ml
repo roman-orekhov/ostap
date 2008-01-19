@@ -15,7 +15,7 @@
  * (enclosed in the file COPYING).
  *)
 
-(** Pa_ostap --- a camlp4 syntax extension for BNF-like grammar definitions. *)
+(** Pa_ostap --- a camlp4 syntax extension for BNF-like grammar definitions *)
 
 (**
 
@@ -24,7 +24,7 @@
   [Pa_ostap] extends Objective Caml grammar with two constructs: [rule] and [rules].
   The latter represents a set of (mutually recursive) {b grammar entries definitions}  
   at the structure level while the former denotes the single {b grammar expression}. Both 
-  constructions are converted into pure OCaml using {!Ostap} parser combinators.
+  constructions are converted into pure OCaml using [Ostap] parser combinators.
 
   While [Ostap] is purely abstract with regard to stream implementation [Pa_ostap] 
   additionaly allows for convenient integration of parsing and lexing by considering {i streams
@@ -68,12 +68,12 @@
   correspondingly, {i EXPR} --- for OCaml expression, {i PATT} --- for OCaml pattern.
 
   [reference] within grammar expression denotes a {i parse function} that applied to a stream to
-  obtain parsed value and residual stream (see module {!Ostap}). Each reference is either a {i LIDENT} or
+  obtain parsed value and residual stream (see module [Ostap]). Each reference is either a {i LIDENT} or
   a qualified reference as per OCaml, prefixed by ! to distinguish from {i UIDENT}. 
   {i UIDENT} is treated as a lexeme reference;
   thought generally speaking parsing with Ostap does not require any lexer to be provided (you must instead supply
   a set of basic parse functions in any way you find convenient) [Pa_ostap] additionally operates with some predefined
-  representation of streams as objects (see module {!Matcher}). This representation does not interfere with the
+  representation of streams as objects (see module [Matcher]). This representation does not interfere with the
   common approach and you need not use this feature unless you explicitly apply to it. There are only two constructions
   that refer to object implementation of streams: {i UIDENT} and {i STRING}. If you use {i UIDENT} in grammar 
   expression, for example {i NAME}, then the stream to parse with this expression has to provide a member function
