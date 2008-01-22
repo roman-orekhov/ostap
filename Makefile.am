@@ -1,4 +1,12 @@
-SUBDIRS = src camlp4 camlp5 doc
+SUBDIRS=src
+
+if CAMLP4
+SUBDIRS+=camlp4
+endif
+
+if CAMLP5
+SUBDIRS+=camlp5
+endif
 
 .PHONY: doc
 doc:
