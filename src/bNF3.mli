@@ -23,24 +23,36 @@ module Expr :
 
     (** Main type *)
     type t =
-	String  of string        (** String terminal          *)
-      | Term    of string        (** Non-string terminal      *)
-      | Nonterm of string        (** Nonterminal              *)
-      | Star    of t             (** Iteration                *)
-      | Plus    of t             (** Non-empty iteration      *)
-      | Opt     of t             (** Optional expression      *)
-      | Alt     of t * t         (** Alteration               *)
-      | Seq     of t * t         (** Sequencing               *)
-      | Group   of t             (** Expression in brackets   *)
-      | Apply   of t * string    (** Application to arguments *)
-	    
+	String  of string     (** String terminal        *)
+      | Term    of string     (** Non-string terminal    *)
+      | Nonterm of string     (** Nonterminal            *)
+      | Apply   of t * t list (** Rule application       *)
+      | Star    of t          (** Iteration              *)
+      | Plus    of t          (** Non-empty iteration    *)
+      | Opt     of t          (** Optional expression    *)
+      | Alt     of t list     (** Alteration             *)
+      | Seq     of t list     (** Sequencing             *)
+      | Group   of t          (** Expression in brackets *)
+      | Custom  of string     (** Custom text            *)
+    
   end
 
 (** Rule definition representation *)
 module Def :
   sig
 
-    (** Main type: name of the rule, formal parameters (if any), rule body *)
-    type t = string * string list * Expr.t
+    (** Main type *)
+    type t 
+
+    (** Constructor of simple definition. Takes name and body *)
+    val make : string -> Expr.t -> t
+
+    (** Constructor of parameterized definition. Takes name, 
+        argument name and body 
+    *)
+    val makeP : string -> string -> Expr.t -> t
+
+    (** TeX printer *)
+    val toTeX : t -> string
 
   end

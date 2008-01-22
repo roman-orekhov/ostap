@@ -1,5 +1,5 @@
 (*
- * Pa_ostap: a camlp4 extension to wrap Ostap's combinators.
+ * Extension: a camlp4 extension to wrap Ostap's combinators.
  * Copyright (C) 2006-2008
  * Dmitri Boulytchev, St.Petersburg State University
  * 
@@ -170,60 +170,65 @@ syntax is as follows:
 open Pcaml;
 open Printf;
 
-module TeX =
+open BNF3;
+
+module Cache =
   struct
 
-    value enabled = ref False;
+    value (h : Hashtbl.t string Expr.t) = Hashtbl.create 1024;
+    
+    value cache x y = Hashtbl.add h x y;
 
-    value opt   str   = sprintf "\\bopt %s \\eopt" str;
-    value plus  str   = sprintf "%s\\niter" str;
-    value aster str   = sprintf "%s\\iter" str;
-    value group str   = sprintf "\\bgrp %s \\egrp" str;
-    value nt    str   = sprintf "\\nt{%s}" str;
-    value pnt   x y   = sprintf "\\pnt{%s}{%s}" x y;
-    value alt   lst   = List.fold_left (fun acc x -> (if acc = "" then "" else acc ^ "\\ralt ") ^ x) "" lst;
-    value seq   lst   = List.fold_left (fun acc x -> (if acc = "" then "" else acc ^ "\\rb ") ^ x) "" lst;
-    value list  f x   = List.fold_left (fun acc x -> (if acc = "" then "" else acc ^ ", ") ^ f x) "" x;
-    value args  str   = sprintf "[%s]" str;
-    value term  str   = sprintf "\\term{%s}" str;
-    value str   arg   = sprintf "\\term{%S}" arg;
-    value rule  x y   = sprintf "\\grule{%s}{%s\\rend}\n\n" x y;
-    value prule x y z = sprintf "\\prule{%s}{%s}{%s\\rend}\n\n" x y z;
-    value print str   = if enabled.val then fprintf stderr "%s" str else ();
+    value cached x =
+      try Hashtbl.find h x with [
+	Not_found -> Expr.Custom x
+      ];
 
-    value hash        = (Hashtbl.create 1024 : Hashtbl.t string string);
-    value connect x y = Hashtbl.add hash x y;
-    value protect x   = try Hashtbl.find hash x with [Not_found -> x];
+  end;
+
+module Args =
+  struct
+    
+    value (h : Hashtbl.t string string) = Hashtbl.create 1024;
+
+    value register x = Hashtbl.add h x x;
+    value wrap     x = 
+      try Expr.Custom (Hashtbl.find h x) with [
+	Not_found -> Expr.Nonterm x
+      ];
+    value clear () = Hashtbl.clear h;
 
   end;
  
+value printBNF  = ref (fun (_: Def.t)      -> ());
+value printExpr = ref (fun (_: MLast.expr) -> "");
+value printPatt = ref (fun (_: MLast.patt) -> "");
+
 EXTEND
   GLOBAL: expr patt str_item;
 
   str_item: LEVEL "top" [
-    [ "rules"; rules=y_rules; "end" -> <:str_item< value $opt:True$ $list:rules$ >> ] 
+    [ "rules"; rules=o_rules; "end" -> <:str_item< value $opt:True$ $list:rules$ >> ] 
   ];
 
   expr: LEVEL "top" [
-    [ "rule"; (p, image)=y_alternatives; "end" ->
+    [ "rule"; (p, tree)=o_alternatives; "end" ->
       let body = <:expr< $p$ s >> in
       let pwel = [(<:patt< s >>, Ploc.VaVal None, body)] in
       do {
-        let rule = <:expr< fun [$list:pwel$] >> in
-        if TeX.enabled.val
-	then TeX.connect (Eprinter.apply pr_expr Pprintf.empty_pc rule) image
-	else ();
-	TeX.print image;
-        rule
+        printBNF.val (Def.make "**anonymous**" tree);
+	let f = <:expr< fun [$list:pwel$] >> in
+	Cache.cache (printExpr.val f) tree;
+        f
       }
     ] |
-    [ "let"; "rules"; "="; rules=y_rules; "end"; "in"; e=expr LEVEL "top" ->       
+    [ "let"; "rules"; "="; rules=o_rules; "end"; "in"; e=expr LEVEL "top" ->       
       <:expr< let $opt:True$ $list:rules$ in $e$ >>
     ] 
   ];
 
-  y_rules: [
-    [ rules=LIST1 y_rule SEP ";" ->
+  o_rules: [
+    [ rules=LIST1 o_rule SEP ";" ->
       List.map
 	(fun (name, args, rule) -> 
 	  match args with [
@@ -239,42 +244,69 @@ EXTEND
     ]
   ];
 
-  y_rule: [
-    [ name=LIDENT; args=OPT y_formal_parameters; ":"; (p, image)=y_alternatives ->
+  o_rule: [
+    [ name=LIDENT; args=OPT o_formal_parameters; ":"; (p, tree)=o_alternatives ->
       let body = <:expr< $p$ s >> in
       let pwel = [(<:patt< s >>, Ploc.VaVal None, body)] in
       let rule = <:expr< fun [$list:pwel$] >> in
       do {
         match args with [
-	  None      -> TeX.print (TeX.rule name image)
-	| Some p ->
-	    let p =
-	      if TeX.enabled.val 
-	      then Eprinter.apply pr_patt Pprintf.empty_pc p
-	      else ""
-	    in
-	    TeX.print (TeX.prule name p image)
+	  None   -> printBNF.val (Def.make  name tree)
+	| Some p -> printBNF.val (Def.makeP name (printPatt.val p) tree)
 	];        
+        Args.clear ();
         (name, args, rule)
       }
     ]
   ];
 
-  y_formal_parameters: [
+  o_formal_parameters: [
     [ "["; p=LIST1 patt; "]" -> 
-       match p with [
-	 [hd] -> hd
-       | [h::t] -> List.fold_left (fun acc p -> <:patt< $acc$ $p$ >>) h t
-       ]
+       do {
+         let rec get_defined_ident = fun [
+	     <:patt< $_$ . $_$ >> -> []
+           | <:patt< _ >> -> []
+	   | <:patt< $lid:x$ >> -> [x]
+	   | <:patt< ($p1$ as $p2$) >> -> get_defined_ident p1 @ get_defined_ident p2
+	   | <:patt< $int:_$ >> -> []
+	   | <:patt< $flo:_$ >> -> []
+	   | <:patt< $str:_$ >> -> []
+	   | <:patt< $chr:_$ >> -> []
+	   | <:patt< [| $list:pl$ |] >> -> List.flatten (List.map get_defined_ident pl)
+	   | <:patt< ($list:pl$) >> -> List.flatten (List.map get_defined_ident pl)
+	   | <:patt< $uid:_$ >> -> []
+	   | <:patt< ` $_$ >> -> []
+	   | <:patt< # $list:_$ >> -> []
+	   | <:patt< $p1$ $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
+	   | <:patt< { $list:lpl$ } >> ->
+	       List.flatten (List.map (fun (lab, p) -> get_defined_ident p) lpl)
+	   | <:patt< $p1$ | $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
+	   | <:patt< $p1$ .. $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
+	   | <:patt< ($p$ : $_$) >> -> get_defined_ident p
+	   | <:patt< ~$_$ >> -> []
+	   | <:patt< ~$_$: $p$ >> -> get_defined_ident p
+	   | <:patt< ?$_$ >> -> []
+	   | <:patt< ?$_$: ($p$) >> -> get_defined_ident p
+	   | <:patt< ?$_$: ($p$ = $e$) >> -> get_defined_ident p
+	   | <:patt< $anti:p$ >> -> get_defined_ident p
+	   | _ -> [] ]
+	 in
+         let register p = List.iter Args.register (get_defined_ident p) in         
+         List.iter register p;
+         match p with [
+	    [hd]   -> hd
+          | [h::t] -> List.fold_left (fun acc p -> <:patt< $acc$ $p$ >>) h t
+         ]
+       }
     ]
   ];
 
-  y_alternatives: [
-    [ p=LIST1 y_alternativeItem SEP "|" -> 
+  o_alternatives: [
+    [ p=LIST1 o_alternativeItem SEP "|" -> 
         match p with [
 	  [p] -> p
         |  _  -> 
-	    let (p, images) = List.split p in
+	    let (p, trees) = List.split p in
 	    match
 	      List.fold_right 
 		(fun item expr -> 
@@ -284,17 +316,17 @@ EXTEND
 	          ]
 		) p None
 	    with [
-	      None -> raise (Failure "internal error - must not happen")
-	    | Some x -> (x, TeX.alt images)
+	      None   -> raise (Failure "internal error - must not happen")
+	    | Some x -> (x, Expr.Alt trees)
 	    ]
 	]
     ]
   ];
 
-  y_alternativeItem: [
-    [ p=LIST1 y_prefix; s=OPT y_semantic -> 
-        let items = List.length p in
-	let (p, images) = List.split p in	
+  o_alternativeItem: [
+    [ p=LIST1 o_prefix; s=OPT o_semantic -> 
+        let items      = List.length p in
+	let (p, trees) = List.split p in	
 	let s = 
 	  match s with [
 	    Some s -> s
@@ -344,35 +376,35 @@ EXTEND
 	      Some (combi p sfun, n)
             ) p None
 	with [
-	  Some (expr, _) -> (expr, TeX.seq images)
-	| None -> raise (Failure "internal error: empty list must not be eaten")
+	  Some (expr, _) -> (expr, Expr.Seq trees)
+	| None           -> raise (Failure "internal error: empty list must not be eaten")
 	]
     ] 
   ];
 
-  y_prefix: [
-    [ m=OPT "-"; (p, s)=y_basic -> 
+  o_prefix: [
+    [ m=OPT "-"; (p, s)=o_basic -> 
        let (binding, parse, f) = p in
        ((f, (m <> None), binding, parse), s)
     ]
   ];
 
-  y_basic: [
-    [ p=OPT y_binding; (e, s)=y_postfix; f=OPT y_predicate -> ((p, e, f), s) ]
+  o_basic: [
+    [ p=OPT o_binding; (e, s)=o_postfix; f=OPT o_predicate -> ((p, e, f), s) ]
   ];
 
-  y_postfix: [
-    [ y_primary ] |
-    [ (e, s)=y_postfix; "*" -> (<:expr< Ostap.many $e$ >>, TeX.aster s) ] |
-    [ (e, s)=y_postfix; "+" -> (<:expr< Ostap.some $e$ >>, TeX.plus  s) ] |
-    [ (e, s)=y_postfix; "?" -> (<:expr< Ostap.opt $e$  >>, TeX.opt   s) ]
+  o_postfix: [
+    [ o_primary ] |
+    [ (e, s)=o_postfix; "*" -> (<:expr< Ostap.many $e$ >>, Expr.Star s) ] |
+    [ (e, s)=o_postfix; "+" -> (<:expr< Ostap.some $e$ >>, Expr.Plus s) ] |
+    [ (e, s)=o_postfix; "?" -> (<:expr< Ostap.opt  $e$ >>, Expr.Opt  s) ]
   ];
 
-  y_primary: [
-    [ (p, s)=y_reference; args=OPT y_parameters -> 
+  o_primary: [
+    [ (p, s)=o_reference; args=OPT o_parameters -> 
           match args with [
-             None           -> (p, TeX.nt s)
-           | Some (args, a) -> (List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args, TeX.pnt s a)
+             None           -> (p, s)
+           | Some (args, a) -> (List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args, (Expr.Apply s a))
           ]
     ] |
     [ p=UIDENT ->  
@@ -386,7 +418,7 @@ EXTEND
 	       look
 	      )
 	    ] in
-            (<:expr<fun [$list:pwel$]>>, TeX.term p)
+            (<:expr<fun [$list:pwel$]>>, Expr.Term p)
           }
     ] |
     [ p=STRING -> 
@@ -398,57 +430,83 @@ EXTEND
 	     look 
 	    )
 	  ] in
-          (<:expr<fun [$list:pwel$]>>, TeX.str p)
+          (<:expr<fun [$list:pwel$]>>, Expr.String p)
     ] |
-    [ "("; (p, s)=y_alternatives; ")" -> (p, TeX.group s) ]   
+    [ "("; (p, s)=o_alternatives; ")" -> (p, Expr.Group s) ]   
   ];
 
-  y_reference: [
-    [ (p, s)=y_path -> (p, s) ] |
-    [ "!"; (p, s)=y_qualified -> (p, s) ]
+  o_reference: [
+    [ (p, s, _)=o_path -> (p, match s with [Expr.Custom _ -> s | Expr.Nonterm s -> Args.wrap s]) ] |
+    [ "!"; (p, s, _)=o_qualified -> (p, s) ]
   ];
 
-  y_qualified: [
-    [ y_path ] |
-    [ q=UIDENT; "."; (p, s)=y_qualified -> (<:expr< $uid:q$.$p$ >>, sprintf "%s.%s" q s) ]
+  o_qualified: [
+    [ o_path ] |
+    [ q=UIDENT; "."; (p, s, i)=o_qualified -> 
+      let i = sprintf "%s.%s" q i in (<:expr< $uid:q$.$p$ >>, Expr.Custom i, i) 
+    ]
   ];
 
-  y_path: [
-    [ p=LIDENT; (t, s)=y_tail -> 
+  o_path: [
+    [ p=LIDENT; (t, s)=o_tail -> 
       match t with [
-        `Empty    -> (<:expr< $lid:p$ >>          , p)
-      | `Field  q -> (<:expr< $lid:p$ . $q$ >>    , sprintf "%s.%s" p s)
-      | `Method q -> (<:expr< $lid:p$ # $lid:q$ >>, sprintf "%s#%s" p s)
+        `Empty    -> (<:expr< $lid:p$ >>, Expr.Nonterm p, p)
+      | `Field  q -> let i = sprintf "%s%s" p s in (<:expr< $lid:p$ . $q$ >>    , Expr.Custom i, i)
+      | `Method q -> let i = sprintf "%s%s" p s in (<:expr< $lid:p$ # $lid:q$ >>, Expr.Custom i, i)
       ]
     ] 
   ];
 
-  y_tail:[
-    [ "."; (p, s)=y_path -> (`Field  p, sprintf ".%s" s) ] |
-    [ "#";  p    =LIDENT -> (`Method p, sprintf "#%s" p) ] |
+  o_tail:[
+    [ "."; (p, s, i)=o_path -> (`Field  p, sprintf ".%s" i) ] |
+    [ "#";  p       =LIDENT -> (`Method p, sprintf "#%s" p) ] |
     [ -> (`Empty, "") ] 
   ];
 
-  y_parameters: [
+  o_parameters: [
     [ "["; e=LIST1 expr; "]" -> 
-      if TeX.enabled.val 
-      then (e, TeX.list (fun e -> TeX.protect (Eprinter.apply pr_expr Pprintf.empty_pc e)) e) 
-      else (e, "")
+      (
+       e, 
+       List.map (fun e -> Cache.cached (printExpr.val e)) e
+      ) 
     ]
   ];
 
-  y_binding: [
+  o_binding: [
     [ "<"; p=patt; ">=" -> p ] 
   ];
 
-  y_semantic: [
+  o_semantic: [
     ["{"; e=expr; "}" -> e ]
   ];
 
-  y_predicate: [
+  o_predicate: [
     [ "=>"; "{"; e=expr; "}"; "=>" -> e ]
   ];
 
 END;
 
-add_option "-tex" (Arg.Set TeX.enabled) " - print TeX documentation to stderr";
+add_option "-tex"  (Arg.String 
+		      (fun s -> 
+			do {
+		  	  let p = printBNF.val in
+
+			  let ouch = open_out s in
+			  close_out ouch;
+
+                          printExpr.val := (fun e -> Eprinter.apply pr_expr Pprintf.empty_pc e);
+			  printPatt.val := (fun p -> Eprinter.apply pr_patt Pprintf.empty_pc p);
+
+			  printBNF .val := 
+			    (fun x -> 
+			      do {
+                                let ouch = open_out_gen [Open_append; Open_text] 0o66 s in
+			        fprintf ouch "%s" (Def.toTeX x); 
+			        close_out ouch;
+			        p x
+                              }
+			    )
+                        }
+		      )
+		   ) 
+           "<name> - print TeX grammar documentation to given file";
