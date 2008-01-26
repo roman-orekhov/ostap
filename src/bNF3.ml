@@ -28,6 +28,7 @@ module type PrintHelper =
     val aster  : string -> string
     val plus   : string -> string
     val alt    : string list -> string
+    val valt   : string list -> string
     val seq    : string list -> string
     val group  : string -> string
     val custom : (t -> string) -> [`S of string | `T of t] list -> string
@@ -130,20 +131,24 @@ module rec Expr :
     module Printer (X : PrintHelper with type t = t) =
       struct
 
-	let rec print = function      
-	  | String   s     -> X.str   s
-	  | Term     t     -> X.term  t
-	  | Nonterm  n     -> X.nt    n
-	  | Star     e     -> X.aster  (print e)
-	  | Plus     e     -> X.plus   (print e)
-	  | Opt      e     -> X.opt    (print e)
-	  | Alt      l     -> X.alt    (List.map print l)
-	  | Seq      l     -> X.seq    (List.map print l)
-	  | Group    e     -> X.group  (print e)
-	  | Custom   s     -> X.custom  print s
-		
-	  | Apply   (Nonterm x, y) -> X.pnt x (X.list print y)
-	  | Apply   (x, y)         -> sprintf "%s%s" (print x) (X.args (X.list print y))
+	let print tree = 
+	  let rec inner top tree =
+	    let inner' = inner false in
+	    match tree with
+	      | String   s     -> X.str   s
+	      | Term     t     -> X.term  t
+	      | Nonterm  n     -> X.nt    n
+	      | Star     e     -> X.aster  (inner' e)
+	      | Plus     e     -> X.plus   (inner' e)
+	      | Opt      e     -> X.opt    (inner' e)
+	      | Alt      l     -> (if top then X.valt else X.alt) (List.map inner' l)
+	      | Seq      l     -> X.seq    (List.map inner' l)
+	      | Group    e     -> X.group  (inner' e)
+	      | Custom   s     -> X.custom  inner' s
+		    
+	      | Apply   (Nonterm x, y) -> X.pnt x (X.list inner' y)
+	      | Apply   (x, y)         -> sprintf "%s%s" (inner' x) (X.args (X.list inner' y))
+	  in inner true tree
 		
       end
 
@@ -171,6 +176,7 @@ and TreeHelper : PrintHelper with type t = Expr.t =
     let nt     str   = sprintf "Nonterm %s" str
     let pnt    x y   = sprintf "Nonterm %s(%s)" x y
     let alt    lst   = sprintf "Alt (%s)" (fold concat' lst)
+    let valt         = alt
     let seq    lst   = sprintf "Seq (%s)" (fold concat' lst)
     let list   f x   = fold (concat f) x
     let args   str   = sprintf "[%s]" str
@@ -217,13 +223,19 @@ and TeXHelper : PrintHelper with type t = Expr.t =
     let nt     str   = sprintf "\\nt{%s}" (quote str)
     let pnt    x y   = sprintf "\\pnt{%s}{%s}" (quote x) y
     let alt    lst   = fold (concatWith "\\ralt " id) lst
+
+    let valt = function
+	[]       -> ""
+      | [_] as x -> alt x
+      |  x       -> "\\phantom{\\ralt}" ^ (fold (concatWith "\\rbr\\ralt " id) x)
+      
     let seq    lst   = fold (concatWith "\\rb "   id) lst
     let list   f x   = fold (concat f) x
     let args   str   = sprintf "\\args{%s}" str
     let term   str   = sprintf "\\term{%s}" (quote str)
     let str    arg   = sprintf "\\term{%s}" (quote arg)
-    let rule   x y   = sprintf "\\grule{%s}{%s\\rend}\n\n" x y
-    let prule  x y z = sprintf "\\prule{%s}{%s}{%s\\rend}\n\n" x y z
+    let rule   x y   = sprintf "\\grule{%s}{\\rbr %s\\brend}\n\n" x y
+    let prule  x y z = sprintf "\\prule{%s}{%s}{\\rbr %s\\brend}\n\n" x y z
     let custom f x   = fold (concatWith "" (function `S s -> quote s | `T t -> f t)) x
     let apply        = (^)
 	
