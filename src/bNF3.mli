@@ -23,17 +23,58 @@ module Expr :
 
     (** Main type *)
     type t =
-	String  of string     (** String terminal        *)
-      | Term    of string     (** Non-string terminal    *)
-      | Nonterm of string     (** Nonterminal            *)
-      | Apply   of t * t list (** Rule application       *)
-      | Star    of t          (** Iteration              *)
-      | Plus    of t          (** Non-empty iteration    *)
-      | Opt     of t          (** Optional expression    *)
-      | Alt     of t list     (** Alteration             *)
-      | Seq     of t list     (** Sequencing             *)
-      | Group   of t          (** Expression in brackets *)
-      | Custom  of string     (** Custom text            *)
+	String  of string                        (** String terminal        *)
+      | Term    of string                        (** Non-string terminal    *)
+      | Nonterm of string                        (** Nonterminal            *)
+      | Apply   of t * t list                    (** Rule application       *)
+      | Star    of t                             (** Iteration              *)
+      | Plus    of t                             (** Non-empty iteration    *)
+      | Opt     of t                             (** Optional expression    *)
+      | Alt     of t list                        (** Alteration             *)
+      | Seq     of t list                        (** Sequencing             *)
+      | Group   of t                             (** Expression in brackets *)
+      | Custom  of [`S of string | `T of t] list (** Custom mixed structure *)
+
+    (** {1 Constructors} *)
+
+    (** String terminal *)
+    val string : string -> t
+
+    (** Non-string terminal *)
+    val term : string -> t
+
+    (** Nonterminal *)
+    val nonterm : string -> t
+
+    (** Rule application *)
+    val apply : t -> t list -> t
+
+    (** Iteration *)
+    val star : t -> t
+         
+    (** Non-empty iteration *)
+    val plus : t -> t
+
+    (** Optional expression *)
+    val opt : t -> t
+
+    (** Alteration *)
+    val alt : t list -> t
+     
+    (** Sequencing *)
+    val seq : t list -> t
+
+    (** Expression in brackets *)
+    val group : t -> t
+
+    (** Custom text *)
+    val custom : [`S of string | `T of t] list-> t
+
+    (** TeX printer *)
+    val toTeX : t -> string
+
+    (** Tree printer *)
+    val toTree : t -> string
     
   end
 

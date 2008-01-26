@@ -176,13 +176,43 @@ module Cache =
   struct
 
     value (h : Hashtbl.t string Expr.t) = Hashtbl.create 1024;
-    
-    value cache x y = Hashtbl.add h x y;
 
-    value cached x =
-      try Hashtbl.find h x with [
-	Not_found -> Expr.Custom x
-      ];
+    value compress x =
+      let b = Buffer.create 1024 in
+      do {
+        let f = ref False in
+        for i=0 to String.length x - 1 do {
+          match x.[i] with [
+	    ' ' -> if f.val then () else do {Buffer.add_char b ' '; f.val := True}
+	  | '\t' | '\n' -> f.val := False
+	  | c -> do {Buffer.add_char b c; f.val := False}
+	  ]
+        };
+        Buffer.contents b
+      };
+
+    value cache x y = Hashtbl.add h (compress x) y;
+
+    value rec cached x = 
+      let x = compress x in
+      let rec substitute acc s i j = 
+	let len = String.length s in
+	if j < i then 
+	  if i < len then substitute acc s (i+1) (len-1) else List.rev [`S s :: acc]
+        else if i = len then List.rev [`S s :: acc]
+             else 
+	       let d = String.sub s i (j-i+1) in 
+	       try 
+		 substitute 
+		   [`T (Hashtbl.find h d) :: [`S (String.sub s 0 i) :: acc]] 
+		   (String.sub s (j + 1) (len - j - 1))
+		   0
+		   (len - j - 2)		 
+	       with [
+		 Not_found -> substitute acc s i (j-1)
+	       ]	     
+      in 
+      Expr.custom (substitute [] x 0 (String.length x - 1));
 
   end;
 
@@ -193,12 +223,13 @@ module Args =
 
     value register x = Hashtbl.add h x x;
     value wrap     x = 
-      try Expr.Custom (Hashtbl.find h x) with [
-	Not_found -> Expr.Nonterm x
+      try Expr.custom [`S (Hashtbl.find h x)] with [
+	Not_found -> Expr.nonterm x
       ];
     value clear () = Hashtbl.clear h;
 
   end;
+
  
 value printBNF  = ref (fun (_: Def.t)      -> ());
 value printExpr = ref (fun (_: MLast.expr) -> "");
@@ -317,7 +348,7 @@ EXTEND
 		) p None
 	    with [
 	      None   -> raise (Failure "internal error - must not happen")
-	    | Some x -> (x, Expr.Alt trees)
+	    | Some x -> (x, Expr.alt trees)
 	    ]
 	]
     ]
@@ -376,7 +407,7 @@ EXTEND
 	      Some (combi p sfun, n)
             ) p None
 	with [
-	  Some (expr, _) -> (expr, Expr.Seq trees)
+	  Some (expr, _) -> (expr, Expr.seq trees)
 	| None           -> raise (Failure "internal error: empty list must not be eaten")
 	]
     ] 
@@ -395,16 +426,16 @@ EXTEND
 
   o_postfix: [
     [ o_primary ] |
-    [ (e, s)=o_postfix; "*" -> (<:expr< Ostap.many $e$ >>, Expr.Star s) ] |
-    [ (e, s)=o_postfix; "+" -> (<:expr< Ostap.some $e$ >>, Expr.Plus s) ] |
-    [ (e, s)=o_postfix; "?" -> (<:expr< Ostap.opt  $e$ >>, Expr.Opt  s) ]
+    [ (e, s)=o_postfix; "*" -> (<:expr< Ostap.many $e$ >>, Expr.star s) ] |
+    [ (e, s)=o_postfix; "+" -> (<:expr< Ostap.some $e$ >>, Expr.plus s) ] |
+    [ (e, s)=o_postfix; "?" -> (<:expr< Ostap.opt  $e$ >>, Expr.opt  s) ]
   ];
 
   o_primary: [
     [ (p, s)=o_reference; args=OPT o_parameters -> 
           match args with [
              None           -> (p, s)
-           | Some (args, a) -> (List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args, (Expr.Apply s a))
+           | Some (args, a) -> (List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args, (Expr.apply s a))
           ]
     ] |
     [ p=UIDENT ->  
@@ -418,7 +449,7 @@ EXTEND
 	       look
 	      )
 	    ] in
-            (<:expr<fun [$list:pwel$]>>, Expr.Term p)
+            (<:expr<fun [$list:pwel$]>>, Expr.term p)
           }
     ] |
     [ p=STRING -> 
@@ -430,9 +461,9 @@ EXTEND
 	     look 
 	    )
 	  ] in
-          (<:expr<fun [$list:pwel$]>>, Expr.String p)
+          (<:expr<fun [$list:pwel$]>>, Expr.string p)
     ] |
-    [ "("; (p, s)=o_alternatives; ")" -> (p, Expr.Group s) ]   
+    [ "("; (p, s)=o_alternatives; ")" -> (p, Expr.group s) ]   
   ];
 
   o_reference: [
@@ -443,16 +474,16 @@ EXTEND
   o_qualified: [
     [ o_path ] |
     [ q=UIDENT; "."; (p, s, i)=o_qualified -> 
-      let i = sprintf "%s.%s" q i in (<:expr< $uid:q$.$p$ >>, Expr.Custom i, i) 
+      let i = sprintf "%s.%s" q i in (<:expr< $uid:q$.$p$ >>, Expr.custom [`S i], i) 
     ]
   ];
 
   o_path: [
     [ p=LIDENT; (t, s)=o_tail -> 
       match t with [
-        `Empty    -> (<:expr< $lid:p$ >>, Expr.Nonterm p, p)
-      | `Field  q -> let i = sprintf "%s%s" p s in (<:expr< $lid:p$ . $q$ >>    , Expr.Custom i, i)
-      | `Method q -> let i = sprintf "%s%s" p s in (<:expr< $lid:p$ # $lid:q$ >>, Expr.Custom i, i)
+        `Empty    -> (<:expr< $lid:p$ >>, Expr.nonterm p, p)
+      | `Field  q -> let i = sprintf "%s%s" p s in (<:expr< $lid:p$ . $q$ >>    , Expr.custom [`S i], i)
+      | `Method q -> let i = sprintf "%s%s" p s in (<:expr< $lid:p$ # $lid:q$ >>, Expr.custom [`S i], i)
       ]
     ] 
   ];
