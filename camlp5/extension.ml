@@ -247,7 +247,6 @@ EXTEND
       let body = <:expr< $p$ s >> in
       let pwel = [(<:patt< s >>, Ploc.VaVal None, body)] in
       do {
-        printBNF.val (Def.make "**anonymous**" tree);
 	let f = <:expr< fun [$list:pwel$] >> in
 	Cache.cache (printExpr.val f) tree;
         f
