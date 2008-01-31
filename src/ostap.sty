@@ -42,6 +42,7 @@
      \oswithpos{#1}\oswithpos{#3}\oswithpos{#2}}%
     }% 
  \addtolength{\@oslength}{\@oscodepos}%
+ \addtolength{\@oslength}{5mm}%
  \ifthenelse{\@oslength > \textwidth}%
  {%
    \oswithpos{#1}%
@@ -66,7 +67,38 @@
  }%
 }
 
-\newcommand{\osrblock}[1]{\osbrblock{}{}{#1}}
+\newcommand{\osrblock}[1]{%
+ \settowidth{\@oslength}{%
+    {%
+     \def\osfralt{}%
+     \def\osralt{\enskip$|$\enskip}%
+     \def\ossoftskip{\enskip}%
+     \def\osbr{ }%
+     \oswithpos{#1}}%
+    }% 
+ \addtolength{\@oslength}{\@oscodepos}%
+ \addtolength{\@oslength}{5mm}%
+ \ifthenelse{\@oslength > \textwidth}%
+ {%
+   {%
+    \osnextlevel%
+    \def\ossoftskip{}%
+    \def\osbr{\\ \osdroppos\oswithpos{\oscodeindent}}%
+    \def\osfralt{\phantom{$|$\enskip}}%
+    \def\osralt{\osbr$|$\enskip}% %%\osbr
+    \oswithpos{#1}%
+   }% %%\osbr
+ }%
+ {%
+  {%
+   \def\osfralt{}%
+   \def\osralt{\enskip$|$\enskip}%
+   \def\ossoftskip{\enskip}%
+   \def\osbr{ }%
+   \oswithpos{#1}%
+  }%
+ }%
+}
 
 \newcounter{osrnumber}
 \newcommand{\osrref}[1]{\textup{\texttt{\tiny(\ref{#1}:\pageref{#1})}}}
@@ -88,7 +120,7 @@
 \newcommand{\osrplus}[1]{{#1}\osrsymbol{+}}
 \newcommand{\osrterm}[1]{\osrsymbol{#1}}
 \newcommand{\osrnonterm}[1]{\textit{#1}\osrref{#1}}
-\newcommand{\osrargs}[1]{\osbrblock{\textup{[}}{\textup{]}}{\textit{#1}}}
+\newcommand{\osrargs}[1]{\osbrblock{\textup{[}}{\textup{]}}{#1}}
 \newcommand{\osrcustom}[1]{\textit{#1}}
 
 \newcommand{\osrule}[2]{%
