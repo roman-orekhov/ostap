@@ -462,6 +462,7 @@ EXTEND
 	  ] in
           (<:expr<fun [$list:pwel$]>>, Expr.string p)
     ] |
+    [ "$" -> (<:expr< Ostap.rise >>, Expr.string "") ] |
     [ "("; (p, s)=o_alternatives; ")" -> (p, Expr.group s) ]   
   ];
 

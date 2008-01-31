@@ -101,9 +101,14 @@ module rec Expr :
       | [x] -> x
       |  x  -> Seq x
 
-    let string = function
-      | ("(" as x) | (")" as x) | ("[" as x) | ("]" as x) -> String (sprintf "%S" x)
-      | x -> String x
+    let string x = 
+      let f = ref true in
+      for i=0 to String.length x - 1 do
+	let c = x.[i] in
+	f := !f && ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))
+      done;
+      if !f then String x
+      else String (sprintf "%S" x)
 
     let term s = Term s
 
