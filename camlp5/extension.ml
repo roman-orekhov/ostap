@@ -252,7 +252,7 @@ EXTEND
         f
       }
     ] |
-    [ "let"; "rules"; "="; rules=o_rules; "end"; "in"; e=expr LEVEL "top" ->       
+    [ "let"; "rules"; "="; rules=o_rules; "end"; "in"; e=expr LEVEL "top" ->
       <:expr< let $opt:True$ $list:rules$ in $e$ >>
     ] 
   ];
@@ -356,10 +356,10 @@ EXTEND
   o_alternativeItem: [
     [ p=LIST1 o_prefix; s=OPT o_semantic -> 
         let items      = List.length p in
-	let (p, trees) = List.split p in	
-	let s = 
+	let (p, trees) = List.split  p in
+	let (s, isSema) = 
 	  match s with [
-	    Some s -> s
+	    Some s -> (s, True)
 	  | None -> 
 	      let (tuple, _) =
 		List.fold_right 
@@ -370,9 +370,9 @@ EXTEND
 		  ([], 0) 
 	      in
 	      match tuple with [
-		[]  -> <:expr< () >>
-	      | [x] -> x
-	      |  _  -> <:expr< ($list:tuple$) >>
+		[]  -> (<:expr< () >>, True)
+	      | [x] -> (x, False)
+	      |  _  -> (<:expr< ($list:tuple$) >>, True)
 	      ]
 
 	  ]
@@ -393,17 +393,20 @@ EXTEND
 		    <:expr< Ostap.guard $p$ $pfun$ >>
 	        ]
 	      in
-	      let patt              = match binding with [None -> <:patt< _ >> | Some patt -> patt] in
-	      let (n, right, combi) = 
+	      let (n, right, combi, isMap) = 
 		match rightPart with [
-		  None -> (0, s, (fun x y -> <:expr< Ostap.map $y$ $x$>>))
-		| Some (right, n) -> (n, right, (fun x y -> <:expr< Ostap.seq $x$ $y$>>))
-	        ]
+		  None -> (0, s, (fun x y -> <:expr< Ostap.map $y$ $x$>>), True)
+		| Some (right, n) -> (n, right, (fun x y -> <:expr< Ostap.seq $x$ $y$>>), False)
+	      ]
 	      in
-	      let (patt, n) = if not omit then (<:patt< ($patt$ as $lid:"_" ^ (string_of_int n)$) >>, n+1) else (patt, n) in
-	      let pwel      = [(patt, Ploc.VaVal None, right)] in
-	      let sfun      = <:expr< fun [$list:pwel$] >> in
-	      Some (combi p sfun, n)
+	      if not isSema && not omit && isMap && binding = None
+	      then Some (p, n+1)
+	      else 
+		let patt = match binding with [None -> <:patt< _ >> | Some patt -> patt] in 
+		let (patt, n) = if not omit then (<:patt< ($patt$ as $lid:"_" ^ (string_of_int n)$) >>, n+1) else (patt, n) in
+		let pwel      = [(patt, Ploc.VaVal None, right)] in
+		let sfun      = <:expr< fun [$list:pwel$] >> in
+		Some (combi p sfun, n)
             ) p None
 	with [
 	  Some (expr, _) -> (expr, Expr.seq trees)
