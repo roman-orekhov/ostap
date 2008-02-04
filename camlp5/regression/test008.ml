@@ -64,11 +64,19 @@ class lexer s p =
       
   end
 
+rules 
+  list[elem] : <hd>=elem <tl>=(-"," elem)* {hd :: tl};
+  m : list[rule IDENT end] -EOF 
+end 
+
 let _ =
+(*
   let rules =
     list[elem] : <hd>=elem <tl>=(-"," elem)* {hd :: tl};
     m : list[rule IDENT end] -EOF 
-  end in
+  end 
+  in
+*)
   begin match m (new lexer "r,t , f , g ,     u, i " 0) with
   | Parsed ((str, _), _) -> 
       Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)

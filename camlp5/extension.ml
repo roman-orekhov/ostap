@@ -260,38 +260,48 @@ EXTEND
   o_rules: [
     [ rules=LIST1 o_rule SEP ";" ->
       List.map
-	(fun (name, args, rule) -> 
-	  match args with [
-	    None -> (<:patt< $lid:name$ >>, rule)
-		
-	  | Some args ->
-	      let pwel = [(args, Ploc.VaVal None, rule)] in
-	      let pfun = <:expr< fun [$list:pwel$] >> in
-	      (<:patt< $lid:name$ >>, pfun)
-          ]
-	) 
+	(fun (name, rule) -> (<:patt< $lid:name$ >>, rule))
 	rules 
     ]
   ];
 
   o_rule: [
     [ name=LIDENT; args=OPT o_formal_parameters; ":"; (p, tree)=o_alternatives ->
-      let body = <:expr< $p$ s >> in
-      let pwel = [(<:patt< s >>, Ploc.VaVal None, body)] in
-      let rule = <:expr< fun [$list:pwel$] >> in
+      let args' = 
+	match args with [
+	  None   -> [<:patt< s >>]
+	| Some l -> [<:patt< s >> :: l]
+	]
+      in
+      let rule =
+	List.fold_right 
+	  (fun x f -> 
+	    let pwel = [(x, Ploc.VaVal None, f)] in
+	    <:expr< fun [$list:pwel$] >>
+	  ) 
+	  args'
+	  <:expr< $p$ s >>
+      in
       do {
-        match args with [
+	let p =
+	  match args with [
+	    None        -> None
+	  | Some [hd]   -> Some hd
+          | Some [h::t] -> Some (List.fold_left (fun acc p -> <:patt< $acc$ $p$ >>) h t)
+	  ]
+	in
+        match p with [
 	  None   -> printBNF.val (Def.make  name tree)
 	| Some p -> printBNF.val (Def.makeP name (printPatt.val p) tree)
 	];        
         Args.clear ();
-        (name, args, rule)
+        (name, rule)
       }
     ]
   ];
 
   o_formal_parameters: [
-    [ "["; p=LIST1 patt; "]" -> 
+    [ "["; p=patt; "]" -> 
        do {
          let rec get_defined_ident = fun [
 	     <:patt< $_$ . $_$ >> -> []
@@ -320,13 +330,16 @@ EXTEND
 	   | <:patt< ?$_$: ($p$ = $e$) >> -> get_defined_ident p
 	   | <:patt< $anti:p$ >> -> get_defined_ident p
 	   | _ -> [] ]
-	 in
+	 in	
          let register p = List.iter Args.register (get_defined_ident p) in         
-         List.iter register p;
-         match p with [
-	    [hd]   -> hd
-          | [h::t] -> List.fold_left (fun acc p -> <:patt< $acc$ $p$ >>) h t
-         ]
+         register p;
+	 let rec split p =
+	   match p with [
+	     <:patt< $p1$ $p2$ >> -> [p1 :: split p2]
+	   | p -> [p]
+	   ]
+	 in
+	 split p
        }
     ]
   ];
@@ -437,7 +450,11 @@ EXTEND
     [ (p, s)=o_reference; args=OPT o_parameters -> 
           match args with [
              None           -> (p, s)
-           | Some (args, a) -> (List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args, (Expr.apply s a))
+           | Some (args, a) -> 
+	       let args = [<:expr< s >> :: args] in
+	       let body = List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args in
+	       let pwel = [(<:patt< s >>, Ploc.VaVal None, body)] in
+	       (<:expr< fun [$list:pwel$] >>, (Expr.apply s a))
           ]
     ] |
     [ p=UIDENT ->  
@@ -451,7 +468,7 @@ EXTEND
 	       look
 	      )
 	    ] in
-            (<:expr<fun [$list:pwel$]>>, Expr.term p)
+            (<:expr< fun [$list:pwel$] >>, Expr.term p)
           }
     ] |
     [ p=STRING -> 

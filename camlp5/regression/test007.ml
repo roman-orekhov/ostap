@@ -64,8 +64,10 @@ class lexer s p =
       
   end
 
-let list elem = rule <hd>=elem <tl>=(-"," elem)* {hd :: tl} end 
+rules list[elem]: <hd>=elem <tl>=(-"," elem)* {hd :: tl} end 
+
 let m = rule list[rule IDENT end] -EOF end
+
 let _ =
   begin match m (new lexer "r,t , f , g ,     u, i " 0) with
   | Parsed ((str, _), _) -> 
