@@ -43,6 +43,74 @@ let shiftPos (line, col) s b n =
   in
   inner b (line, col)
 
+module Comment =
+  struct
+
+    open Str
+    open Printf
+
+    let except str =
+      let n = String.length str - 1 in
+      let b = Buffer.create 64 in
+      Buffer.add_string b "\(";
+      for i=0 to n do	  
+	Buffer.add_string b "\(";
+	for j=0 to i-1 do
+	  Buffer.add_string b (quote (String.sub str j 1))
+	done;
+	Buffer.add_string b (sprintf "[^%s]\)" (quote (String.sub str i 1)));
+	if i < n then Buffer.add_string b "\|"
+      done;
+      Buffer.add_string b "\)*";
+      Buffer.contents b
+
+    let checkPrefix prefix s p =
+      try
+	for i=0 to (String.length prefix) - 1 
+	do
+	  if prefix.[i] <> s.[p+i] then raise (Invalid_argument "")
+	done;
+	true
+      with Invalid_argument _ -> false
+
+    let skipComment start stop = 
+      let pattern = regexp ((except start) ^ (quote stop)) in
+      let l       = String.length start in
+      (fun s p ->
+	if checkPrefix start s p 
+	then
+	  if string_match pattern s (p+l) then p+(String.length (matched_string s))+l
+	  else -1
+	else p
+      )
+
+    let skipNestedComment start stop =      
+      let b = regexp (quote start) in
+      let n = String.length start  in
+      let m = String.length stop   in
+      let d = regexp (sprintf "\\(%s\\)\\|\\(%s\\)" (quote start) (quote stop)) in
+      (fun s p ->
+	let rec inner p =
+	  if checkPrefix start s p 
+	  then
+	    let rec jnner p c =
+	      try
+		let j       = search_forward d s p in
+		let nest, l = (try ignore (matched_group 1 s); true, n with Not_found -> false, m) in
+		let c       = if nest then c+1 else c-1 in
+		if c = 0 
+		then j+l
+		else jnner (j+l) c
+	      with Not_found -> -1
+	    in
+	    jnner (p+n) 1
+	  else p
+	in
+	inner p
+      )
+
+  end
+
 class virtual matcher s pi coordi = 
   object (self)
 
