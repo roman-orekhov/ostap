@@ -111,11 +111,11 @@ module Comment =
 
   end
 
-class virtual matcher s pi coordi = 
+class virtual matcher s = 
   object (self)
 
-    val p     = pi
-    val coord = coordi
+    val p     = 0
+    val coord = (1, 1)
 
     method virtual skip : int -> Msg.Coord.t -> int * Msg.Coord.t
 
@@ -146,8 +146,17 @@ class virtual matcher s pi coordi =
       then self#parsed "<EOF>" {< p = p; coord = coord>} coord
       else self#failed "<EOF> expected" coord
 
+    method loc        = Msg.Locator.Point coord
     method getFIRST   = self#look   ""
     method getLAST    = self#parsed "" {<>} coord
 
   end
-
+(*
+let myMatcher s =
+  let idexpr  = Str.regexp "[a-aA-Z][a-zA-Z0-9_]*" in
+  let skipper = Comment.skipNestedComment "(*" "*)" in
+  object (self)
+    inherit matcher s 0 (1, 1) 
+    method skip p c =
+      let p' = skipper s p in
+  *)    

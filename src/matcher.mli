@@ -140,7 +140,7 @@ val shiftPos : Msg.Coord.t -> string -> int -> int -> Msg.Coord.t
     expressions against string [s] starting from position [pos]. [loc] is the text coordinate of the 
     position [pos]
 *)
-class virtual matcher : string -> int -> Msg.Coord.t ->
+class virtual matcher : string ->
   object ('a)
 
     (** [get name expr] is a parse function which parses regular expression [expr] at the current
@@ -150,6 +150,9 @@ class virtual matcher : string -> int -> Msg.Coord.t ->
 
     (** [getEOF] detects end of stream. *)
     method getEOF : ('a, Token.t, Msg.t) Ostap.result
+
+    (** [loc] gets the current location in the stream *)
+    method loc : Msg.Locator.t
 
     (** [getFIRST] gets an empty token at the current position and serves to obtain
         coordinate of the first symol of current stream
