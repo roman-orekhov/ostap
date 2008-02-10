@@ -67,8 +67,8 @@
     {v open Matcher v}
 	
     {v class lexer s = v}
-    {v     let ident = regexp "[a-zA-Z_]\([a-zA-Z_0-9]\)*"] v}
-    {v     let skip  = Skip.create [Skip.whitespaces " \t\n\r"] v}
+    {v     let ident = regexp "[a-zA-Z_]\([a-zA-Z_0-9]\)*"] in v}
+    {v     let skip  = Skip.create [Skip.whitespaces " \t\n\r"] in v}
     {v     object (self) v}
     {v        inherit matcher s v}   
     {v        method skip p coord = skip s p coord v}     
@@ -125,7 +125,7 @@ val shiftPos : Msg.Coord.t -> string -> int -> int -> Msg.Coord.t
 *)
 val except : string -> string
   
-(** [checkPrefix prefix s p] returns true iff [s] starts with [prefix] at the position [p] *)
+(** [checkPrefix prefix s p] returns true iff [s] at the position [p] starts with [prefix] *)
 val checkPrefix : string -> string -> int -> bool
 
 (** Module to provide various skipping functions *)
@@ -152,11 +152,11 @@ module Skip :
     *)
     val lineComment : string -> t
 
-    (** Makes whitespace skipper (usually [whitespaces " \t\n"]) *)
+    (** Makes whitespace skipper (usually [whitespaces " \t\n\r"]) *)
     val whitespaces : string -> t
 
     (** Makes general skipper via combining several ones (for example, 
-        [create [nestedComment "(*" "*)"; whitespaces " \n\t"]]).
+        [create [nestedComment "(*" "*)"; whitespaces " \n\t\r"]]).
 	Returned skipper function shifts current position coordinates as well
     *)
     val create : t list -> (string -> int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t])
