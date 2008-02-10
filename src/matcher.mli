@@ -65,49 +65,34 @@
     {v open Str v}
     {v open Ostap v}
     {v open Matcher v}
-
-    {v let ws      = regexp "[ \n\t\r]+" v}   
-    {v let ident   = regexp "[a-zA-Z_]\([a-zA-Z_0-9]\)*"] v}
 	
-    {v class lexer s p coord = v} 
+    {v class lexer s = v}
+    {v     let ident = regexp "[a-zA-Z_]\([a-zA-Z_0-9]\)*"] v}
+    {v     let skip  = Skip.create [Skip.whitespaces " \t\n\r"] v}
     {v     object (self) v}
-
-    {v        inherit matcher s p coord v}
-   
-    {v        method skip p coord = v}
-    {v 	         if string_match ws s p v} 
-    {v 	         then v}
-    {v 	            let m = matched_string s in v}
-    {v 	            (p+length m), (shiftPos coord m 0 (length m)) v}
-    {v 	         else p, coord v}
-     
-    {v        method getIDENT = self#get "identifier" ident v}
-         
+    {v        inherit matcher s v}   
+    {v        method skip p coord = skip s p coord v}     
+    {v        method getIDENT = self#get "identifier" ident v}         
     {v     end v}
-
-    {v let ofString s = new lexer s 0 (1, 1) v}
        
-    Lexer is an immutable object sprang over the triple of attributes: the
-    string [s] to parse, the position [p] within this string and two-dimensional
-    coordinates [coord] of predefined type [Coord.t]. Each time the lexem is consumed
+    Lexer is an immutable object sprang over the string [s] to parse. Additionally it
+    maintains the position within the string and its coordinate. Each time the lexem is consumed
     from the stream the position and coordinates are shifted and a fresh instance
-    of lexer is returned as the residual stream. The constructor of base class [matcher] 
-    takes the string, position and coordinates as its arguments. 
+    of lexer is returned as the residual stream.
 
-    To turn [matcher] into true lexer we have to define the following methods:
+    To turn [matcher] into lexer you may need to define the following methods:
 
     {ol
        {li method [skip] to skip meaningless symbols (whitespaces, comments etc.) from 
-        the stream; you have to supply its implementation since it is declared  
-        abstract in the base class.}
+        the stream; in the default case it does not skip anything.}
        {li method [getL] for any lexem [L] to recognize. You may do this simply by
         calling method [get] from the base class and passing to it string name of the
         lexem (for diagnostic purposes) and regular pattern of type [Str.regexp].
        } 
     }    
 
-    [matcher] refers to two predefined types: [Msg.t] and [Token.t]. If you are
-    not satisfied with them please consider implementing your own stream.   
+    [matcher] refers to three predefined types: [Msg.t], [Token.t], [Msg.Coord.t]. If you are
+    not satisfied with them please consider implementing your own matcher.   
 *)
 
 (** {2 Simple implementation of streams as objects} *)
@@ -123,7 +108,7 @@ module Token :
     val toString : t -> string
 
     (** Text coordinate. *)
-    val loc  : t -> Msg.Locator.t
+    val loc : t -> Msg.Locator.t
 
     (** String image. *)
     val repr : t -> string
@@ -135,12 +120,54 @@ module Token :
 *)
 val shiftPos : Msg.Coord.t -> string -> int -> int -> Msg.Coord.t
 
-(** Matcher pattern to inherit from to obtain the steream implementation. 
-    [matcher s pos loc] creates an object that helps to match regular
-    expressions against string [s] starting from position [pos]. [loc] is the text coordinate of the 
-    position [pos]
+(** [except s] makes regular expression to match any string which does not contain [s]
+    as a contiguous substring
 *)
-class virtual matcher : string ->
+val except : string -> string
+  
+(** [checkPrefix prefix s p] returns true iff [s] starts with [prefix] at the position [p] *)
+val checkPrefix : string -> string -> int -> bool
+
+(** Module to provide various skipping functions *)
+module Skip :
+  sig
+
+    (** Type of function to skip symbols. [t s p] returns either [`Skipped p], where [p] is
+        the first position past skipped symbols, or [`Failed reason] if something went wrong
+    *)
+    type t = string -> int -> [`Skipped of int | `Failed of string]
+
+    (** Makes comment skipper. For example, [comment "/*" "*/"] makes skipper to bypass
+        C-style comments
+    *)
+    val comment : string -> string -> t
+
+    (** Makes nested comment skipper. For example, [nestedComment "(*" "*)"] makes skipper
+        to bypass OCaml-style comments
+    *)
+    val nestedComment : string -> string -> t
+
+    (** Makes line comment skipper. For example, [lineComment "--"] makes skipper to bypass
+        VHDL-style comment
+    *)
+    val lineComment : string -> t
+
+    (** Makes whitespace skipper (usually [whitespaces " \t\n"]) *)
+    val whitespaces : string -> t
+
+    (** Makes general skipper via combining several ones (for example, 
+        [create [nestedComment "(*" "*)"; whitespaces " \n\t"]]).
+	Returned skipper function shifts current position coordinates as well
+    *)
+    val create : t list -> (string -> int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t])
+
+  end
+
+(** Matcher pattern to inherit from to obtain the steream implementation. 
+    [matcher s] creates an object that helps to match regular
+    expressions against string [s]
+*)
+class matcher : string ->
   object ('a)
 
     (** [get name expr] is a parse function which parses regular expression [expr] at the current
@@ -167,10 +194,10 @@ class virtual matcher : string ->
     (** [look str] looks at the current stream for string [str] *)
     method look : string -> ('a, Token.t, Msg.t) Ostap.result
 
-    (** Virtual method to skip meaningless symbols (e.g. whitespaces); returns
+    (** Method to skip meaningless symbols (e.g. whitespaces); returns
         position and coordinates of first meaningful symbol. [skip] is implicitly
         called prior to all of the above methods except for the [getLAST]
     *)
-    method virtual skip : int -> Msg.Coord.t -> int * Msg.Coord.t
+    method skip : int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t]
 
   end
