@@ -40,40 +40,34 @@ let rise  s = Parsed ((s, s), [])
 
 let alt x y =
   (fun s ->
-    LOG (printf "running alt\n");
     match x s with 
     | Error x -> 
-	LOG (printf "alt left part error, trying its right part\n"); 
 	begin match y s with 
 	| Error y | Failed y -> Error (x @ y) 
 	| Parsed (ok, err) -> Parsed (ok, x @ err)
 	end
 	  
     | Failed x -> 
-	LOG (printf "alt left part failed, trying its right part\n"); 
-	y s 
+	begin match y s with
+	| Error y | Failed y -> Error (x @ y)
+	| Parsed (ok, err) -> Parsed (ok, x @ err)
+	end
 	  
-    | x -> 
-	LOG (printf "alt left part parsed\n"); 
-	x
+    | x -> x
   )
     
 let (<|>) = alt
 
 let seq x y =
   (fun s -> 
-    LOG (printf "running seq\n");
     match x s with
     | Parsed ((b, s'), err) ->	
-	LOG (printf "seq right part parsed, trying its left part\n");
 	begin match y b s' with 
 	| Failed x | Error x -> Error (err @ x) 
 	| x -> x
 	end
 
-    | x -> 
-	LOG (printf "seq left part failed\n");
-	cast x
+    | x -> cast x
   )
     
 let (|>) = seq
