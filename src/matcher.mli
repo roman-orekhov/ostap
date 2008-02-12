@@ -170,6 +170,15 @@ module Skip :
 class matcher : string ->
   object ('a)
 
+    (** Gets current position in string *)
+    method getPos : int
+
+    (** Gets current coordinate *)
+    method getCoord : Msg.Coord.t
+
+    (** Get prefix of current string symbols *)
+    method getPrefix : int -> string
+
     (** [get name expr] is a parse function which parses regular expression [expr] at the current
         position. [name] is a name for diagnostic purposes
     *)

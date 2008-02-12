@@ -100,3 +100,11 @@ let guard p f =
     | y -> y
   )
 
+(*
+let comment p str =
+  (fun s ->
+    match p s with
+    | (Parsed _ as x) -> x
+    | Failed 
+  )
+*)

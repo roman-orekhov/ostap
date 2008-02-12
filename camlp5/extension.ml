@@ -335,7 +335,7 @@ EXTEND
          register p;
 	 let rec split p =
 	   match p with [
-	     <:patt< $p1$ $p2$ >> -> [p1 :: split p2]
+	     <:patt< $p1$ $p2$ >> -> (split p1) @ (split p2)
 	   | p -> [p]
 	   ]
 	 in
@@ -367,7 +367,7 @@ EXTEND
   ];
 
   o_alternativeItem: [
-    [ p=LIST1 o_prefix; s=OPT o_semantic -> 
+    [ g=OPT o_guard; p=LIST1 o_prefix; s=OPT o_semantic -> 
         let items      = List.length p in
 	let (p, trees) = List.split  p in
 	let (s, isSema) = 
@@ -422,8 +422,13 @@ EXTEND
 		Some (combi p sfun, n)
             ) p None
 	with [
-	  Some (expr, _) -> (expr, Expr.seq trees)
-	| None           -> raise (Failure "internal error: empty list must not be eaten")
+	  Some (expr, _) -> 
+	    match g with [
+	      None   -> (expr, Expr.seq trees)
+	    | Some g ->
+		(<:expr< Ostap.seq (Ostap.guard Ostap.empty (fun _ -> $g$)) (fun _ -> $expr$) >>, Expr.seq trees)
+	    ]
+	| None -> raise (Failure "internal error: empty list must not be eaten")
 	]
     ] 
   ];
@@ -515,7 +520,14 @@ EXTEND
   ];
 
   o_parameters: [
-    [ "["; e=LIST1 expr; "]" -> 
+    [ "["; e=expr; "]" -> 
+      let rec split e =
+	match e with [
+	  <:expr< $e1$ $e2$ >> -> (split e1) @ [e2]
+	| e -> [e]
+      ]
+      in
+      let e = split e in
       (
        e, 
        List.map (fun e -> Cache.cached (printExpr.val e)) e
@@ -533,6 +545,10 @@ EXTEND
 
   o_predicate: [
     [ "=>"; "{"; e=expr; "}"; "=>" -> e ]
+  ];
+
+  o_guard: [
+    [ "{"; e=expr; "}"; "=>" -> e ]
   ];
 
 END;

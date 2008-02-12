@@ -168,6 +168,15 @@ class matcher s =
     method private parsed x y c = Parsed (((x, c), y), ([] : Msg.t list))
     method private failed x c   = Failed [Msg.make x [||] (Msg.Locator.Point c)]
 
+    method getPos   = p
+
+    method getCoord = coord
+
+    method getPrefix n =
+      if p + n < String.length s 
+      then String.sub s p n
+      else String.sub s p (String.length s - p)
+
     method get name regexp =
       match self#skip p coord with
       | `Skipped (p, coord) ->
