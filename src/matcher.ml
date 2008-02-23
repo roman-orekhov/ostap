@@ -19,6 +19,7 @@ open Ostap
 open String
 open Printf
 open Str
+open Reason
 	
 module Token =
   struct
@@ -165,8 +166,8 @@ class matcher s =
 
     method skip (p : int) (c : Msg.Coord.t) = (`Skipped (p, c) :> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t])
 
-    method private parsed x y c = Parsed (((x, c), y), ([] : Msg.t list))
-    method private failed x c   = Failed [Msg.make x [||] (Msg.Locator.Point c)]
+    method private parsed x y c = Parsed (((x, c), y), None)
+    method private failed x c   = Failed (reason (Msg.make x [||] (Msg.Locator.Point c)))
 
     method getPos   = p
 
@@ -185,7 +186,7 @@ class matcher s =
 	    let m = matched_string s in
             self#parsed m {< p = p + (length m);  coord = shiftPos coord m 0 (length m) >} coord
 	  else self#failed (sprintf "\"%s\" expected" name) coord
-      | `Failed msg -> Failed [msg]
+      | `Failed msg -> Failed (reason msg)
 
     method look str = 
       match self#skip p coord with
@@ -198,7 +199,7 @@ class matcher s =
 	    else self#failed (sprintf "\"%s\" expected" str) coord
 	  with Invalid_argument _ -> self#failed (sprintf "\"%s\" expected" str) coord
 	  end
-      | `Failed msg -> Failed [msg]
+      | `Failed msg -> Failed (reason msg)
 
     method getEOF = 
       match self#skip p coord with
@@ -206,7 +207,7 @@ class matcher s =
 	  if p = length s 
 	  then self#parsed "<EOF>" {< p = p; coord = coord>} coord
 	  else self#failed "<EOF> expected" coord
-      | `Failed msg -> Failed [msg]
+      | `Failed msg -> Failed (reason msg)
 
     method loc        = Msg.Locator.Point coord
     method getFIRST   = self#look   ""

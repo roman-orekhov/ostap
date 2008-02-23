@@ -29,6 +29,9 @@ module Coord :
     (** String conversion *)
     val toString : t -> string
 
+    (** Comparison function *)
+    val compare : t -> t -> int
+
   end
 
 (** Various ways to denote the location in the source text *)
@@ -45,6 +48,9 @@ module Locator :
     (** String conversion *)
     val toString : t -> string
 
+    (** Comparison function *)
+    val compare : t -> t -> int
+
   end
 
 (** Type of the message; [phrase] stands for format string, [args] --- for actual
@@ -54,10 +60,13 @@ module Locator :
     [toString {phrase="%0 %1 not found"; args=[|"type"; "int"|]; loc=No}] is
     ["type int not found"]
 *)
-type t = {phrase: string; args: string array; loc: Locator.t} 
+type t
 
 (** General constructor *) 
 val make : string -> string array -> Locator.t -> t
+
+(** Gets locator of a message *)
+val loc : t -> Locator.t
 
 (** No parameters, no locator *)
 val phrase : string -> t

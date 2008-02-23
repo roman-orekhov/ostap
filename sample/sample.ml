@@ -24,7 +24,12 @@ let parse s =
   let module P = View.NamedPair (struct let first = "name" let second = "args" end) (Token) (View.List (Token)) in
   match t (new lexer s) with
   | Parsed (x, _) -> Printf.printf "Success\n" 
-  | Failed msgs | Error msgs -> Printf.printf "Unsuccess: %s\n" (let module M = View.List (Msg) in M.toString msgs)
+  | Failed msgs | Error msgs -> 
+      Printf.printf "Unsuccess: %s\n" 
+	(match msgs with
+	| None   -> "no description"
+	| Some r -> r#toString `All `Desc
+	)
 
 let _ =
   parse "match {b c, d} in x"

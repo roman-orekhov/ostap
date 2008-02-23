@@ -33,9 +33,9 @@ class lexer s p =
       if string_match ident s p
       then 
 	let m = matched_string s in
-	Parsed ((m, new lexer s (p+(String.length m))), [])
+	Parsed ((m, new lexer s (p+(String.length m))), None)
       else
-	Failed [()]	
+	Failed (Reason.reason (Msg.phrase "identifier expected"))
 
     method look x =
       let p =
@@ -46,9 +46,9 @@ class lexer s p =
       if string_match (regexp (quote x)) s p
       then 
 	let m = matched_string s in
-	Parsed ((m, new lexer s (p+(String.length m))), [])
+	Parsed ((m, new lexer s (p+(String.length m))), None)
       else
-	Failed [()]	      
+	Failed (Reason.reason (Msg.orphan "%0 expected" [|x|]))
 
     method getEOF =
       let p =
@@ -58,14 +58,16 @@ class lexer s p =
       in
       if p = String.length s 
       then
-	Parsed (("<EOF>", new lexer s p), [])
+	Parsed (("<EOF>", new lexer s p), None)
       else
-	Failed [()]	      
+	Failed (Reason.reason (Msg.phrase "EOF expected"))
       
   end
 
-let list elem = rule <hd>=elem <tl>=(-"," elem)* {hd :: tl} end 
+rules list[elem]: <hd>=elem <tl>=(-"," elem)* {hd :: tl} end 
+
 let m = rule list[rule IDENT end] -EOF end
+
 let _ =
   begin match m (new lexer "r,t , f , g ,     u, i " 0) with
   | Parsed ((str, _), _) -> 

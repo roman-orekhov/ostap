@@ -23,6 +23,10 @@ module Coord =
     type t = int * int
 
     let toString (x, y) = sprintf "(%d:%d)" x y 
+
+    let compare (r, c) (r', c') =
+      let x = compare r r' in
+      if x = 0 then compare c c' else x
    
   end
 
@@ -33,17 +37,36 @@ module Locator =
     and  l = t
 
     let rec toString = function
-        | No              -> ""
-        | Point x         -> Coord.toString x 
-        | Interval (x, y) -> sprintf "%s-%s" (Coord.toString x) (Coord.toString y)
-        | Set      x      -> let module M = View.List (struct type t = l let toString = toString end) in
-                             M.toString x
+      | No              -> ""
+      | Point x         -> Coord.toString x 
+      | Interval (x, y) -> sprintf "%s-%s" (Coord.toString x) (Coord.toString y)
+      | Set      x      -> 
+	  let module M = View.List (struct type t = l let toString = toString end) in
+          M.toString x
+
+    let compare x y =
+      if Pervasives.compare x y = 0 then 0
+      else
+	match (x, y) with
+	| No, No -> 0
+	| No, _  -> -1
+	| _ , No -> 1
+	| _ ->
+	    let rec least = function
+	      | No              -> (0, 0)
+	      | Point     x     -> x
+	      | Interval (x, _) -> x
+	      | Set       x     -> List.hd (List.sort Coord.compare (List.map least x))
+	    in
+	    Coord.compare (least x) (least y)
 
   end
 
 type t = {phrase: string; args: string array; loc: Locator.t} 
 
 let make      phrase args loc = {phrase=phrase; args=args; loc=loc}
+let loc       t               = t.loc
+
 let phrase    phrase          = make phrase [||] Locator.No
 let orphan    phrase args     = make phrase args Locator.No
 
