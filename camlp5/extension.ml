@@ -448,7 +448,9 @@ EXTEND
     [ o_primary ] |
     [ (e, s)=o_postfix; "*" -> (<:expr< Ostap.many $e$ >>, Expr.star s) ] |
     [ (e, s)=o_postfix; "+" -> (<:expr< Ostap.some $e$ >>, Expr.plus s) ] |
-    [ (e, s)=o_postfix; "?" -> (<:expr< Ostap.opt  $e$ >>, Expr.opt  s) ]
+    [ (e, s)=o_postfix; "?" -> (<:expr< Ostap.opt  $e$ >>, Expr.opt  s) ] |
+
+    [ (e, s)=o_postfix; ":"; c=STRING -> (<:expr< Ostap.comment $e$ $str:c$ >>, s) ]
   ];
 
   o_primary: [

@@ -123,3 +123,6 @@ val (<+>) : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'b list, 'e) parse
     turns it into [Failed []] if this check failed
  *)    
 val guard : ('a, 'b, 'c) parse -> ('b -> bool) -> ('a, 'b, 'c) parse
+
+(** Commenting combinator: adds a readable comment to an error/failure *)
+val comment : ('a, 'b, <comment: string -> 'c; ..> as 'c) parse -> string -> ('a, 'b, 'c) parse
