@@ -1,0 +1,10 @@
+Not parsed:
+ Error at (1:5): operand expected
+    "-" expected at (1:5) 
+    "(" expected at (1:5) 
+    "constant" expected at (1:5) 
+    "identifier" expected at (1:5) 
+ Error at (1:4): 
+    <EOF> expected at (1:4) 
+    "+" expected at (1:4) 
+

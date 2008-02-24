@@ -88,25 +88,23 @@ module Holder =
     let toString r =
       let buf = Buffer.create 1024 in
       let ppf = formatter_of_buffer buf in
-      let rec inner list =
-	fprintf ppf "@[<v 3> @,";
+      let rec inner comment list =
 	List.iter
 	  (fun (loc, list) ->
-	    fprintf ppf "@[<v 3> Error at %s: @," (Msg.Locator.toString loc);
+	    if not comment then fprintf ppf "@[<v 3> Error at %s: " (Msg.Locator.toString loc);
 	    List.iter 
 	      (function 
-		| `Msg msg -> fprintf ppf "%s @\n" (Msg.toString msg)
+		| `Msg msg -> fprintf ppf "@, %s " (Msg.toString msg)
 		| `Comment (str, r) -> 
 		    fprintf ppf "%s" str;
-		    inner r
+		    inner true r 
 	      )
 	      list;
-	    fprintf ppf "@]@\n"
+	    if not comment then fprintf ppf "@]@\n"
 	  )
-	  list;
-	fprintf ppf "@]"
+	  list
       in
-      inner r;
+      inner false r;
       pp_print_flush ppf ();
       Buffer.contents buf
       
