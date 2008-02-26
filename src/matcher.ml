@@ -209,18 +209,7 @@ class matcher s =
 	  else self#failed "<EOF> expected" coord
       | `Failed msg -> Failed (reason msg)
 
-    method loc        = Msg.Locator.Point coord
-    method getFIRST   = self#look   ""
-    method getLAST    = self#parsed "" {<>} coord
+    method loc = Msg.Locator.Point coord
 
-  end
-
-let myMatcher s =
-  let idexpr  = Str.regexp "[a-aA-Z][a-zA-Z0-9_]*" in
-  let skipper = Skip.create [Skip.whitespaces " \n\t"; Skip.comment "(*" "*)"] in
-  object (self)
-    inherit matcher s 
-    method skip p c = skipper s p c
-    method getIDENT = self#get "identifier" idexpr
   end
     

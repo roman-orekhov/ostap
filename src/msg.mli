@@ -45,6 +45,9 @@ module Locator :
       | Interval of Coord.t * Coord.t  (** Contiguous interval of points   *)
       | Set      of t list             (** Non-contiguous set of locations *)
 
+    (** Makes simple interval of two points or set of two non-point locators *)
+    val makeInterval : t -> t -> t
+
     (** String conversion *)
     val toString : t -> string
 

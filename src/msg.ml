@@ -36,6 +36,11 @@ module Locator =
     type t = No | Point of Coord.t | Interval of Coord.t * Coord.t | Set of t list
     and  l = t
 
+    let makeInterval x y =
+      match x, y with
+      | Point x, Point y -> Interval (x, y)
+      | _ -> Set [x; y]
+
     let rec toString = function
       | No              -> ""
       | Point x         -> Coord.toString x 

@@ -190,16 +190,6 @@ class matcher : string ->
     (** [loc] gets the current location in the stream *)
     method loc : Msg.Locator.t
 
-    (** [getFIRST] gets an empty token at the current position and serves to obtain
-        coordinate of the first symbol of current stream
-    *)
-    method getFIRST : ('a, Token.t, Reason.t) Ostap.result
-
-    (** [getLAST] gets an empty token at the  current position and serves to obtain
-        coordinate of last symbol  
-    *)
-    method getLAST : ('a, Token.t, Reason.t) Ostap.result
-
     (** [look str] looks at the current stream for string [str] *)
     method look : string -> ('a, Token.t, Reason.t) Ostap.result
 
