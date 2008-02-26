@@ -80,7 +80,7 @@ module Skip =
 	if checkPrefix start s p 
 	then
 	  if string_match pattern s (p+l) then `Skipped (p+(String.length (matched_string s))+l)
-	  else `Failed (sprintf "unterminated comment (%s not detected)" stop)
+	  else `Failed (sprintf "unterminated comment ('%s' not detected)" stop)
 	else `Skipped p
       )
     
@@ -101,7 +101,7 @@ module Skip =
 		if c = 0 
 		then `Skipped (j+l)
 		else jnner (j+l) c
-	      with Not_found -> `Failed (sprintf "unterminated comment (%s not detected)" stop)
+	      with Not_found -> `Failed (sprintf "unterminated comment ('%s' not detected)" stop)
 	    in
 	    jnner (p+n) 1
 	  else `Skipped p

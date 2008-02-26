@@ -86,20 +86,35 @@ module Holder =
     open Format
 
     let toString r =
+      let module M = Set.Make (String) in
       let buf = Buffer.create 1024 in
       let ppf = formatter_of_buffer buf in
       let rec inner comment list =
 	List.iter
 	  (fun (loc, list) ->
 	    if not comment then fprintf ppf "@[<v 3> Error at %s: " (Msg.Locator.toString loc);
-	    List.iter 
-	      (function 
-		| `Msg msg -> fprintf ppf "@, %s " (Msg.toString msg)
-		| `Comment (str, r) -> 
-		    fprintf ppf "%s" str;
-		    inner true r 
-	      )
-	      list;
+	    ignore 
+	      (
+	       List.fold_left
+		 (fun fence item ->
+		   match item with
+		   | `Msg msg -> 
+		       let s = Msg.toString msg in
+		       if M.mem s fence 
+		       then fence
+		       else (
+			 fprintf ppf "@, %s " s;
+			 M.add s fence
+		       )
+
+		   | `Comment (str, r) -> 
+		       fprintf ppf "%s" str;
+		       inner true r;
+		       fence
+		 )
+		 M.empty
+		 list
+	      );
 	    if not comment then fprintf ppf "@]@\n"
 	  )
 	  list
