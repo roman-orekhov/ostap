@@ -58,8 +58,8 @@ module Holder =
       let list = M.fold (fun loc list acc -> (loc, list) :: acc) h [] in
       let list = 
 	match order with
-	| `Acc  -> list
-	| `Desc -> List.rev list
+	| `Acc  -> List.rev list
+	| `Desc -> list
       in
       let list =
 	match limit with

@@ -44,6 +44,9 @@ val hbox : printer
 (** Opens horizontal/vertical box (see standard module Format) *)
 val hovbox : printer
 
+(** Opens horizontal and vertical box (see standard module Format) *)
+val hvbox : printer
+
 (** Closes box (see standard module Format) *)
 val endbox : printer
 
@@ -62,17 +65,46 @@ val seqa : printer array -> printer
 (** [listBy del list] prints elements of [list] delimited by [del] *)
 val listBy : printer -> printer list -> printer
 
-(** A synonim for [listBy (string ";")] *)
+(** A synonim for [listBy (string "; ")] *)
 val listBySemicolon : printer list -> printer 
 
-(** A synonim for [listBy (string ",")] *)
+(** A synonim for [listBy (string ", ")] *)
 val listByComma : printer list -> printer
 
-(** A synonim for [listBy (seq [string ";"; break])] *)
+(** A synonim for [listBy (string " ")] *)
+val listBySpace : printer list -> printer
+
+(** A synonim for [listBy (seq [string "; "; break])] *)
 val listBySemicolonBreak : printer list -> printer 
 
-(** A synonim for [listBy (seq [string ","; break])] *)
+(** A synonim for [listBy (seq [string ", "; break])] *)
 val listByCommaBreak : printer list -> printer 
+
+(** A synonim for [listBy (seq [string " "; break])] *)
+val listBySpaceBreak : printer list -> printer 
 
 (** A synonim for [listBy break] *)
 val listByBreak : printer list -> printer 
+
+(** {2 Shortcuts for boxed formatting} *)
+
+(** Prints its argument within box (see standard module Format) *)
+val boxed : printer -> printer
+
+(** Prints its argument within hbox (see standard module Format) *)
+val hboxed : printer -> printer
+
+(** Prints its argument within vbox (see standard module Format) *)
+val vboxed : printer -> printer
+
+(** Prints its argument within hovbox (see standard module Format) *)
+val hovboxed : printer -> printer
+
+(** Prints its argument within hvbox (see standard module Format) *)
+val hvboxed : printer -> printer
+
+(** [brboxed left right p] surrounds [p] by "brackets" [left] and [right] *)
+val brboxed : printer -> printer -> printer -> printer
+
+(** [prboxed prefix p] prefixes [p] by [prefix] *)
+val prboxed : printer -> printer -> printer

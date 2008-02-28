@@ -30,9 +30,10 @@ let empty   ppf = ()
 let newline ppf = fprintf ppf "@\n"
 let break   ppf = fprintf ppf "@,"
 let box     ppf = fprintf ppf "@["
-let vbox    ppf = fprintf ppf "@[<v 2>"
-let hbox    ppf = fprintf ppf "@[<h 2>"
-let hovbox  ppf = fprintf ppf "@[<hov 2>"
+let vbox    ppf = fprintf ppf "@[<v 0>"
+let hbox    ppf = fprintf ppf "@[<h 0>"
+let hovbox  ppf = fprintf ppf "@[<hov 0>"
+let hvbox   ppf = fprintf ppf "@[<hv 0>"
 let endbox  ppf = fprintf ppf "@]"
 
 let string str   = fun ppf -> fprintf ppf "%s" str
@@ -60,7 +61,21 @@ let listBy delim list =
 
 let listBySemicolon : printer list -> printer = listBy (string "; ")
 let listByComma     : printer list -> printer = listBy (string ", ")
+let listBySpace     : printer list -> printer = listBy (string " " )
 
-let listBySemicolonBreak : printer list -> printer = listBy (seq [string ";"; break])
-let listByCommaBreak     : printer list -> printer = listBy (seq [string ","; break])
+let listBySemicolonBreak : printer list -> printer = listBy (seq [string "; "; break])
+let listByCommaBreak     : printer list -> printer = listBy (seq [string ", "; break])
+let listBySpaceBreak     : printer list -> printer = listBy (seq [string " " ; break]) 
 let listByBreak          : printer list -> printer = listBy break
+
+let enclose box p = fun ppf -> seq [box; p; endbox] ppf
+
+let boxed    = enclose box
+let hboxed   = enclose hbox
+let vboxed   = enclose vbox
+let hovboxed = enclose hovbox
+let hvboxed  = enclose hvbox
+
+let brboxed l r p = hvboxed (seq [l; hovboxed p; break; r])
+let prboxed l p   = hvboxed (seq [l; hovboxed p])
+
