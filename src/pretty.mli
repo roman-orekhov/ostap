@@ -1,5 +1,5 @@
 (*
- * Printers: basic set of pretty-printing combinators.
+ * Pretty: basic set of pretty-printing combinators.
  * Copyright (C) 2006-2008
  * Dmitri Boulytchev, St.Petersburg State University
  * 
@@ -15,7 +15,7 @@
  * (enclosed in the file COPYING).
  *)
 
-(** Printers --- a generic pretty-printer combinator set *)
+(** Pretty --- a generic pretty-printer combinator set *)
 
 (** Printer type *)
 type printer = Format.formatter -> unit

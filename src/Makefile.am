@@ -1,7 +1,7 @@
 
 # type in sources here
-SOURCES = printers.ml bNF3.ml ostap.ml msg.ml reason.ml matcher.ml trap.ml
-MLI = printers.mli bNF3.mli ostap.mli msg.mli reason.mli matcher.mli trap.mli
+SOURCES = pretty.ml bNF3.ml ostap.ml msg.ml reason.ml matcher.ml trap.ml
+MLI = pretty.mli bNF3.mli ostap.mli msg.mli reason.mli matcher.mli trap.mli
 
 include $(top_srcdir)/m4/Makefile.am.vars
 
