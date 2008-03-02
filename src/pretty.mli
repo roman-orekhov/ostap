@@ -24,7 +24,7 @@ type printer = Format.formatter -> unit
 val toString : printer -> string
 
 (** Empty printer *)
-val empty   : printer
+val empty : printer
 
 (** Newline printer *)
 val newline : printer
@@ -108,3 +108,14 @@ val brboxed : printer -> printer -> printer -> printer
 
 (** [prboxed prefix p] prefixes [p] by [prefix] *)
 val prboxed : printer -> printer -> printer
+
+(** Synonym for [brboxed (string "(") (string ")")] *)
+val rboxed : printer -> printer
+
+(** Synonym for [brboxed (string "[") (string "]")] *)
+val sboxed : printer -> printer
+
+(** Synonym for [brboxed (string "{") (string "}")] *)
+val cboxed : printer -> printer
+
+

@@ -79,3 +79,6 @@ let hvboxed  = enclose hvbox
 let brboxed l r p = hvboxed (seq [l; hovboxed p; break; r])
 let prboxed l p   = hvboxed (seq [l; hovboxed p])
 
+let rboxed = brboxed (string "(") (string ")")
+let sboxed = brboxed (string "[") (string "]")
+let cboxed = brboxed (string "{") (string "}")
