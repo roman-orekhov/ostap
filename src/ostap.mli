@@ -63,6 +63,12 @@ type ('stream, 'parsed, 'error) parse  = 'stream -> ('stream, 'parsed, 'error) r
 (** [empty s] consumes no items from the stream; always returns success *)
 val empty : ('a, unit, 'b) parse
 
+(** [fail s] consumes no items from the stream and always returnns failure *)
+val fail : ('a, unit, 'b) parse
+
+(** [error s] consumes no items from the stream and always returns error *)
+val error : ('a, unit, 'b) parse
+
 (** [rise s] returns [Parsed (s, s)] and so "rises" the stream [s] as a 
     successful parse result
  *)
