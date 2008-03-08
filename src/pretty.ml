@@ -59,6 +59,14 @@ let listBy delim list =
 	 list
       )
 
+let arrayBy delim a =
+  fun ppf ->
+    let l = Array.length a - 1 in
+    for i=0 to l do
+      if i>0 then delim ppf;
+      a.(i) ppf
+    done
+
 let listBySemicolon : printer list -> printer = listBy (string "; ")
 let listByComma     : printer list -> printer = listBy (string ", ")
 let listBySpace     : printer list -> printer = listBy (string " " )
@@ -67,6 +75,15 @@ let listBySemicolonBreak : printer list -> printer = listBy (seq [string "; "; b
 let listByCommaBreak     : printer list -> printer = listBy (seq [string ", "; break])
 let listBySpaceBreak     : printer list -> printer = listBy (seq [string " " ; break]) 
 let listByBreak          : printer list -> printer = listBy break
+
+let arrayBySemicolon : printer array -> printer = arrayBy (string "; ")
+let arrayByComma     : printer array -> printer = arrayBy (string ", ")
+let arrayBySpace     : printer array -> printer = arrayBy (string " " )
+
+let arrayBySemicolonBreak : printer array -> printer = arrayBy (seq [string "; "; break])
+let arrayByCommaBreak     : printer array -> printer = arrayBy (seq [string ", "; break])
+let arrayBySpaceBreak     : printer array -> printer = arrayBy (seq [string " " ; break]) 
+let arrayByBreak          : printer array -> printer = arrayBy break
 
 let enclose box p = fun ppf -> seq [box; p; endbox] ppf
 

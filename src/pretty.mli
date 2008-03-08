@@ -57,7 +57,7 @@ val string : string -> printer
 val int : int -> printer
 
 (** List printing combinator *)
-val seq : printer list  -> printer
+val seq : printer list -> printer
 
 (** Array printing combinator *)
 val seqa : printer array -> printer
@@ -65,26 +65,50 @@ val seqa : printer array -> printer
 (** [listBy del list] prints elements of [list] delimited by [del] *)
 val listBy : printer -> printer list -> printer
 
-(** A synonim for [listBy (string "; ")] *)
+(** [arrayBy del array] prints elements of [array] delimited by [del] *)
+val arrayBy : printer -> printer array -> printer
+
+(** A synonym for [listBy (string "; ")] *)
 val listBySemicolon : printer list -> printer 
 
-(** A synonim for [listBy (string ", ")] *)
+(** A synonym for [listBy (string ", ")] *)
 val listByComma : printer list -> printer
 
-(** A synonim for [listBy (string " ")] *)
+(** A synonym for [listBy (string " ")] *)
 val listBySpace : printer list -> printer
 
-(** A synonim for [listBy (seq [string "; "; break])] *)
+(** A synonym for [listBy (seq [string "; "; break])] *)
 val listBySemicolonBreak : printer list -> printer 
 
-(** A synonim for [listBy (seq [string ", "; break])] *)
+(** A synonym for [listBy (seq [string ", "; break])] *)
 val listByCommaBreak : printer list -> printer 
 
-(** A synonim for [listBy (seq [string " "; break])] *)
+(** A synonym for [listBy (seq [string " "; break])] *)
 val listBySpaceBreak : printer list -> printer 
 
-(** A synonim for [listBy break] *)
+(** A synonym for [listBy break] *)
 val listByBreak : printer list -> printer 
+
+(** A synonym for [arrayBy (string "; ")] *)
+val arrayBySemicolon : printer array -> printer 
+
+(** A synonym for [arrayBy (string ", ")] *)
+val arrayByComma : printer array -> printer
+
+(** A synonym for [arrayBy (string " ")] *)
+val arrayBySpace : printer array -> printer
+
+(** A synonym for [arrayBy (seq [string "; "; break])] *)
+val arrayBySemicolonBreak : printer array -> printer 
+
+(** A synonym for [arrayBy (seq [string ", "; break])] *)
+val arrayByCommaBreak : printer array -> printer 
+
+(** A synonym for [arrayBy (seq [string " "; break])] *)
+val arrayBySpaceBreak : printer array -> printer 
+
+(** A synonym for [arrayBy break] *)
+val arrayByBreak : printer array -> printer 
 
 (** {2 Shortcuts for boxed formatting} *)
 
