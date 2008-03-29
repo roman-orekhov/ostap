@@ -21,20 +21,21 @@
 module type Expression =
   sig
 
-    (** The type *)
+    (** The type of expression *)
     type t              
-                 
-    (** Priority of the operation *)
-    val prio : t -> int               
+   
+    (** Discover the kind of expression: either infix with priority and 
+        two arguments or other kind of expression
+    *)
+    val discover : t -> [`Infix of int * t * t | `Other]
+ 
+    (** [replace expr x y] replaces arguments of infix expression [expr]
+        with [x] and [y] 
+    *)
+    val replace : t -> t -> t -> t
 
-    (** Whether the expression is protected (by brackets, prefix operators etc.) *) 
-    val protected : t -> bool              
-
-    (** Operands of tree node*)
-    val sons : t -> t list         
-
-    (** Constructor *) 
-    val make : t -> t list -> t        
+    (** Map function for expressions *)
+    val map : (t -> t) -> t -> t       
 	  
   end
 
