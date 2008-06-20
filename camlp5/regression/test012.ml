@@ -71,4 +71,4 @@ ostap {
 let _ =   
   match main (new lexer "a+b-") with
   | Parsed _ -> Printf.printf "Parsed.\n"
-  | Failed m | Error m -> Printf.printf "Not parsed:\n%s\n" (Reason.toString `All `Acc m)
+  | Failed m -> Printf.printf "Not parsed:\n%s\n" (Reason.toString `All `Acc m)

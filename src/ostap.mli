@@ -37,7 +37,7 @@
     hand parsing "AC" with the same rule returns error since "A" was succesfully 
     matched against the stream, but "B" then failed. 
  *)
-type ('a, 'b) tag = Parsed of 'a * 'b option | Error of 'b option | Failed of 'b option
+type ('a, 'b) tag = Parsed of 'a * 'b option | Failed of 'b option
 
 (** The type 
 
@@ -45,7 +45,7 @@ type ('a, 'b) tag = Parsed of 'a * 'b option | Error of 'b option | Failed of 'b
 
     denotes a result of parsing a stream with a parse function. This result
     is either successful parse comprising parsed value of type ['parsed] and the residual 
-    stream of type ['stream], or an error/failure data of type ['error]
+    stream of type ['stream], or failure data of type ['error]
  *)
 type ('stream, 'parsed, 'error) result = ('parsed * 'stream, 'error) tag
 
@@ -66,13 +66,10 @@ val empty : ('a, unit, 'b) parse
 (** [fail s] consumes no items from the stream and always returnns failure *)
 val fail : ('a, unit, 'b) parse
 
-(** [error s] consumes no items from the stream and always returns error *)
-val error : ('a, unit, 'b) parse
-
-(** [rise s] returns [Parsed (s, s)] and so "rises" the stream [s] as a 
+(** [lift s] returns [Parsed (s, s)] and so "lifts" the stream [s] as a 
     successful parse result
  *)
-val rise : ('a, 'a, 'b) parse
+val lift : ('a, 'a, 'b) parse
 
 (** {2 General parsing combinators} *)
 

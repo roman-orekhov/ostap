@@ -160,16 +160,16 @@ module Skip =
 
 type aux = [`Skipped of int * Msg.Coord.t | `Failed of Msg.t | `Init]
 
-class matcher s = 
+class matcher s =   
   object (self)
 
-    val mutable p     = 0
-    val mutable coord = (1, 1)
+    val p     = 0
+    val coord = (1, 1)
   
     method skip (p : int) (c : Msg.Coord.t) = (`Skipped (p, c) :> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t]) 
 
     val context : aux = `Init
-   
+ 
     method private parsed x y c = Parsed (((x, c), y), None)
     method private failed x c   = Failed (reason (Msg.make x [||] (Msg.Locator.Point c)))
 
