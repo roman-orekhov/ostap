@@ -65,8 +65,8 @@ class lexer s p =
       
   end
 
-let list = rule <hd>=IDENT <tl>=(-"," IDENT)* {hd :: tl} end 
-let m = rule list -EOF end
+let list = ostap { <hd>=IDENT <tl>=(-"," IDENT)* {hd :: tl}}
+let m = ostap {list -EOF}
 let _ =
   begin match m (new lexer "r,t , f , g ,     u, i " 0) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)

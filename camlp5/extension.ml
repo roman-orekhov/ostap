@@ -1,5 +1,5 @@
 (*
- * Extension: a camlp4 extension to wrap Ostap's combinators.
+ * Extension: a camlp5 extension to wrap Ostap's combinators.
  * Copyright (C) 2006-2008
  * Dmitri Boulytchev, St.Petersburg State University
  * 
@@ -236,14 +236,18 @@ value printExpr = ref (fun (_: MLast.expr) -> "");
 value printPatt = ref (fun (_: MLast.patt) -> "");
 
 EXTEND
-  GLOBAL: expr patt str_item;
+  GLOBAL: expr patt str_item let_binding; 
 
   str_item: LEVEL "top" [
-    [ "rules"; rules=o_rules; "end" -> <:str_item< value $opt:True$ $list:rules$ >> ] 
+    [ "ostap"; "{"; rules=o_rules; "}" -> <:str_item< value $opt:True$ $list:rules$ >> ] 
+  ];
+
+  let_binding: [
+    [ "ostap"; "{"; rule=o_rule; "}" -> let (name, rule) = rule in (<:patt< $lid:name$ >>, rule) ] 
   ];
 
   expr: LEVEL "top" [
-    [ "rule"; (p, tree)=o_alternatives; "end" ->
+    [ "ostap"; "{"; (p, tree)=o_alternatives; "}" ->
       let body = <:expr< $p$ s >> in
       let pwel = [(<:patt< s >>, Ploc.VaVal None, body)] in
       do {
@@ -252,7 +256,7 @@ EXTEND
         f
       }
     ] |
-    [ "let"; "rules"; "="; rules=o_rules; "end"; "in"; e=expr LEVEL "top" ->
+    [ "let"; "ostap"; "="; rules=o_rules; "in"; e=expr LEVEL "top" ->
       <:expr< let $opt:True$ $list:rules$ in $e$ >>
     ] 
   ];
@@ -300,6 +304,7 @@ EXTEND
     ]
   ];
 
+(*
   o_formal_parameters: [
     [ "["; p=patt; "]" -> 
        do {
@@ -343,6 +348,47 @@ EXTEND
        }
     ]
   ];
+*)
+
+  o_formal_parameters: [ [ p=LIST1 o_formal_parameter -> p ]];
+
+  o_formal_parameter: [
+    [ "["; p=patt; "]" ->
+      do {
+         let rec get_defined_ident = fun [
+	     <:patt< $_$ . $_$ >> -> []
+           | <:patt< _ >> -> []
+	   | <:patt< $lid:x$ >> -> [x]
+	   | <:patt< ($p1$ as $p2$) >> -> get_defined_ident p1 @ get_defined_ident p2
+	   | <:patt< $int:_$ >> -> []
+	   | <:patt< $flo:_$ >> -> []
+	   | <:patt< $str:_$ >> -> []
+	   | <:patt< $chr:_$ >> -> []
+	   | <:patt< [| $list:pl$ |] >> -> List.flatten (List.map get_defined_ident pl)
+	   | <:patt< ($list:pl$) >> -> List.flatten (List.map get_defined_ident pl)
+	   | <:patt< $uid:_$ >> -> []
+	   | <:patt< ` $_$ >> -> []
+	   | <:patt< # $list:_$ >> -> []
+	   | <:patt< $p1$ $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
+	   | <:patt< { $list:lpl$ } >> ->
+	       List.flatten (List.map (fun (lab, p) -> get_defined_ident p) lpl)
+	   | <:patt< $p1$ | $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
+	   | <:patt< $p1$ .. $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
+	   | <:patt< ($p$ : $_$) >> -> get_defined_ident p
+	   | <:patt< ~$_$ >> -> []
+	   | <:patt< ~$_$: $p$ >> -> get_defined_ident p
+	   | <:patt< ?$_$ >> -> []
+	   | <:patt< ?$_$: ($p$) >> -> get_defined_ident p
+	   | <:patt< ?$_$: ($p$ = $e$) >> -> get_defined_ident p
+	   | <:patt< $anti:p$ >> -> get_defined_ident p
+	   | _ -> [] 
+         ]
+	 in	
+         List.iter Args.register (get_defined_ident p);
+	 p
+      }
+    ]
+  ];
 
   o_alternatives: [
     [ p=LIST1 o_alternativeItem SEP "|" -> 
@@ -368,8 +414,7 @@ EXTEND
 
   o_alternativeItem: [
     [ g=OPT o_guard; p=LIST1 o_prefix; s=OPT o_semantic -> 
-        let items      = List.length p in
-	let (p, trees) = List.split  p in
+	let (p, trees) = List.split p in
 	let (s, isSema) = 
 	  match s with [
 	    Some s -> (s, True)
@@ -521,21 +566,9 @@ EXTEND
     [ -> (`Empty, "") ] 
   ];
 
-  o_parameters: [
-    [ "["; e=expr; "]" -> 
-      let rec split e =
-	match e with [
-	  <:expr< $e1$ $e2$ >> -> (split e1) @ [e2]
-	| e -> [e]
-      ]
-      in
-      let e = split e in
-      (
-       e, 
-       List.map (fun e -> Cache.cached (printExpr.val e)) e
-      ) 
-    ]
-  ];
+  o_parameters: [ [ p=LIST1 o_parameter -> List.split p ]];
+
+  o_parameter: [ [ "["; e=expr; "]" -> (e, Cache.cached (printExpr.val e))] ];
 
   o_binding: [
     [ "<"; p=patt; ">=" -> p ] 

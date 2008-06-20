@@ -6,6 +6,7 @@ MLI = prioReorderer.mli bNF3.mli ostap.mli msg.mli reason.mli matcher.mli trap.m
 include $(top_srcdir)/m4/Makefile.am.vars
 
 # overwrite some variables
+OFLAGS += -unsafe -inline 100000
 
 # CMO - all compiled objects
 CMO := $(SORTED:.ml=.cmo)

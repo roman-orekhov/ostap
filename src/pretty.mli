@@ -141,5 +141,3 @@ val sboxed : printer -> printer
 
 (** Synonym for [brboxed (string "{") (string "}")] *)
 val cboxed : printer -> printer
-
-

@@ -135,7 +135,7 @@ module Skip :
     (** Type of function to skip symbols. [t s p] returns either [`Skipped p], where [p] is
         the first position past skipped symbols, or [`Failed reason] if something went wrong
     *)
-    type t = string -> int -> [`Skipped of int | `Failed of string]
+    type t = string -> int -> [`Skipped of int | `Failed of string] 
 
     (** Makes comment skipper. For example, [comment "/*" "*/"] makes skipper to bypass
         C-style comments

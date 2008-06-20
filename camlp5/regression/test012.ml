@@ -19,17 +19,17 @@ open Ostap
 open Matcher 
 open Printf 
 
-rules
+ostap {
 
-  listBy [sep item]: <hd>=item <tl>=(-sep item)* {hd :: tl};
-  list: listBy[rule "," end];
+  listBy [sep][item]: <hd>=item <tl>=(-sep item)* {hd :: tl};
+  list: listBy[ostap {","}];
   
-  expr [nlevels operator primary level]: 
+  expr [nlevels][operator][primary][level]: 
     {nlevels = level} => <p>=primary {`Primary p}
-  | {nlevels > level} => <left>=expr[nlevels operator primary (level+1)]
+  | {nlevels > level} => <left>=expr[nlevels][operator][primary][level+1]
        <right>=(
           operator[level] 
-          expr[nlevels operator primary level]:"operand expected"
+          expr[nlevels][operator][primary][level]:"operand expected"
        )? 
        {
         match right with
@@ -37,7 +37,7 @@ rules
 	| Some (op, right) -> `Operator (left, op, right)
        }
 
-end
+}
 
 class lexer s =
   let skip  = Skip.create [Skip.whitespaces " \n\t\r"] in
@@ -53,7 +53,7 @@ class lexer s =
 
   end
 
-rules
+ostap {
   primary: 
     <i>=IDENT             {`Ident i} 
   | <c>=CONST             {`Const c} 
@@ -64,9 +64,9 @@ rules
      {n == 0} => ("+" {`Plus} | "-" {`Minus})
    | {n == 1} => ("*" {`Mul } | "/" {`Div  })   
   ;
-  intExpr: <p>=expr[2 operator primary 0];
+  intExpr: <p>=expr[2][operator][primary][0];
   main: intExpr -EOF
-end
+}
 
 let _ =   
   match main (new lexer "a+b-") with

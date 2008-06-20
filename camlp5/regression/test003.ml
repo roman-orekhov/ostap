@@ -64,7 +64,7 @@ class lexer s p =
       
   end
 
-let id = rule (IDENT | "123") -EOF end 
+let id = ostap {(IDENT | "123") -EOF}
 let _ =
   begin match id (new lexer "left " 0) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str

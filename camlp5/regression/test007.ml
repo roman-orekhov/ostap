@@ -64,9 +64,11 @@ class lexer s p =
       
   end
 
-rules list[elem]: <hd>=elem <tl>=(-"," elem)* {hd :: tl} end 
+ostap {
+  list[elem]: <hd>=elem <tl>=(-"," elem)* {hd :: tl}
+}
 
-let m = rule list[rule IDENT end] -EOF end
+let m = ostap {list[ostap {IDENT}] -EOF}
 
 let _ =
   begin match m (new lexer "r,t , f , g ,     u, i " 0) with
