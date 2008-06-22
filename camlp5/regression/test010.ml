@@ -72,7 +72,7 @@ module X =
   end
 
 ostap {  
-  list[elem] : <hd>=elem <tl>=(- !X.parse elem)* {hd :: tl};
+  list[elem] : <hd>=elem <tl>=(- !(X.parse) elem)* {hd :: tl};
   m : list[ostap {IDENT}] -EOF 
 }
 

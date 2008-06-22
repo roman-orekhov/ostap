@@ -547,7 +547,7 @@ EXTEND
 	  ] in
           (<:expr<fun [$list:pwel$]>>, Expr.string p)
     ] |
-    [ "$"; "("; p=expr; ")"; "$" ->
+    [ "$"; "("; p=expr; ")" ->
           let look = <:expr< s # look ($p$) >> in
           let pwel = [
 	    (
@@ -564,9 +564,13 @@ EXTEND
 
   o_reference: [
     [ (p, s, _)=o_path -> (p, match s with [Expr.Custom _ -> s | Expr.Nonterm s -> Args.wrap s]) ] |
-    [ "!"; (p, s, _)=o_qualified -> (p, s) ]
+    [ "!"; "("; e=expr; ")" -> (e, Expr.string (printExpr.val e)) ]
   ];
 
+(*
+    [ "!"; (p, s, _)=o_qualified -> (p, s) ]
+  ];
+*)
   o_qualified: [
     [ o_path ] |
     [ q=UIDENT; "."; (p, s, i)=o_qualified -> 
