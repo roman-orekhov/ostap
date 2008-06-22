@@ -63,8 +63,8 @@ type ('stream, 'parsed, 'error) parse  = 'stream -> ('stream, 'parsed, 'error) r
 (** [empty s] consumes no items from the stream; always returns success *)
 val empty : ('a, unit, 'b) parse
 
-(** [fail s] consumes no items from the stream and always returnns failure *)
-val fail : ('a, unit, 'b) parse
+(** [fail r s] consumes no items from the stream and always returns failure with reason [r] *)
+val fail : 'b option -> ('a, unit, 'b) parse
 
 (** [lift s] returns [Parsed (s, s)] and so "lifts" the stream [s] as a 
     successful parse result
@@ -121,11 +121,14 @@ val (<*>) : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'b list, 'e) parse
 (** Infix synonym for [some] *)
 val (<+>) : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'b list, 'e) parse
 
-(** Guarded parse function constructor. [guard p predicate] 
+(** Guarded parse function constructor. [guard p predicate r] 
     checks [predicate] against successfull parsed by [p] value and 
-    turns it into [Failed []] if this check failed
+    turns it into [Failed r] if this check failed
  *)    
-val guard : ('a, 'b, 'c) parse -> ('b -> bool) -> ('a, 'b, 'c) parse
+val guard : ('a, 'b, 'c) parse -> ('b -> bool) -> ('b -> 'c) option -> ('a, 'b, 'c) parse
 
 (** Commenting combinator: adds a readable comment to an error/failure *)
 val comment : ('a, 'b, <comment: string -> 'c; ..> as 'c) parse -> string -> ('a, 'b, 'c) parse
+
+(** Alterate list of parsers *)
+val altl : ('a, 'b, <add: 'c -> 'c; ..>  as 'c) parse list -> ('a, 'b, 'c) parse

@@ -440,7 +440,7 @@ EXTEND
 	      let p =
 		match flag with [
 	          None -> p
-		| Some f -> 
+		| Some (f, r) -> 
 		    let pwel = 
 		      match binding with [
 			None   -> [(<:patt< _ >>, Ploc.VaVal None, f)] 
@@ -448,7 +448,18 @@ EXTEND
 	              ]
 		    in
 		    let pfun = <:expr< fun [$list:pwel$] >> in
-		    <:expr< Ostap.guard $p$ $pfun$ >>
+		    match r with [
+		      None   -> <:expr< Ostap.guard $p$ $pfun$ None >>
+		    | Some r -> 
+			let pwel = 
+			  match binding with [
+			    None   -> [(<:patt< _ >>, Ploc.VaVal None, r)] 
+			  | Some p -> [(<:patt< $p$ >>, Ploc.VaVal None, r)]
+	                  ]
+			in
+			let rfun = <:expr< fun [$list:pwel$] >> in
+			<:expr< Ostap.guard $p$ $pfun$ (Some $rfun$) >>
+	            ]
 	        ]
 	      in
 	      let (n, right, combi, isMap) = 
@@ -470,8 +481,11 @@ EXTEND
 	  Some (expr, _) -> 
 	    match g with [
 	      None   -> (expr, Expr.seq trees)
-	    | Some g ->
-		(<:expr< Ostap.seq (Ostap.guard Ostap.empty (fun _ -> $g$)) (fun _ -> $expr$) >>, Expr.seq trees)
+	    | Some (g, None) ->
+		(<:expr< Ostap.seq (Ostap.guard Ostap.empty (fun _ -> $g$) None) (fun _ -> $expr$) >>, Expr.seq trees)
+
+	    | Some (g, Some r) ->
+		(<:expr< Ostap.seq (Ostap.guard Ostap.empty (fun _ -> $g$) (Some (fun _ -> $r$))) (fun _ -> $expr$) >>, Expr.seq trees)
 	    ]
 	| None -> raise (Failure "internal error: empty list must not be eaten")
 	]
@@ -534,6 +548,17 @@ EXTEND
 	  ] in
           (<:expr<fun [$list:pwel$]>>, Expr.string p)
     ] |
+    [ "$"; "("; p=expr; ")"; "$" ->
+          let look = <:expr< s # look ($p$) >> in
+          let pwel = [
+	    (
+	     <:patt<$lid:"s"$>>, 
+	     Ploc.VaVal None, 
+	     look 
+	    )
+	  ] in
+          (<:expr<fun [$list:pwel$]>>, Expr.string (printExpr.val p))
+    ] |
     [ "$" -> (<:expr< Ostap.lift >>, Expr.string "") ] |
     [ "("; (p, s)=o_alternatives; ")" -> (p, Expr.group s) ]   
   ];
@@ -570,21 +595,15 @@ EXTEND
 
   o_parameter: [ [ "["; e=expr; "]" -> (e, Cache.cached (printExpr.val e))] ];
 
-  o_binding: [
-    [ "<"; p=patt; ">=" -> p ] 
-  ];
+  o_binding: [ [ "<"; p=patt; ">=" -> p ] ];
 
-  o_semantic: [
-    ["{"; e=expr; "}" -> e ]
-  ];
+  o_semantic: [ ["{"; e=expr; "}" -> e ] ];
 
-  o_predicate: [
-    [ "=>"; "{"; e=expr; "}"; "=>" -> e ]
-  ];
+  o_predicate: [ [ "=>"; e=o_guard -> e ] ];
 
-  o_guard: [
-    [ "{"; e=expr; "}"; "=>" -> e ]
-  ];
+  o_guard: [ [ "{"; e=expr; "}"; r=OPT o_reason; "=>" -> (e, r) ] ];
+
+  o_reason: [ [ ":"; "("; e=expr; ")" -> e ] ];
 
 END;
 

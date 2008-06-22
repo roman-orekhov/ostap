@@ -41,9 +41,9 @@ let map f p s =
 
 let (-->) p f = map f p
 
-let empty s = Parsed (((), s), None)
-let fail  s = Failed None
-let lift  s = Parsed ((s, s), None)
+let empty s   = Parsed (((), s), None)
+let fail  r s = Failed r
+let lift  s   = Parsed ((s, s), None)
 
 let alt x y s =
   match x s with 
@@ -71,20 +71,25 @@ let opt p = p --> (fun x -> Some x) <|> return None
 
 let (<?>) = opt
     
-let rec many p s = ((p |> (fun h -> many p --> (fun t -> h :: t))) <|> return []) s
+let rec many p = p |> (fun h -> many p --> (fun t -> h :: t)) <|> return []
   
 let (<*>) = many
 
-let some p = (p |> (fun h -> many p --> (fun t -> h :: t)))
+let some p = p |> (fun h -> many p --> (fun t -> h :: t))
 
 let (<+>) = some
     
-let guard p f s = 
+let guard p f r s = 
   match p s with
-  | (Parsed ((b, _), _) as x) -> if f b then x else Failed None
+  | (Parsed ((b, _), _) as x) -> 
+      if f b 
+      then x 
+      else Failed (match r with None -> None | Some r -> Some (r b))
   | y -> y
 
 let comment p str s =
   match p s with
   | (Parsed _ as x) -> x
   | Failed m -> Failed (comment str m)
+
+let altl l = List.fold_left  (<|>) (fail None) l
