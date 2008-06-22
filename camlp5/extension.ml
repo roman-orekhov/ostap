@@ -239,15 +239,15 @@ EXTEND
   GLOBAL: expr patt str_item let_binding; 
 
   str_item: LEVEL "top" [
-    [ "ostap"; "{"; rules=o_rules; "}" -> <:str_item< value $opt:True$ $list:rules$ >> ] 
+    [ "ostap"; "("; rules=o_rules; ")" -> <:str_item< value $opt:True$ $list:rules$ >> ] 
   ];
 
   let_binding: [
-    [ "ostap"; "{"; rule=o_rule; "}" -> let (name, rule) = rule in (<:patt< $lid:name$ >>, rule) ] 
+    [ "ostap"; "("; rule=o_rule; ")" -> let (name, rule) = rule in (<:patt< $lid:name$ >>, rule) ] 
   ];
 
   expr: LEVEL "top" [
-    [ "ostap"; "{"; (p, tree)=o_alternatives; "}" ->
+    [ "ostap"; "("; (p, tree)=o_alternatives; ")" ->
       let body = <:expr< $p$ s >> in
       let pwel = [(<:patt< s >>, Ploc.VaVal None, body)] in
       do {
@@ -256,7 +256,7 @@ EXTEND
         f
       }
     ] |
-    [ "let"; "ostap"; "{"; rules=o_rules; "}"; "in"; e=expr LEVEL "top" ->
+    [ "let"; "ostap"; "("; rules=o_rules; ")"; "in"; e=expr LEVEL "top" ->
       <:expr< let $opt:True$ $list:rules$ in $e$ >>
     ] 
   ];
@@ -563,42 +563,18 @@ EXTEND
   ];
 
   o_reference: [
-    [ (p, s, _)=o_path -> (p, match s with [Expr.Custom _ -> s | Expr.Nonterm s -> Args.wrap s]) ] |
+    [ p=LIDENT -> (<:expr< $lid:p$ >>, Expr.Nonterm p) ] |
     [ "!"; "("; e=expr; ")" -> (e, Expr.string (printExpr.val e)) ]
-  ];
-
-(*
-    [ "!"; (p, s, _)=o_qualified -> (p, s) ]
-  ];
-*)
-  o_qualified: [
-    [ o_path ] |
-    [ q=UIDENT; "."; (p, s, i)=o_qualified -> 
-      let i = sprintf "%s.%s" q i in (<:expr< $uid:q$.$p$ >>, Expr.custom [`S i], i) 
-    ]
-  ];
-
-  o_path: [
-    [ p=LIDENT; (t, s)=o_tail -> 
-      match t with [
-        `Empty    -> (<:expr< $lid:p$ >>, Expr.nonterm p, p)
-      | `Field  q -> let i = sprintf "%s%s" p s in (<:expr< $lid:p$ . $q$ >>    , Expr.custom [`S i], i)
-      | `Method q -> let i = sprintf "%s%s" p s in (<:expr< $lid:p$ # $lid:q$ >>, Expr.custom [`S i], i)
-      ]
-    ] 
-  ];
-
-  o_tail:[
-    [ "."; (p, s, i)=o_path -> (`Field  p, sprintf ".%s" i) ] |
-    [ "#";  p       =LIDENT -> (`Method p, sprintf "#%s" p) ] |
-    [ -> (`Empty, "") ] 
   ];
 
   o_parameters: [ [ p=LIST1 o_parameter -> List.split p ]];
 
   o_parameter: [ [ "["; e=expr; "]" -> (e, Cache.cached (printExpr.val e))] ];
 
-  o_binding: [ [ "<"; p=patt; ">=" -> p ] ];
+  o_binding: [ 
+    [ "<"; p=patt; ">"; ":" -> p ] |
+    [ p=LIDENT; ":" -> <:patt< $lid:p$ >> ]
+  ];
 
   o_semantic: [ ["{"; e=expr; "}" -> e ] ];
 

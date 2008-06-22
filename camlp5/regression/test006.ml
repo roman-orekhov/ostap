@@ -64,9 +64,9 @@ class lexer s p =
       
   end
 
-let list = ostap { <hd>=IDENT <tl>=(-"," IDENT)* {hd :: tl}}
-let list = ostap { <hd>=list <tl>=(-";" list)* {hd :: tl}}
-let m = ostap {list -EOF}
+let list = ostap (hd:IDENT tl:(-"," IDENT)* {hd :: tl})
+let list = ostap (hd:list  tl:(-";" list)* {hd :: tl})
+let m = ostap (list -EOF)
 let _ =
   begin match m (new lexer "r,t , f , g ,     u, i; u, g " 0) with
   | Parsed ((str, _), _) -> 

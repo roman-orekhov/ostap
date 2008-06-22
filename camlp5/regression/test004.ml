@@ -65,8 +65,8 @@ class lexer s p =
   end
 
 
-let rec br = ostap {IDENT | "(" <b>=br ")" {Printf.sprintf "(%s)" b}}
-let m = ostap {br -EOF}
+let rec br = ostap (IDENT | "(" b:br ")" {Printf.sprintf "(%s)" b})
+let m = ostap (br -EOF)
 let _ =
   begin match m (new lexer "left " 0) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str

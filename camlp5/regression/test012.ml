@@ -19,15 +19,15 @@ open Ostap
 open Matcher 
 open Printf 
 
-ostap {
+ostap (
 
-  listBy [sep][item]: <hd>=item <tl>=(-sep item)* {hd :: tl};
-  list: listBy[ostap {","}];
+  listBy[sep][item]: hd:item tl:(-sep item)* {hd :: tl};
+  list: listBy[ostap (",")];
   
   expr [nlevels][operator][primary][level]: 
-    {nlevels = level} => <p>=primary {`Primary p}
-  | {nlevels > level} => <left>=expr[nlevels][operator][primary][level+1]
-       <right>=(
+    {nlevels = level} => p:primary {`Primary p}
+  | {nlevels > level} => left:expr[nlevels][operator][primary][level+1]
+       right:(
           operator[level] 
           expr[nlevels][operator][primary][level]:("operand expected")
        )? 
@@ -37,7 +37,7 @@ ostap {
 	| Some (op, right) -> `Operator (left, op, right)
        }
 
-}
+)
 
 class lexer s =
   let skip  = Skip.create [Skip.whitespaces " \n\t\r"] in
@@ -53,20 +53,20 @@ class lexer s =
 
   end
 
-ostap {
+ostap (
   primary: 
-    <i>=IDENT             {`Ident i} 
-  | <c>=CONST             {`Const c} 
-  | -"(" <p>=intExpr -")" 
-  | "-" <p>=primary       {`Neg p};
+    i:IDENT             {`Ident i} 
+  | c:CONST             {`Const c} 
+  | -"(" intExpr -")" 
+  | "-" p:primary       {`Neg p};
 
   operator[n]: 
      {n == 0} => ("+" {`Plus} | "-" {`Minus})
    | {n == 1} => ("*" {`Mul } | "/" {`Div  })   
   ;
-  intExpr: <p>=expr[2][operator][primary][0];
+  intExpr: p:expr[2][operator][primary][0];
   main: intExpr -EOF
-}
+)
 
 let _ =   
   match main (new lexer "a+b-") with

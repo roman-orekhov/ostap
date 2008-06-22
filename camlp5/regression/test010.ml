@@ -67,14 +67,14 @@ class lexer s p =
 module X =
   struct
 
-    let parse = ostap {","}
+    let parse = ostap (",")
 
   end
 
-ostap {  
-  list[elem] : <hd>=elem <tl>=(- !(X.parse) elem)* {hd :: tl};
-  m : list[ostap {IDENT}] -EOF 
-}
+ostap (  
+  list[elem] : hd:elem tl:(- !(X.parse) elem)* {hd :: tl};
+  m : list[ostap (IDENT)] -EOF 
+)
 
 let _ =
   begin match m (new lexer "r,t , f , g ,     u, i " 0) with
