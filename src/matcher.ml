@@ -173,11 +173,15 @@ class matcher s =
     method private parsed x y c = Parsed (((x, c), y), None)
     method private failed x c   = Failed (reason (Msg.make x [||] (Msg.Locator.Point c)))
 
-    method getPos   = p
+    method pos   = p
 
-    method getCoord = coord
+    method coord = coord
 
-    method getPrefix n =
+    method line  = fst coord
+
+    method col = snd coord
+
+    method prefix n =
       if p + n < String.length s 
       then String.sub s p n
       else String.sub s p (String.length s - p)
