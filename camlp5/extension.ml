@@ -15,7 +15,7 @@
  * (enclosed in the file COPYING).
  *)
 
-(** Pa_ostap --- a camlp4 syntax extension for BNF-like grammar definitions *)
+(** Pa_ostap --- a camlp5 syntax extension for BNF-like grammar definitions *)
 
 (**
 
@@ -256,7 +256,7 @@ EXTEND
         f
       }
     ] |
-    [ "let"; "ostap"; "="; rules=o_rules; "in"; e=expr LEVEL "top" ->
+    [ "let"; "ostap"; "{"; rules=o_rules; "}"; "in"; e=expr LEVEL "top" ->
       <:expr< let $opt:True$ $list:rules$ in $e$ >>
     ] 
   ];
@@ -508,8 +508,7 @@ EXTEND
     [ (e, s)=o_postfix; "*" -> (<:expr< Ostap.many $e$ >>, Expr.star s) ] |
     [ (e, s)=o_postfix; "+" -> (<:expr< Ostap.some $e$ >>, Expr.plus s) ] |
     [ (e, s)=o_postfix; "?" -> (<:expr< Ostap.opt  $e$ >>, Expr.opt  s) ] |
-
-    [ (e, s)=o_postfix; ":"; c=STRING -> (<:expr< Ostap.comment $e$ $str:c$ >>, s) ]
+    [ (e, s)=o_postfix; ":"; "("; c=expr; ")" -> (<:expr< Ostap.comment $e$ ($c$) >>, s) ]
   ];
 
   o_primary: [
