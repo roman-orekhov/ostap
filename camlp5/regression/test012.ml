@@ -29,7 +29,7 @@ ostap (
   | {nlevels > level} => left:expr[nlevels][operator][primary][level+1]
        right:(
           operator[level] 
-          expr[nlevels][operator][primary][level]:("operand expected")
+          expr[nlevels][operator][primary][level]::("operand expected")
        )? 
        {
         match right with

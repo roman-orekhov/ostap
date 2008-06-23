@@ -508,7 +508,7 @@ EXTEND
     [ (e, s)=o_postfix; "*" -> (<:expr< Ostap.many $e$ >>, Expr.star s) ] |
     [ (e, s)=o_postfix; "+" -> (<:expr< Ostap.some $e$ >>, Expr.plus s) ] |
     [ (e, s)=o_postfix; "?" -> (<:expr< Ostap.opt  $e$ >>, Expr.opt  s) ] |
-    [ (e, s)=o_postfix; ":"; "("; c=expr; ")" -> (<:expr< Ostap.comment $e$ ($c$) >>, s) ]
+    [ (e, s)=o_postfix; "::"; "("; c=expr; ")" -> (<:expr< Ostap.comment $e$ ($c$) >>, s) ]
   ];
 
   o_primary: [
@@ -582,7 +582,7 @@ EXTEND
 
   o_guard: [ [ "{"; e=expr; "}"; r=OPT o_reason; "=>" -> (e, r) ] ];
 
-  o_reason: [ [ ":"; "("; e=expr; ")" -> e ] ];
+  o_reason: [ [ "::"; "("; e=expr; ")" -> e ] ];
 
 END;
 
