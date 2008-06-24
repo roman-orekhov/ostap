@@ -45,7 +45,7 @@ class lexer s =
   let const = Str.regexp "[0-9]+" in
   object (self)
 
-    inherit matcher s
+    inherit Matcher.t s
 
     method skip p c = skip s p c
     method getIDENT = self#get "identifier" ident

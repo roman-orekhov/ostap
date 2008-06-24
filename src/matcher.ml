@@ -160,7 +160,7 @@ module Skip =
 
 type aux = [`Skipped of int * Msg.Coord.t | `Failed of Msg.t | `Init]
 
-class matcher s =   
+class t s =   
   object (self)
 
     val p     = 0

@@ -167,7 +167,7 @@ module Skip :
     [matcher s] creates an object that helps to match regular
     expressions against string [s]
 *)
-class matcher : string ->
+class t : string ->
   object ('a)
 
     (** Get current position in string *)

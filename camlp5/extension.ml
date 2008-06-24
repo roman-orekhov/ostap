@@ -304,52 +304,6 @@ EXTEND
     ]
   ];
 
-(*
-  o_formal_parameters: [
-    [ "["; p=patt; "]" -> 
-       do {
-         let rec get_defined_ident = fun [
-	     <:patt< $_$ . $_$ >> -> []
-           | <:patt< _ >> -> []
-	   | <:patt< $lid:x$ >> -> [x]
-	   | <:patt< ($p1$ as $p2$) >> -> get_defined_ident p1 @ get_defined_ident p2
-	   | <:patt< $int:_$ >> -> []
-	   | <:patt< $flo:_$ >> -> []
-	   | <:patt< $str:_$ >> -> []
-	   | <:patt< $chr:_$ >> -> []
-	   | <:patt< [| $list:pl$ |] >> -> List.flatten (List.map get_defined_ident pl)
-	   | <:patt< ($list:pl$) >> -> List.flatten (List.map get_defined_ident pl)
-	   | <:patt< $uid:_$ >> -> []
-	   | <:patt< ` $_$ >> -> []
-	   | <:patt< # $list:_$ >> -> []
-	   | <:patt< $p1$ $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
-	   | <:patt< { $list:lpl$ } >> ->
-	       List.flatten (List.map (fun (lab, p) -> get_defined_ident p) lpl)
-	   | <:patt< $p1$ | $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
-	   | <:patt< $p1$ .. $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
-	   | <:patt< ($p$ : $_$) >> -> get_defined_ident p
-	   | <:patt< ~$_$ >> -> []
-	   | <:patt< ~$_$: $p$ >> -> get_defined_ident p
-	   | <:patt< ?$_$ >> -> []
-	   | <:patt< ?$_$: ($p$) >> -> get_defined_ident p
-	   | <:patt< ?$_$: ($p$ = $e$) >> -> get_defined_ident p
-	   | <:patt< $anti:p$ >> -> get_defined_ident p
-	   | _ -> [] ]
-	 in	
-         let register p = List.iter Args.register (get_defined_ident p) in         
-         register p;
-	 let rec split p =
-	   match p with [
-	     <:patt< $p1$ $p2$ >> -> (split p1) @ (split p2)
-	   | p -> [p]
-	   ]
-	 in
-	 split p
-       }
-    ]
-  ];
-*)
-
   o_formal_parameters: [ [ p=LIST1 o_formal_parameter -> p ]];
 
   o_formal_parameter: [
