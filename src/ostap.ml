@@ -92,4 +92,4 @@ let comment p str s =
   | (Parsed _ as x) -> x
   | Failed m -> Failed (comment str m)
 
-let altl l = List.fold_left  (<|>) (fail None) l
+let altl l = List.fold_left (<|>) (fail None) l
