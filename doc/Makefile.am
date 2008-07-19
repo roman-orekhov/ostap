@@ -26,6 +26,7 @@ html/style.css:
 	    $(top_srcdir)/camlp5/*.ml && \
 	$(OCAMLDOC) -load "$$dump1" -load "$$dump2" -d html -html && \
 	rm -f "$$dump1" "$$dump2"
+	if [ -f $(top_srcdir)/src/style.css ] ; then cp $(top_srcdir)/src/style.css html/ ; fi
 
 # default clean
 clean-am:
