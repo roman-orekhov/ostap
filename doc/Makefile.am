@@ -16,10 +16,8 @@ html/style.css:
 	test -d html || mkdir html
 	dump1=`$(MKTEMP) ocamldoc.XXXXXX` && \
 	dump2=`$(MKTEMP) ocamldoc.XXXXXX` && \
-	$(OCAMLDOC) -I +camlp5 $(MODULE_INCLUDES) $(P5FLAGS) -rectypes -dump "$$dump1" \
-	    -pp "$(CAMLP5O) $(PARSER_INCLUDES) pa_log.cmo $(LOG)" \
-	    -I $(top_srcdir)/src -I $(top_srcdir)/camlp5 \
-	    $(top_srcdir)/src/*.mli $(top_srcdir)/src/*.ml && \
+	$(OCAMLDOC) $(MODULE_INCLUDES) -rectypes -dump "$$dump1" \
+	    -I $(top_srcdir)/src $(top_srcdir)/src/*.mli $(top_srcdir)/src/*.ml && \
 	$(OCAMLDOC) -I +camlp5 $(MODULE_INCLUDES) $(P5FLAGS) -rectypes -dump "$$dump2" \
 	    -pp "$(CAMLP5R) $(PARSER_INCLUDES) pr_o.cmo" \
 	    -I $(top_srcdir)/src -I $(top_srcdir)/camlp5 \
