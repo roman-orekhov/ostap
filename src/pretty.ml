@@ -87,14 +87,19 @@ let arrayByBreak          : printer array -> printer = arrayBy break
 
 let enclose box p = fun ppf -> seq [box; p; endbox] ppf
 
+let pad      = string "  "
+
 let boxed    = enclose box
 let hboxed   = enclose hbox
 let vboxed   = enclose vbox
 let hovboxed = enclose hovbox
 let hvboxed  = enclose hvbox
 
-let brboxed l r p = hvboxed (seq [l; hovboxed p; break; r])
-let prboxed l p   = hvboxed (seq [l; hovboxed p])
+let block o c b = vboxed (seq [o; break; pad; b; break; c])
+
+let plock p b = vboxed (seq [p; break; pad; b])
+
+let brboxed o c b = hvboxed (seq [o; break; b; break; c])
 
 let rboxed = brboxed (string "(") (string ")")
 let sboxed = brboxed (string "[") (string "]")

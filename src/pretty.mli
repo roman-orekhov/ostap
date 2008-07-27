@@ -53,8 +53,17 @@ val endbox : printer
 (** [string str] makes printer which prints [str] *)
 val string : string -> printer
 
-(** [int n] makes printer which prints [n] *)
+(** [int n] makes printer of int *)
 val int : int -> printer
+
+(** [char c] makes printer of char *)
+val char : char -> printer
+
+(** [bool b] makes printer of bool *)
+val bool : bool -> printer
+
+(** [float f] makes printer of float *)
+val float : float -> printer
 
 (** List printing combinator *)
 val seq : printer list -> printer
@@ -127,11 +136,18 @@ val hovboxed : printer -> printer
 (** Prints its argument within hvbox (see standard module Format) *)
 val hvboxed : printer -> printer
 
+(** [block o c b] prints [b] as a contents of block with opening [o] and
+    closing [c]
+ *)
+val block : printer -> printer -> printer -> printer
+
+(** [plock o b] prints [b] as a contents of prefixed block with 
+    opening [o]
+ *)
+val plock : printer -> printer -> printer 
+
 (** [brboxed left right p] surrounds [p] by "brackets" [left] and [right] *)
 val brboxed : printer -> printer -> printer -> printer
-
-(** [prboxed prefix p] prefixes [p] by [prefix] *)
-val prboxed : printer -> printer -> printer
 
 (** Synonym for [brboxed (string "(") (string ")")] *)
 val rboxed : printer -> printer
