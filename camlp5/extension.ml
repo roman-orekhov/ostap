@@ -229,21 +229,42 @@ module Args =
     value clear () = Hashtbl.clear h;
 
   end;
-
  
-value printBNF  = ref (fun (_: Def.t)      -> ());
+value printBNF  = ref (fun (_: option string) (_: string) -> ());
 value printExpr = ref (fun (_: MLast.expr) -> "");
 value printPatt = ref (fun (_: MLast.patt) -> "");
+
+value texDef     def  = Def.toTeX def;
+value texDefList defs =
+  let buf = Buffer.create 1024 in
+  do {
+    List.iter (fun def -> Buffer.add_string buf (sprintf "%s\n" (Def.toTeX def))) defs;
+    Buffer.contents buf
+  };
 
 EXTEND
   GLOBAL: expr patt str_item let_binding; 
 
+  doc_name: [ [ "["; name=STRING; "]" -> name ] ];
+
   str_item: LEVEL "top" [
-    [ "ostap"; "("; rules=o_rules; ")" -> <:str_item< value $opt:True$ $list:rules$ >> ] 
+    [ "ostap"; doc=OPT doc_name; "("; rules=o_rules; ")" -> 
+      let (rules, defs) = rules in
+      do {
+	printBNF.val doc (texDefList defs);
+        <:str_item< value $opt:True$ $list:rules$ >> 
+      }
+    ] 
   ];
 
   let_binding: [
-    [ "ostap"; "("; rule=o_rule; ")" -> let (name, rule) = rule in (<:patt< $lid:name$ >>, rule) ] 
+    [ "ostap"; doc=OPT doc_name; "("; rule=o_rule; ")" -> 
+      let ((name, rule), def) = rule in 
+      do {
+	printBNF.val doc (texDef def);
+        (<:patt< $lid:name$ >>, rule) 
+      }
+    ] 
   ];
 
   expr: LEVEL "top" [
@@ -256,16 +277,19 @@ EXTEND
         f
       }
     ] |
-    [ "let"; "ostap"; "("; rules=o_rules; ")"; "in"; e=expr LEVEL "top" ->
-      <:expr< let $opt:True$ $list:rules$ in $e$ >>
+    [ "let"; "ostap"; doc=OPT doc_name; "("; rules=o_rules; ")"; "in"; e=expr LEVEL "top" ->
+      let (rules, defs) = rules in
+      do {
+	printBNF.val doc (texDefList defs);
+        <:expr< let $opt:True$ $list:rules$ in $e$ >> 
+      }
     ] 
   ];
 
   o_rules: [
-    [ rules=LIST1 o_rule SEP ";" ->
-      List.map
-	(fun (name, rule) -> (<:patt< $lid:name$ >>, rule))
-	rules 
+    [ rules=LIST1 o_rule SEP ";" ->      
+      let (rules, defs) = List.split rules in
+      (List.map	(fun (name, rule) -> (<:patt< $lid:name$ >>, rule)) rules, defs)
     ]
   ];
 
@@ -294,12 +318,14 @@ EXTEND
           | Some [h::t] -> Some (List.fold_left (fun acc p -> <:patt< $acc$ $p$ >>) h t)
 	  ]
 	in
-        match p with [
-	  None   -> printBNF.val (Def.make  name tree)
-	| Some p -> printBNF.val (Def.makeP name (printPatt.val p) tree)
-	];        
+	let def =
+          match p with [
+	    None   -> Def.make  name tree
+	  | Some p -> Def.makeP name (printPatt.val p) tree
+	  ]
+	in
         Args.clear ();
-        (name, rule)
+        ((name, rule), def)
       }
     ]
   ];
@@ -542,24 +568,30 @@ END;
 
 add_option "-tex"  (Arg.String 
 		      (fun s -> 
-			do {
-		  	  let p = printBNF.val in
+			 do {
+		  	   let p = printBNF.val in
 
-			  let ouch = open_out s in
-			  close_out ouch;
+			   let ouch = open_out (s ^ ".tex") in
 
-                          printExpr.val := (fun e -> Eprinter.apply pr_expr Pprintf.empty_pc e);
-			  printPatt.val := (fun p -> Eprinter.apply pr_patt Pprintf.empty_pc p);
+			   close_out ouch;
 
-			  printBNF .val := 
-			    (fun x -> 
-			      do {
-                                let ouch = open_out_gen [Open_append; Open_text] 0o66 s in
-			        fprintf ouch "%s" (Def.toTeX x); 
-			        close_out ouch;
-			        p x
-                              }
-			    )
+                           printExpr.val := (fun e -> Eprinter.apply pr_expr Pprintf.empty_pc e);
+			   printPatt.val := (fun p -> Eprinter.apply pr_patt Pprintf.empty_pc p);
+
+			   printBNF .val := 
+			     (fun name bnf -> 
+			        do {	                          
+                                  let ouch = 
+				    match name with [
+				      None      -> open_out_gen [Open_append; Open_text] 0o66 (s ^ ".tex")
+				    | Some name -> open_out (s ^ "." ^ name ^ ".tex") 
+	                            ]
+				  in
+			          fprintf ouch "%s" bnf; 
+			          close_out ouch;
+			          p name bnf
+                                }
+			     )
                         }
 		      )
 		   ) 
