@@ -172,6 +172,20 @@ open Printf;
 
 open BNF3;
 
+module Args =
+  struct
+    
+    value (h : Hashtbl.t string string) = Hashtbl.create 1024;
+
+    value register x = Hashtbl.add h x x;
+    value wrap     x = 
+      try Expr.custom [`S (Hashtbl.find h x)] with [
+	Not_found -> Expr.nonterm x
+      ];
+    value clear () = Hashtbl.clear h;
+
+  end;
+
 module Cache =
   struct
 
@@ -212,21 +226,10 @@ module Cache =
 		 Not_found -> substitute acc s i (j-1)
 	       ]	     
       in 
-      Expr.custom (substitute [] x 0 (String.length x - 1));
-
-  end;
-
-module Args =
-  struct
-    
-    value (h : Hashtbl.t string string) = Hashtbl.create 1024;
-
-    value register x = Hashtbl.add h x x;
-    value wrap     x = 
-      try Expr.custom [`S (Hashtbl.find h x)] with [
-	Not_found -> Expr.nonterm x
+      match substitute [] x 0 (String.length x - 1) with [
+	[`S s] -> Args.wrap s
+      | list   -> Expr.custom list
       ];
-    value clear () = Hashtbl.clear h;
 
   end;
  
@@ -571,7 +574,7 @@ EXTEND
   ];
 
   o_reference: [
-    [ p=LIDENT -> (<:expr< $lid:p$ >>, Args.wrap p (* Expr.Nonterm p*) ) ] |
+    [ p=LIDENT -> (<:expr< $lid:p$ >>, Args.wrap p ) ] |
     [ "!"; "("; e=expr; ")" -> (e, Expr.string (printExpr.val e)) ]
   ];
 
