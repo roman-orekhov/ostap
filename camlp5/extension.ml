@@ -186,6 +186,18 @@ module Args =
 
   end;
 
+module Uses =
+  struct
+
+    value (h : Hashtbl.t string unit) = Hashtbl.create 1024;
+
+    value register x = Hashtbl.add h x ();
+    value has      x = Hashtbl.mem h x;
+
+    value clear () = Hashtbl.clear h;
+
+  end;
+
 module Cache =
   struct
 
@@ -249,6 +261,47 @@ value bindOption x f =
   match x with [
     None -> None
   | Some x -> Some (f x)
+  ]
+;
+
+value rec get_ident = fun [
+    <:expr< $lid:x$ >> -> [x]
+  | <:expr< [| $list:el$ |] >> -> List.flatten (List.map get_ident el)
+  | <:expr< ($list:el$) >> -> List.flatten (List.map get_ident el)
+  | <:expr< $p1$ $p2$ >> -> get_ident p1 @ get_ident p2
+  | <:expr< { $list:lel$ } >> ->
+      List.flatten (List.map (fun (lab, e) -> get_ident e) lel)
+  | <:expr< ($e$ : $_$) >> -> get_ident e
+  | _ -> []
+  ]
+;
+value rec get_defined_ident = fun [
+    <:patt< $_$ . $_$ >> -> []
+  | <:patt< _ >> -> []
+  | <:patt< $lid:x$ >> -> [x]
+  | <:patt< ($p1$ as $p2$) >> -> get_defined_ident p1 @ get_defined_ident p2
+  | <:patt< $int:_$ >> -> []
+  | <:patt< $flo:_$ >> -> []
+  | <:patt< $str:_$ >> -> []
+  | <:patt< $chr:_$ >> -> []
+  | <:patt< [| $list:pl$ |] >> -> List.flatten (List.map get_defined_ident pl)
+  | <:patt< ($list:pl$) >> -> List.flatten (List.map get_defined_ident pl)
+  | <:patt< $uid:_$ >> -> []
+  | <:patt< ` $_$ >> -> []
+  | <:patt< # $list:_$ >> -> []
+  | <:patt< $p1$ $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
+  | <:patt< { $list:lpl$ } >> ->
+      List.flatten (List.map (fun (lab, p) -> get_defined_ident p) lpl)
+  | <:patt< $p1$ | $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
+  | <:patt< $p1$ .. $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
+  | <:patt< ($p$ : $_$) >> -> get_defined_ident p
+  | <:patt< ~$_$ >> -> []
+  | <:patt< ~$_$: $p$ >> -> get_defined_ident p
+  | <:patt< ?$_$ >> -> []
+  | <:patt< ?$_$: ($p$) >> -> get_defined_ident p
+  | <:patt< ?$_$: ($p$ = $e$) >> -> get_defined_ident p
+  | <:patt< $anti:p$ >> -> get_defined_ident p
+  | _ -> [] 
   ]
 ;
 
@@ -324,7 +377,16 @@ EXTEND
 	let p =
 	  match args with [
 	    None      -> []
-          | Some args -> List.map printPatt.val args
+          | Some args -> 
+	      let args =
+		List.filter 
+		  (fun p -> 
+		    let idents = get_defined_ident p in
+		    List.fold_left (fun acc ident -> acc || (Uses.has ident)) False idents
+		  ) 
+		  args
+	      in
+	      List.map printPatt.val args
 	  ]
 	in
 	let tree =
@@ -340,6 +402,7 @@ EXTEND
 	  ]
 	in
         Args.clear ();
+	Uses.clear ();
         ((name, rule), def)
       }
     ]
@@ -350,37 +413,8 @@ EXTEND
   o_formal_parameter: [
     [ "["; p=patt; "]" ->
       do {
-         let rec get_defined_ident = fun [
-	     <:patt< $_$ . $_$ >> -> []
-           | <:patt< _ >> -> []
-	   | <:patt< $lid:x$ >> -> [x]
-	   | <:patt< ($p1$ as $p2$) >> -> get_defined_ident p1 @ get_defined_ident p2
-	   | <:patt< $int:_$ >> -> []
-	   | <:patt< $flo:_$ >> -> []
-	   | <:patt< $str:_$ >> -> []
-	   | <:patt< $chr:_$ >> -> []
-	   | <:patt< [| $list:pl$ |] >> -> List.flatten (List.map get_defined_ident pl)
-	   | <:patt< ($list:pl$) >> -> List.flatten (List.map get_defined_ident pl)
-	   | <:patt< $uid:_$ >> -> []
-	   | <:patt< ` $_$ >> -> []
-	   | <:patt< # $list:_$ >> -> []
-	   | <:patt< $p1$ $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
-	   | <:patt< { $list:lpl$ } >> ->
-	       List.flatten (List.map (fun (lab, p) -> get_defined_ident p) lpl)
-	   | <:patt< $p1$ | $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
-	   | <:patt< $p1$ .. $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
-	   | <:patt< ($p$ : $_$) >> -> get_defined_ident p
-	   | <:patt< ~$_$ >> -> []
-	   | <:patt< ~$_$: $p$ >> -> get_defined_ident p
-	   | <:patt< ?$_$ >> -> []
-	   | <:patt< ?$_$: ($p$) >> -> get_defined_ident p
-	   | <:patt< ?$_$: ($p$ = $e$) >> -> get_defined_ident p
-	   | <:patt< $anti:p$ >> -> get_defined_ident p
-	   | _ -> [] 
-         ]
-	 in	
-         List.iter Args.register (get_defined_ident p);
-	 p
+        List.iter Args.register (get_defined_ident p);
+        p
       }
     ]
   ];
@@ -574,13 +608,20 @@ EXTEND
   ];
 
   o_reference: [
-    [ p=LIDENT -> (<:expr< $lid:p$ >>, Args.wrap p ) ] |
+    [ p=LIDENT -> do {Uses.register p; (<:expr< $lid:p$ >>, Args.wrap p)} ] |
     [ "!"; "("; e=expr; ")" -> (e, Expr.string (printExpr.val e)) ]
   ];
 
   o_parameters: [ [ p=LIST1 o_parameter -> List.split p ]];
 
-  o_parameter: [ [ "["; e=expr; "]" -> (e, Cache.cached (printExpr.val e))] ];
+  o_parameter: [ 
+    [ "["; e=expr; "]" -> 
+      do {
+	List.iter Uses.register (get_ident e);
+        (e, Cache.cached (printExpr.val e))
+      }
+    ] 
+  ];
 
   o_binding: [ 
     [ "<"; p=patt; ">"; ":" -> p ] |
