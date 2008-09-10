@@ -242,6 +242,13 @@ value texDefList defs =
     Buffer.contents buf
   };
 
+value bindOption x f =
+  match x with [
+    None -> None
+  | Some x -> Some (f x)
+  ]
+;
+
 EXTEND
   GLOBAL: expr patt str_item let_binding; 
 
@@ -273,7 +280,7 @@ EXTEND
       let pwel = [(<:patt< s >>, Ploc.VaVal None, body)] in
       do {
 	let f = <:expr< fun [$list:pwel$] >> in
-	Cache.cache (printExpr.val f) tree;
+	match tree with [Some tree -> Cache.cache (printExpr.val f) tree | None -> ()];
         f
       }
     ] |
@@ -313,15 +320,20 @@ EXTEND
       do {
 	let p =
 	  match args with [
-	    None        -> None
-	  | Some [hd]   -> Some hd
-          | Some [h::t] -> Some (List.fold_left (fun acc p -> <:patt< $acc$ $p$ >>) h t)
+	    None      -> []
+          | Some args -> List.map printPatt.val args
 	  ]
 	in
-	let def =
+	let tree =
+	  match tree with [
+	    None      -> Expr.string ""
+	  | Some tree -> tree
+	  ]
+	in
+	let def = 
           match p with [
-	    None   -> Def.make  name tree
-	  | Some p -> Def.makeP name (printPatt.val p) tree
+	    []   -> Def.make  name tree
+	  | args -> Def.makeP name args tree
 	  ]
 	in
         Args.clear ();
@@ -376,6 +388,11 @@ EXTEND
 	  [p] -> p
         |  _  -> 
 	    let (p, trees) = List.split p in
+	    let trees =
+	      List.map
+		(fun x -> match x with [Some x -> x])
+		(List.filter (fun x -> x <> None) trees)
+	    in
 	    match
 	      List.fold_right 
 		(fun item expr -> 
@@ -386,7 +403,7 @@ EXTEND
 		) p None
 	    with [
 	      None   -> raise (Failure "internal error - must not happen")
-	    | Some x -> (x, Expr.alt trees)
+	    | Some x -> (x, match trees with [[] -> None | _ -> Some (Expr.alt trees)])
 	    ]
 	]
     ]
@@ -395,6 +412,17 @@ EXTEND
   o_alternativeItem: [
     [ g=OPT o_guard; p=LIST1 o_prefix; s=OPT o_semantic -> 
 	let (p, trees) = List.split p in
+	let trees = 
+	  List.map 
+	    (fun x -> match x with [Some x -> x]) 
+	    (List.filter (fun x -> x <> None) trees) 
+	in
+	let trees = 
+	  match trees with [
+	    [] -> None
+	  | _  -> Some (Expr.seq trees)
+	  ]
+	in
 	let (s, isSema) = 
 	  match s with [
 	    Some s -> (s, True)
@@ -460,12 +488,12 @@ EXTEND
 	with [
 	  Some (expr, _) -> 
 	    match g with [
-	      None   -> (expr, Expr.seq trees)
+	      None   -> (expr, trees)
 	    | Some (g, None) ->
-		(<:expr< Ostap.seq (Ostap.guard Ostap.empty (fun _ -> $g$) None) (fun _ -> $expr$) >>, Expr.seq trees)
+		(<:expr< Ostap.seq (Ostap.guard Ostap.empty (fun _ -> $g$) None) (fun _ -> $expr$) >>, trees)
 
 	    | Some (g, Some r) ->
-		(<:expr< Ostap.seq (Ostap.guard Ostap.empty (fun _ -> $g$) (Some (fun _ -> $r$))) (fun _ -> $expr$) >>, Expr.seq trees)
+		(<:expr< Ostap.seq (Ostap.guard Ostap.empty (fun _ -> $g$) (Some (fun _ -> $r$))) (fun _ -> $expr$) >>, trees)
 	    ]
 	| None -> raise (Failure "internal error: empty list must not be eaten")
 	]
@@ -485,21 +513,21 @@ EXTEND
 
   o_postfix: [
     [ o_primary ] |
-    [ (e, s)=o_postfix; "*" -> (<:expr< Ostap.many $e$ >>, Expr.star s) ] |
-    [ (e, s)=o_postfix; "+" -> (<:expr< Ostap.some $e$ >>, Expr.plus s) ] |
-    [ (e, s)=o_postfix; "?" -> (<:expr< Ostap.opt  $e$ >>, Expr.opt  s) ] |
+    [ (e, s)=o_postfix; "*" -> (<:expr< Ostap.many $e$ >>, bindOption s (fun s -> Expr.star s)) ] |
+    [ (e, s)=o_postfix; "+" -> (<:expr< Ostap.some $e$ >>, bindOption s (fun s -> Expr.plus s)) ] |
+    [ (e, s)=o_postfix; "?" -> (<:expr< Ostap.opt  $e$ >>, bindOption s (fun s -> Expr.opt  s)) ] |
     [ (e, s)=o_postfix; "::"; "("; c=expr; ")" -> (<:expr< Ostap.comment $e$ ($c$) >>, s) ]
   ];
 
   o_primary: [
     [ (p, s)=o_reference; args=OPT o_parameters -> 
           match args with [
-             None           -> (p, s)
+             None           -> (p, Some s)
            | Some (args, a) -> 
 	       let args = [<:expr< s >> :: args] in
 	       let body = List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args in
 	       let pwel = [(<:patt< s >>, Ploc.VaVal None, body)] in
-	       (<:expr< fun [$list:pwel$] >>, (Expr.apply s a))
+	       (<:expr< fun [$list:pwel$] >>, (Some (Expr.apply s a)))
           ]
     ] |
     [ p=UIDENT ->  
@@ -513,7 +541,7 @@ EXTEND
 	       look
 	      )
 	    ] in
-            (<:expr< fun [$list:pwel$] >>, Expr.term p)
+            (<:expr< fun [$list:pwel$] >>, Some (Expr.term p))
           }
     ] |
     [ p=STRING -> 
@@ -525,7 +553,7 @@ EXTEND
 	     look 
 	    )
 	  ] in
-          (<:expr<fun [$list:pwel$]>>, Expr.string p)
+          (<:expr<fun [$list:pwel$]>>, Some (Expr.string p))
     ] |
     [ "$"; "("; p=expr; ")" ->
           let look = <:expr< s # look ($p$) >> in
@@ -536,14 +564,14 @@ EXTEND
 	     look 
 	    )
 	  ] in
-          (<:expr<fun [$list:pwel$]>>, Expr.string (printExpr.val p))
+          (<:expr<fun [$list:pwel$]>>, Some (Expr.string (printExpr.val p)))
     ] |
-    [ "$" -> (<:expr< Ostap.lift >>, Expr.string "") ] |
-    [ "("; (p, s)=o_alternatives; ")" -> (p, Expr.group s) ]   
+    [ "$" -> (<:expr< Ostap.lift >>, None) ] |
+    [ "("; (p, s)=o_alternatives; ")" -> (p, bindOption s (fun s -> Expr.group s)) ]   
   ];
 
   o_reference: [
-    [ p=LIDENT -> (<:expr< $lid:p$ >>, Expr.Nonterm p) ] |
+    [ p=LIDENT -> (<:expr< $lid:p$ >>, Args.wrap p (* Expr.Nonterm p*) ) ] |
     [ "!"; "("; e=expr; ")" -> (e, Expr.string (printExpr.val e)) ]
   ];
 

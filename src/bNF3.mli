@@ -91,7 +91,7 @@ module Def :
     (** Constructor of parameterized definition. Takes name, 
         argument name and body 
     *)
-    val makeP : string -> string -> Expr.t -> t
+    val makeP : string -> string list -> Expr.t -> t
 
     (** TeX printer *)
     val toTeX : t -> string

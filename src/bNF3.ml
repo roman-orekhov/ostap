@@ -36,7 +36,7 @@ module type PrintHelper =
     val opt    : string -> string
     val list   : (t -> string) -> t list -> string
     val rule   : string -> string -> string
-    val prule  : string -> string -> string -> string
+    val prule  : string -> string list -> string -> string
 	
   end
 
@@ -151,11 +151,6 @@ module rec Expr :
 
     module TeXPrinter  = Printer (TeXHelper)
     module TreePrinter = Printer (TreeHelper)
-
-    (*
-       module StringPrinter = Printer (String)
-       module HTMLPrinter   = Printer (HTML)
-    *)
      
     let toTree = TreePrinter.print
     let toTeX  = TeXPrinter .print
@@ -178,7 +173,11 @@ and TreeHelper : PrintHelper with type t = Expr.t =
     let term   str   = sprintf "Term %s" str
     let str    arg   = sprintf "String %s" arg
     let rule   x y   = sprintf "%s :: %s" x y
-    let prule  x y z = sprintf "%s[%s] :: %s" x y z
+
+    let prule  x y z = 
+      let y = List.fold_left (fun acc y -> acc ^ "[" ^ y ^ "]") "" y in
+      sprintf "%s%s :: %s" x y z
+
     let apply  x y   = sprintf "Apply (%s, %s)" x y
     let custom f x   = sprintf "Custom (%s)" (fold (concatWith "" (function `S s -> s | `T t -> f t)) x)
 
@@ -223,7 +222,11 @@ and TeXHelper : PrintHelper with type t = Expr.t =
     let term   str   = sprintf "\\osrterm{%s}" (quote str)
     let str    arg   = sprintf "\\osrterm{%s}" (quote arg)
     let rule   x y   = sprintf "\\osrule{%s}{%s}\n" x y
-    let prule  x y z = sprintf "\\osprule{%s}{%s}{%s}\n" x y z
+
+    let prule  x y z = 
+      let y = List.fold_left (fun acc yi -> acc ^ "[" ^ yi ^ "]") "" y in
+      sprintf "\\osprule{%s}{%s}{%s}\n" x y z
+
     let custom f x   = fold (concatWith "" (function `S s -> quote s | `T t -> f t)) x
     let apply        = (^)
 	
@@ -232,14 +235,14 @@ and TeXHelper : PrintHelper with type t = Expr.t =
 module Def =
   struct
 
-    type t = string * string option * Expr.t
+    type t = string * string list * Expr.t
 
-    let make  name     = function Expr.Group x -> name, None    , x | x -> name, None    , x
-    let makeP name arg = function Expr.Group x -> name, Some arg, x | x -> name, Some arg, x
+    let make  name      = function Expr.Group x -> name, []  , x | x -> name, []  , x
+    let makeP name args = function Expr.Group x -> name, args, x | x -> name, args, x
 
     let rec toTeX (name, args, expr) =
       match args with
-      | None      -> TeXHelper.rule  name (Expr.toTeX expr)
-      | Some args -> TeXHelper.prule name args (Expr.toTeX expr)      
+      | []   -> TeXHelper.rule  name (Expr.toTeX expr)
+      | args -> TeXHelper.prule name args (Expr.toTeX expr)
 
   end

@@ -120,7 +120,7 @@
 \newcommand{\osrplus}[1]{{#1}\osrsymbol{+}}
 \newcommand{\osrterm}[1]{\osrsymbol{#1}}
 \newcommand{\osrnonterm}[1]{\textit{#1}\osrref{#1}}
-\newcommand{\osrargs}[1]{\osbrblock{\textup{[}}{\textup{]}}{#1}}
+\newcommand{\osrargs}[1]{\osbrblock{\textup{[}}{\textup{]}}{\textup{#1}}}
 \newcommand{\osrcustom}[1]{\textit{#1}}
 
 \newcommand{\osrule}[2]{%
@@ -147,7 +147,7 @@
   \settowidth{\@oscodeindent}{0mm}% 
   \osbrblock%
      {%
-       \textit{#1}\label{#1}\index{#1}\textup{[}{\textit{#2}}\textup{]}%
+       \textit{#1}\label{#1}\index{#1}\textup{#2}%
        \osrdef%
      }%
      {\osrend}%
