@@ -101,14 +101,7 @@ module rec Expr :
       | [x] -> x
       |  x  -> Seq x
 
-    let string x = 
-      let f = ref true in
-      for i=0 to String.length x - 1 do
-	let c = x.[i] in
-	f := !f && ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))
-      done;
-      if !f then String x
-      else String (sprintf "%S" x)
+    let string x = String x
 
     let term s = Term s
 
@@ -192,6 +185,7 @@ and TeXHelper : PrintHelper with type t = Expr.t =
       for i=0 to String.length s - 1 do
 	Buffer.add_string buf
 	  (match s.[i] with
+	  | '"'  -> "\\\""
 	  | '{'  -> "\\{"
 	  | '}'  -> "\\}"
 	  | '$'  -> "\\$"
@@ -210,18 +204,27 @@ and TeXHelper : PrintHelper with type t = Expr.t =
       done;
       Buffer.contents buf 
 	
-    let opt    str   = sprintf "\\osropt{%s}" str
-    let plus   str   = sprintf "\\osrplus{%s}" str
-    let aster  str   = sprintf "\\osraster{%s}" str
-    let group  str   = sprintf "\\osrgroup{%s}" str
-    let nt     str   = sprintf "\\osrnonterm{%s}" (quote str)
-    let alt    lst   = "\osfralt " ^ (fold (concatWith "\\osralt " id) lst)
-    let seq    lst   = sprintf "\\osrblock{%s}" (fold (concatWith "\\osbr " id) lst)
-    let list   f x   = fold (concat f) x
-    let args   str   = sprintf "\\osrargs{%s}" str
-    let term   str   = sprintf "\\osrterm{%s}" (quote str)
-    let str    arg   = sprintf "\\osrterm{%s}" (quote arg)
-    let rule   x y   = sprintf "\\osrule{%s}{%s}\n" x y
+    let opt    str = sprintf "\\osropt{%s}" str
+    let plus   str = sprintf "\\osrplus{%s}" str
+    let aster  str = sprintf "\\osraster{%s}" str
+    let group  str = sprintf "\\osrgroup{%s}" str
+    let nt     str = sprintf "\\osrnonterm{%s}" (quote str)
+    let alt    lst = "\osfralt " ^ (fold (concatWith "\\osralt " id) lst)
+    let seq    lst = sprintf "\\osrblock{%s}" (fold (concatWith "\\osbr " id) lst)
+    let list   f x = fold (concat f) x
+    let args   str = sprintf "\\osrargs{%s}" str
+    let term   str = sprintf "\\osrterm{%s}" (quote str)
+
+    let str x  = 
+      let f = ref true in
+      for i=0 to String.length x - 1 do
+	let c = x.[i] in
+	f := !f && ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))
+      done;
+      if !f then sprintf "\\osrterm{%s}" (quote x) 
+      else sprintf "\\osrterm{``%s''}" (quote x)
+
+    let rule   x y = sprintf "\\osrule{%s}{%s}\n" x y
 
     let prule  x y z = 
       let y = List.fold_left (fun acc yi -> acc ^ "[" ^ yi ^ "]") "" y in
