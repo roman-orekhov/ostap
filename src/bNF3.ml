@@ -31,10 +31,9 @@ module type PrintHelper =
     val seq    : string list -> string
     val group  : string -> string
     val custom : (t -> string) -> [`S of string | `T of t] list -> string
-    val apply  : string -> string -> string
-    val args   : string -> string
+    val apply  : string -> string list -> string
     val opt    : string -> string
-    val list   : (t -> string) -> t list -> string
+    val list   : (t -> string) -> t list -> string list
     val rule   : string -> string -> string
     val prule  : string -> string list -> string -> string
 	
@@ -138,7 +137,7 @@ module rec Expr :
 	  | Seq      l     -> X.seq    (List.map print l)
 	  | Group    e     -> X.group  (print e)
 	  | Custom   s     -> X.custom  print s
-	  | Apply   (x, y) -> sprintf "%s%s" (print x) (X.args (X.list print y))
+	  | Apply   (x, y) -> X.apply  (print x) (X.list print y)
 		
       end
 
@@ -161,8 +160,7 @@ and TreeHelper : PrintHelper with type t = Expr.t =
     let nt     str   = sprintf "Nonterm %s" str
     let alt    lst   = sprintf "Alt (%s)" (fold concat' lst)
     let seq    lst   = sprintf "Seq (%s)" (fold concat' lst)
-    let list   f x   = fold (concat f) x
-    let args   str   = sprintf "[%s]" str
+    let list   f x   = List.map f x
     let term   str   = sprintf "Term %s" str
     let str    arg   = sprintf "String %s" arg
     let rule   x y   = sprintf "%s :: %s" x y
@@ -171,7 +169,7 @@ and TreeHelper : PrintHelper with type t = Expr.t =
       let y = List.fold_left (fun acc y -> acc ^ "[" ^ y ^ "]") "" y in
       sprintf "%s%s :: %s" x y z
 
-    let apply  x y   = sprintf "Apply (%s, %s)" x y
+    let apply  x y   = sprintf "Apply (%s, [%s])" x (fold (concat id) y)
     let custom f x   = sprintf "Custom (%s)" (fold (concatWith "" (function `S s -> s | `T t -> f t)) x)
 
   end
@@ -211,8 +209,7 @@ and TeXHelper : PrintHelper with type t = Expr.t =
     let nt     str = sprintf "\\osrnonterm{%s}" (quote str)
     let alt    lst = "\osfralt " ^ (fold (concatWith "\\osralt " id) lst)
     let seq    lst = sprintf "\\osrblock{%s}" (fold (concatWith "\\osbr " id) lst)
-    let list   f x = fold (concat f) x
-    let args   str = sprintf "\\osrargs{%s}" str
+    let list   f x = List.map f x
     let term   str = sprintf "\\osrterm{%s}" (quote str)
 
     let str x  = 
@@ -230,8 +227,8 @@ and TeXHelper : PrintHelper with type t = Expr.t =
       let y = List.fold_left (fun acc yi -> acc ^ "[" ^ yi ^ "]") "" y in
       sprintf "\\osprule{%s}{%s}{%s}\n" x y z
 
-    let custom f x   = fold (concatWith "" (function `S s -> quote s | `T t -> f t)) x
-    let apply        = (^)
+    let custom f x = fold (concatWith "" (function `S s -> quote s | `T t -> f t)) x
+    let apply  x y = sprintf "%s%s" x (fold (fun acc x -> acc ^ sprintf "\\osrargs{%s}" x) y)
 	
   end
 
