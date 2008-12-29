@@ -85,7 +85,6 @@ module Skip =
       )
     
     let nestedComment start stop =      
-      let b = regexp (quote start) in
       let n = String.length start  in
       let m = String.length stop   in
       let d = regexp (sprintf "\\(%s\\)\\|\\(%s\\)" (quote start) (quote stop)) in

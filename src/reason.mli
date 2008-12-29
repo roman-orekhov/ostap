@@ -15,17 +15,17 @@
  * (enclosed in the file COPYING).
  *)
 
-(** {1 Reason is an entity to collect various errors happened during parsing} *)
+(** Predefined implementation of reason type to describe various errors happened 
+    during parsing. 
+*)
 
-(** Interior type *)
+(** Interior type. *)
 type p
 
 (** Exterior representation *)
 type retrieved = (Msg.Locator.t * [`Msg of Msg.t | `Comment of string * 'a] list) list as 'a
 
-(** Main class. Keeps track on error reasons and comments. Takes
-    an ordinary message on creation
- *)
+(** Main class. Keeps track on error reasons and comments. Takes an ordinary message on creation. *)
 class t :
   Msg.t ->
   object ('a)
@@ -36,8 +36,15 @@ class t :
     method toString : [`All | `First of int] -> [`Acc | `Desc] -> string    (** Retrieve and apply default printer *)
   end
 
-(** Synonym for reason construction *)
+(** Synonym for reason construction. *)
 val reason : Msg.t -> t option
 
-(** Standard printer for optional reason *)
+(** Standard printer for optional reason. The first two arguments have the following meanings: 
+
+    {ul {- [ `All] makes printer show {i all} the messages while [ `First n] asks only for [n] first of them;
+         this is desirable since there can potentially be many parasite messages;}
+      {- [ `Acc] asks printer to output messages in {i ascending} order w.r.t. locator information while
+         [ `Desc] asks to print them in {i descending} order.}
+    }
+  *)
 val toString : [`All | `First of int] -> [`Acc | `Desc] -> t option -> string

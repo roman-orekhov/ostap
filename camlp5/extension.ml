@@ -21,13 +21,17 @@
 
   {2 General description}
 
-  [Pa_ostap] extends Objective Caml grammar with two constructs: [rule] and [rules].
+  [Pa_ostap] extends Objective Caml grammar with construct [ostap (..)], introduced
+  at structure and expression levels. The exact allowed forms are the following:
+
+  ostap ()
+
   The latter represents a set of (mutually recursive) {b grammar entries definitions}  
   at the structure level while the former denotes the single {b grammar expression}. Both 
   constructions are converted into pure OCaml using [Ostap] parser combinators.
 
   While [Ostap] is purely abstract with regard to stream implementation [Pa_ostap] 
-  additionaly allows for convenient integration of parsing and lexing by considering {i streams
+  additionally allows for convenient integration of parsing and lexing by considering {i streams
   as objects}. Namely, the stream of tokens [L]{_1}, [L]{_2}, ..., [L]{_k} is represented by an object
   with member functions [getL]{_1}, [getL]{_2}, ..., [getL]{_k}. Such a representation allows
   to freely combine various parser functions that operate on different types of streams with almost no

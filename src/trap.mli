@@ -15,46 +15,50 @@
  * (enclosed in the file COPYING).
  *)
 
-(** Trapper signature --- a module for keeping trap information *)
+(** Trap is infrastructure to maintain the relation between parsed items and their locator 
+    information.
+*)
+
+(** Signature of trapping module. *)
 module type Sig =
   sig
     
-    (** Type of trapped items *)
+    (** Type of trapped items. *)
     type t
 	  
-    (** [attach x loc] attaches [loc] to item [x] *)
-    val attach  : t -> Msg.Locator.t -> unit
+    (** [attach x loc] attaches [loc] to item [x]. *)
+    val attach : t -> Msg.Locator.t -> unit
 
-    (** [locate x] gets the location for [x] *)
-    val locate  : t -> Msg.Locator.t
+    (** [locate x] gets the location for [x]. *)
+    val locate : t -> Msg.Locator.t
     
     (** [copier x] returns copying function which will preserve
-        trap information
+        trap information.
     *)
-    val copier  : t -> t -> unit
+    val copier : t -> t -> unit
 
-    (** Cleans up all the trapping information *)
+    (** Cleans up all the trapping information. *)
     val cleanup : unit -> unit
 	
   end
 
-(** Signature of trapped items *)
+(** Signature of trapped items. *)
 module type Trapped =
   sig
 
-    (** Main type *)
+    (** Main type. *)
     type t 
 
-    (** Hashing function *)
+    (** Hashing function. *)
     val hash : t -> int
 
   end
 
-(** Default wrapper for any type; uses Hashtbl.hash *)
+(** Default wrapper for any type; uses Hashtbl.hash. *)
 module Default (X : sig type t end) : Trapped with type t = X.t
       
-(** Trap constructor *)
+(** Trap constructor. *)
 module Make (X : Trapped) : Sig with type t = X.t
 
-(** String trap --- traps strings to locations *)
+(** String trap --- traps strings to locations. *)
 module String : Sig with type t = string

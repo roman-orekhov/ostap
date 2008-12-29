@@ -15,85 +15,85 @@
  * (enclosed in the file COPYING).
  *)
 
-(** BNF tree implementation *)
+(** BNF tree implementation. *)
 
-(** BNF expression implementation *)
+(** BNF expression implementation. *)
 module Expr :
   sig
 
-    (** Main type *)
+    (** Main type. *)
     type t =
-	String  of string                        (** String terminal        *)
-      | Term    of string                        (** Non-string terminal    *)
-      | Nonterm of string                        (** Nonterminal            *)
-      | Apply   of t * t list                    (** Rule application       *)
-      | Star    of t                             (** Iteration              *)
-      | Plus    of t                             (** Non-empty iteration    *)
-      | Opt     of t                             (** Optional expression    *)
-      | Alt     of t list                        (** Alteration             *)
-      | Seq     of t list                        (** Sequencing             *)
-      | Group   of t                             (** Expression in brackets *)
-      | Custom  of [`S of string | `T of t] list (** Custom mixed structure *)
+	String  of string                        (** String terminal                           *)
+      | Term    of string                        (** Non-string terminal                       *)
+      | Nonterm of string                        (** Nonterminal                               *)
+      | Apply   of t * t list                    (** Rule application                          *)
+      | Star    of t                             (** Iteration                                 *)
+      | Plus    of t                             (** Non-empty iteration                       *)
+      | Opt     of t                             (** Optional expression                       *)
+      | Alt     of t list                        (** Alternation                               *)
+      | Seq     of t list                        (** Sequencing                                *)
+      | Group   of t                             (** Expression in brackets                    *)
+      | Custom  of [`S of string | `T of t] list (** Custom mixed structure (for internal use) *)
 
     (** {1 Constructors} *)
 
-    (** String terminal *)
+    (** String terminal. *)
     val string : string -> t
 
-    (** Non-string terminal *)
+    (** Non-string terminal. *)
     val term : string -> t
 
-    (** Nonterminal *)
+    (** Nonterminal. *)
     val nonterm : string -> t
 
-    (** Rule application *)
+    (** Rule application. *)
     val apply : t -> t list -> t
 
-    (** Iteration *)
+    (** Iteration. *)
     val star : t -> t
          
-    (** Non-empty iteration *)
+    (** Non-empty iteration. *)
     val plus : t -> t
 
-    (** Optional expression *)
+    (** Optional expression. *)
     val opt : t -> t
 
-    (** Alteration *)
+    (** Alternation. *)
     val alt : t list -> t
      
-    (** Sequencing *)
+    (** Sequencing. *)
     val seq : t list -> t
 
-    (** Expression in brackets *)
+    (** Expression in brackets. *)
     val group : t -> t
 
-    (** Custom text *)
+    (** Custom text. *)
     val custom : [`S of string | `T of t] list-> t
 
-    (** TeX printer *)
+    (** TeX printer. *)
     val toTeX : t -> string
 
-    (** Tree printer *)
+    (** Tree printer. *)
     val toTree : t -> string
     
   end
 
-(** Rule definition representation *)
+(** Rule definition representation. *)
 module Def :
   sig
 
     (** Main type *)
     type t 
 
-    (** Constructor of simple definition. Takes name and body *)
+    (** Constructor of simple definition. Takes name and body. *)
     val make : string -> Expr.t -> t
 
     (** Constructor of parameterized definition. Takes name, 
-        argument name and body 
+        argument name list and body. 
     *)
     val makeP : string -> string list -> Expr.t -> t
 
-    (** TeX printer *)
+    (** TeX printer. *)
     val toTeX : t -> string
 
   end

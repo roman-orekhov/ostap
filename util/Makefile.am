@@ -1,7 +1,6 @@
-
 # type in sources here
-SOURCES = prioReorderer.ml bNF3.ml ostap.ml msg.ml reason.ml matcher.ml trap.ml pretty.ml
-MLI = prioReorderer.mli bNF3.mli ostap.mli msg.mli reason.mli matcher.mli trap.mli pretty.mli
+SOURCES = util.ml
+MLI = 
 
 include $(top_srcdir)/m4/Makefile.am.vars
 
@@ -13,7 +12,12 @@ CFLAGS += -w x
 CMO := $(SORTED:.ml=.cmo)
 
 # OCaml parser call with flags
-AM_P4FLAGS := -pp "$(CAMLP4O) $(PARSER_INCLUDES) pa_log.cmo $(LOG)"
+AM_P5FLAGS := -pp "$(CAMLP5O) ../camlp5/pa_ostap.cmo $(PARSER_INCLUDES)"
+
+# overwrite some variables
+PXFLAGS = $(P5FLAGS)
+CAMLPXLIB = $(CAMLP5LIB)
+MODULE_INCLUDES += -I $(CAMLP5LIB) -I ../src
 
 include $(top_srcdir)/m4/Makefile.am.targets
 

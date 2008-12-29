@@ -83,6 +83,7 @@ camlp4/Makefile
 camlp4/regression/Makefile
 camlp5/Makefile
 camlp5/regression/Makefile
+util/Makefile
 sample/Makefile
 ])
 AC_OUTPUT

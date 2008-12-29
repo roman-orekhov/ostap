@@ -44,6 +44,10 @@ let (-->) p f = map f p
 let empty s   = Parsed (((), s), None)
 let fail  r s = Failed r
 let lift  s   = Parsed ((s, s), None)
+let sink  p s = 
+  match p s with
+  | Parsed ((s, _), f) -> Parsed ((s, s), f)
+  | Failed x           -> Failed x
 
 let alt x y s =
   match x s with 
@@ -93,3 +97,8 @@ let comment p str s =
   | Failed m -> Failed (comment str m)
 
 let altl l = List.fold_left (<|>) (fail None) l
+
+let unwrap r f g =
+  match r with
+  | Parsed ((x, _), _) -> f x
+  | Failed x           -> g x

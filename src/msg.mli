@@ -15,83 +15,90 @@
  * (enclosed in the file COPYING).
  *)
 
-(** Parsing message interface *)
+(** Parsing message interface. *)
 
 (** {2 Messaging operations} *)
 
-(** Text coordinate *)
+(** Text coordinate. *)
 module Coord :
   sig
 
-    (** Type synonym: line, column *)  
+    (** Type synonym: line, column. *)  
     type t = int * int
 
-    (** String conversion *)
+    (** Gets line of coordinate. *)
+    val line : t -> int
+
+    (** Gets column of coordinate. *)
+    val col : t -> int
+
+    (** String conversion. *)
     val toString : t -> string
 
-    (** Comparison function *)
+    (** Comparison function. *)
     val compare : t -> t -> int
 
   end
 
-(** Various ways to denote the location in the source text *)
+(** Various ways to denote the location in the source text. *)
 module Locator :
   sig
 
-    (** Locator type *)
+    (** Locator type. *)
     type t =
         No                             (** No location defined             *)
       | Point    of Coord.t            (** One point in the text           *)
       | Interval of Coord.t * Coord.t  (** Contiguous interval of points   *)
       | Set      of t list             (** Non-contiguous set of locations *)
 
-    (** Makes simple interval of two points or set of two non-point locators *)
+    (** Makes simple interval of two points or set of two non-point locators. *)
     val makeInterval : t -> t -> t
 
-    (** String conversion *)
+    (** String conversion. *)
     val toString : t -> string
 
-    (** Comparison function *)
+    (** Comparison function. *)
     val compare : t -> t -> int
 
   end
 
-(** Type of the message; [phrase] stands for format string, [args] --- for actual
-    parameters, [loc] --- locator. Format string may contain parameter referencies of the
-    form ["%0"], ["%1"], ["%2"] etc. These referencies to be substituted with corresponding actual
-    values (e.f. [args.(0)], [args.(1)] etc.) during toString vizualization. For example,
-    [toString {phrase="%0 %1 not found"; args=[|"type"; "int"|]; loc=No}] is
-    ["type int not found"]
-*)
+(** Type of the message. *)
 type t
 
-(** General constructor *) 
+(** General constructor. [make phrase args loc] creates message with format string [phrase],
+    arguments [args] and locator [loc]. Format string may contain parameter references of the
+    form ["%0"], ["%1"], ["%2"] etc. These references to be substituted with corresponding actual
+    values (i.e. [args.(0)], [args.(1)] etc.) during toString visualization. For example,
+    [toString {phrase="%0 %1 not found"; args=[|"type"; "int"|]; loc=No}] is
+    ["type int not found"]. *) 
 val make : string -> string array -> Locator.t -> t
 
-(** Gets locator of a message *)
-val loc : t -> Locator.t
-
-(** No parameters, no locator *)
+(** Custom constructor; takes no parameters, no locator. *)
 val phrase : string -> t
 
-(** No locators *)
+(** Custom constructor; takes no locator. *)
 val orphan : string -> string array -> t
 
-(** Substitute parameters *)
+(** Gets locator of a message. *)
+val loc : t -> Locator.t
+
+(** Substitute parameters. *)
 val string : t -> string
 
-(** Visualization with parameter substitution *)
+(** Visualization with parameter substitution. *)
 val toString : t -> string
 
-(** Augment the message with the location (replaces [Locator.No] with the [loc]) *)
+(** Augment the message with the location (replaces [Locator.No] (if any) in its argument 
+    with the [loc]). 
+  *)
 val augment : t -> Locator.t -> t
 
-(** Augment the list of messages with the location *)
+(** Augment the list of messages with the location. *)
 val augmentList : t list -> Locator.t -> t list
 
-(** Extend the message by some detailed information *)
+(** Extends phrase of the message by given string. *)
 val extend : t -> string -> t
 
-(** Extend the list of messages by some detailed information *)
+(** Extends all phrases of the list of messages by given string. *)
 val extendList : t list -> string -> t list
 

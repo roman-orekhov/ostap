@@ -22,6 +22,9 @@ module Coord =
 
     type t = int * int
 
+    let line = fst
+    let col  = snd
+
     let toString (x, y) = sprintf "(%d:%d)" x y 
 
     let compare (r, c) (r', c') =

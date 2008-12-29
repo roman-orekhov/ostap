@@ -15,17 +15,17 @@
  * (enclosed in the file COPYING).
  *)
 
-(** Reordering expression in according to priorities of its' operations *)
+(** Reordering expression in according to priorities of its operators. *)
 
-(** Signature to abstract expression being reordered *)
+(** Signature to abstract expression being reordered. *)
 module type Expression =
   sig
 
-    (** The type of expression *)
+    (** The type of expression. *)
     type t              
    
-    (** Discover the kind of expression: either infix with priority and 
-        two arguments or other kind of expression
+    (** Discovers the kind of expression: either infix with priority and 
+        two arguments or other kind of expression.
     *)
     val discover : t -> [`Infix of int * t * t | `Other]
  
@@ -34,16 +34,16 @@ module type Expression =
     *)
     val replace : t -> t -> t -> t
 
-    (** Map function for expressions *)
+    (** Map function for expressions. *)
     val map : (t -> t) -> t -> t       
 	  
   end
 
-(** Functor to instantiate reorderer *)
+(** Functor to instantiate reorderer. *)
 module Make (E : Expression) :
   sig 
 
-    (** Simple reordering function *)
+    (** Reordering function. *)
     val sort : E.t -> E.t 
 
   end

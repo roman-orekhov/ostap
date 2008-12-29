@@ -8,6 +8,8 @@ if CAMLP5
 SUBDIRS+=camlp5
 endif
 
+SUBDIRS+=util
+
 .PHONY: doc
 doc:
 	(cd doc; make doc)
