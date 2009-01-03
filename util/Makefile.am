@@ -21,6 +21,8 @@ MODULE_INCLUDES += -I $(CAMLP5LIB) -I ../src
 
 include $(top_srcdir)/m4/Makefile.am.targets
 
+install:
+
 # overwrite some targets
 
 install-data-am: $(TARGET)
