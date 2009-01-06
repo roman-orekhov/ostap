@@ -187,14 +187,14 @@ class t s =
 
     method get name regexp =
       let inner p coord =
-	if string_match regexp s p
-	then 
-	  let m = matched_string s in
-	  let l = length m in
-	  let p = p + l in
-	  let c = shiftPos coord m 0 l in
-	  self#parsed m {< p = p;  coord = c; context = ((self#skip p c) :> aux) >} coord
-	else self#failed (sprintf "\"%s\" expected" name) coord
+        if string_match regexp s p
+        then 
+          let m = matched_string s in
+          let l = length m in
+          let p = p + l in
+          let c = shiftPos coord m 0 l in
+          self#parsed m {< p = p;  coord = c; context = ((self#skip p c) :> aux) >} coord
+        else self#failed (sprintf "\"%s\" expected" name) coord
       in
       match context with 
       | `Failed msg -> Failed (reason msg)
