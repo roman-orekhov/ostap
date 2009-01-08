@@ -1,6 +1,6 @@
 (*
- * Predef: predefined Ostap tools.
- * Copyright (C) 2006-2008
+ * Util: predefined Ostap utilities.
+ * Copyright (C) 2006-2009
  * Dmitri Boulytchev, St.Petersburg State University
  * 
  * This software is free software; you can redistribute it and/or
@@ -20,9 +20,15 @@ open Matcher
 open Printf 
 
 ostap (
-  listBy[delim][item]: h:item t:(-delim x:item)* {h::t};
-  list               : listBy[ostap (",")];
-  list0[item]        : list[item] | empty {[]}
+  listBy[delim][item]: h:item t:(-delim x:item)* {h::t}
+)
+
+ostap (
+  list: listBy[ostap (",")]
+)
+
+ostap (
+  list0[item]: list[item] | empty {[]}
 )
 
 let expr ops opnd =

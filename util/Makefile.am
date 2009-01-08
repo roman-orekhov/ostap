@@ -1,15 +1,16 @@
 # type in sources here
 SOURCES = util.ml
-MLI = 
+MLI = util.mli
 
 include $(top_srcdir)/m4/Makefile.am.vars
+
+# CMO - all compiled objects
+CMO := ../src/pretty.cmo ../src/prioReorderer.cmo ../src/bNF3.cmo ../src/ostap.cmo ../src/msg.cmo ../src/reason.cmo ../src/matcher.cmo ../src/trap.cmo $(SORTED:.ml=.cmo) 
+MLI := ../src/pretty.mli ../src/prioReorderer.mli ../src/bNF3.mli ../src/ostap.mli ../src/msg.mli ../src/reason.mli ../src/matcher.mli ../src/trap.mli util.mli
 
 # overwrite some variables
 OFLAGS += -w x 
 CFLAGS += -w x
-
-# CMO - all compiled objects
-CMO := $(SORTED:.ml=.cmo)
 
 # OCaml parser call with flags
 AM_P5FLAGS := -pp "$(CAMLP5O) ../camlp5/pa_ostap.cmo $(PARSER_INCLUDES)"
@@ -17,11 +18,9 @@ AM_P5FLAGS := -pp "$(CAMLP5O) ../camlp5/pa_ostap.cmo $(PARSER_INCLUDES)"
 # overwrite some variables
 PXFLAGS = $(P5FLAGS)
 CAMLPXLIB = $(CAMLP5LIB)
-MODULE_INCLUDES += -I $(CAMLP5LIB) -I ../src
+MODULE_INCLUDES += -I ../src
 
 include $(top_srcdir)/m4/Makefile.am.targets
-
-install:
 
 # overwrite some targets
 
