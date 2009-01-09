@@ -1,14 +1,12 @@
-SUBDIRS=src
+SUBDIRS = src $(P4_SUBDIR) $(P5_SUBDIR) util
 
 if CAMLP4
-SUBDIRS+=camlp4
+P4_SUBDIR = camlp4
 endif
 
 if CAMLP5
-SUBDIRS+=camlp5
+P5_SUBDIR = camlp5
 endif
-
-SUBDIRS+=util
 
 .PHONY: doc
 doc:
