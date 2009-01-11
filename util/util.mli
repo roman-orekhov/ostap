@@ -42,10 +42,11 @@ val list0 : (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Ostap.res
 
 (** {2 Expression parsing} *)
 
-(** Type to specify associativity od operators. *)
+(** Type to specify associativity of operators for expression of type ['a]. *)
 type 'a assoc
 
-(** Associativity values to represent associativity op operators for expression of type ['a]. *)
+(** Associativity values to represent associativity of operators for expression of type ['a]. *)
+(** *)
 val left : 'a assoc
 val right : 'a assoc
 
@@ -55,9 +56,25 @@ val right : 'a assoc
     operand (and therefore the type of expression) and ['e] is the type of reason. Operator specification
     [opers] is represented by an array in which binary operators with the same precedence level and the same
     associativity are grouped together (the first array element corresponds to the group of operators with the
-    highest priority). Each elements of the array contains pair [(assoc, oplist)] where [assoc] is
+    lowest priority). Each elements of the array contains pair [(assoc, oplist)] where [assoc] is
     associativity value ([left] or [right]) and [oplist] is a list of pairs [(opparse, opsema)], where
-    [opparse] is parser of operator symbol and [opsema] is semantic function of type ['a -> 'a -> 'a]
+    [opparse] is parser of operator symbol and [opsema] is semantic function of type ['a -> 'a -> 'a]. 
+
+    Example:
+
+   {v  let rec parse s =                                                                                                                      v}
+   {v      expr                                                                                                                                     v}
+   {v         [|                                                                                                                                        v}
+   {v            left , [(ostap ("+")), (fun x y -> `Add (x, y)); (ostap ("-")), (fun x y -> `Sub (x, y))];       v}
+   {v            left , [(ostap ("*")), (fun x y -> `Mul (x, y)); (ostap ("/")), (fun x y -> `Div (x, y))]           v}
+   {v         |]                                                                                                                                        v}
+   {v         primary                                                                                                                               v}
+   {v         s                                                                                                                                         v}
+   {v  and ostap (primary:  n:ident \{`Ident n} | -"(" parse -")")                                                          v}    
+
+    The example above defines parser of expressions with left-associative operators ["+"],  ["-"], ["*"], and ["/"].
+    First two operators have lower precedence level than others. Identifier and expressions in brackets
+    can be used as operands.
  *)
 val expr :
   ('a assoc * (('c, 'b, < add : 'e -> 'e; .. > as 'e) parse * ('a -> 'a -> 'a)) list) array -> 
