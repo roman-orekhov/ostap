@@ -1,6 +1,5 @@
 # type in sources here
 SOURCES = util.ml
-MLI = util.mli
 
 include $(top_srcdir)/m4/Makefile.am.vars
 

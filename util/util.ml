@@ -31,11 +31,16 @@ ostap (
   list0[item]: list[item] | empty {[]}
 )
 
+type 'a assoc = ('a -> 'a -> 'a) -> ('a -> 'a) -> 'a -> 'a -> 'a
+
+let left  f c x y = f (c x) y 
+let right f c x y = c (f x y) 
+
 let expr ops opnd =
   let ops =
     Array.map 
       (fun (assoc, list) ->
-	altl (List.map (fun (opsign, sema) -> ostap ($(opsign) {assoc sema})) list)
+	altl (List.map (fun (oper, sema) -> ostap (!(oper) {assoc sema})) list)
       )
       ops 
   in
@@ -53,9 +58,6 @@ let expr ops opnd =
   in 
   ostap (inner[0][id])
     
-let left  f c x y = f (c x) y 
-let right f c x y = c (f x y) 
-
 class lexer s =
   let skip  = Skip.create [Skip.whitespaces " \n\t\r"] in
   let ident = Str.regexp "[a-zA-Z][a-zA-Z0-9]*" in

@@ -1,6 +1,6 @@
 (*
  * Extension: a camlp5 extension to wrap Ostap's combinators.
- * Copyright (C) 2006-2008
+ * Copyright (C) 2006-2009
  * Dmitri Boulytchev, St.Petersburg State University
  * 
  * This software is free software; you can redistribute it and/or
@@ -15,7 +15,7 @@
  * (enclosed in the file COPYING).
  *)
 
-(** Pa_ostap --- a camlp5 syntax extension for BNF-like grammar definitions *)
+(** Pa_ostap --- a camlp5 syntax extension for BNF-like grammar definitions. *)
 
 (**
 
@@ -168,107 +168,98 @@ syntax is as follows:
 
 (**/**)
 
-#load "pa_extend.cmo";
-#load "q_MLast.cmo";
+#load "pa_extend.cmo";;
+#load "q_MLast.cmo";;
 
-open Pcaml;
-open Printf;
+open Pcaml
+open Printf
 
-open BNF3;
+open BNF3
 
 module Args =
   struct
     
-    value (h : Hashtbl.t string string) = Hashtbl.create 1024;
+    let (h : (string, string) Hashtbl.t) = Hashtbl.create 1024
 
-    value register x = Hashtbl.add h x x;
-    value wrap     x = 
-      try Expr.custom [`S (Hashtbl.find h x)] with [
-	Not_found -> Expr.nonterm x
-      ];
-    value clear () = Hashtbl.clear h;
+    let register x = Hashtbl.add h x x
+    let wrap     x = 
+      try Expr.custom [`S (Hashtbl.find h x)] with Not_found -> Expr.nonterm x
+      
+    let clear () = Hashtbl.clear h
 
-  end;
+  end
 
 module Uses =
   struct
 
-    value (h : Hashtbl.t string unit) = Hashtbl.create 1024;
+    let (h : (string, unit) Hashtbl.t) = Hashtbl.create 1024
 
-    value register x = Hashtbl.add h x ();
-    value has      x = Hashtbl.mem h x;
+    let register x = Hashtbl.add h x ()
+    let has      x = Hashtbl.mem h x
 
-    value clear () = Hashtbl.clear h;
+    let clear () = Hashtbl.clear h
 
-  end;
+  end
 
 module Cache =
   struct
 
-    value (h : Hashtbl.t string Expr.t) = Hashtbl.create 1024;
+    let (h : (string, Expr.t) Hashtbl.t) = Hashtbl.create 1024
 
-    value compress x =
+    let compress x =
       let b = Buffer.create 1024 in
-      do {
-        let f = ref False in
-        for i=0 to String.length x - 1 do {
-          match x.[i] with [
-	    ' ' -> if f.val then () else do {Buffer.add_char b ' '; f.val := True}
-	  | '\t' | '\n' -> f.val := False
-	  | c -> do {Buffer.add_char b c; f.val := False}
-	  ]
-        };
-        Buffer.contents b
-      };
+      let f = ref false in
+      for i=0 to String.length x - 1 
+      do
+          match x.[i] with 
+	    ' ' -> if !f then () else (Buffer.add_char b ' '; f := true)
+	  | '\t' | '\n' -> f := false
+	  | c -> Buffer.add_char b c; f := false	  
+      done;
+      Buffer.contents b
 
-    value cache x y = Hashtbl.add h (compress x) y;
+    let cache x y = Hashtbl.add h (compress x) y
 
-    value rec cached x = 
+    let rec cached x = 
       let x = compress x in
       let rec substitute acc s i j = 
 	let len = String.length s in
 	if j < i then 
-	  if i < len then substitute acc s (i+1) (len-1) else List.rev [`S s :: acc]
-        else if i = len then List.rev [`S s :: acc]
+	  if i < len then substitute acc s (i+1) (len-1) else List.rev (`S s :: acc)
+        else if i = len then List.rev (`S s :: acc)
              else 
 	       let d = String.sub s i (j-i+1) in 
 	       try 
 		 substitute 
-		   [`T (Hashtbl.find h d) :: [`S (String.sub s 0 i) :: acc]] 
+		   (`T (Hashtbl.find h d) :: (`S (String.sub s 0 i) :: acc))
 		   (String.sub s (j + 1) (len - j - 1))
 		   0
 		   (len - j - 2)		 
-	       with [
-		 Not_found -> substitute acc s i (j-1)
-	       ]	     
+	       with 
+		 Not_found -> substitute acc s i (j-1)	            
       in 
-      match substitute [] x 0 (String.length x - 1) with [
+      match substitute [] x 0 (String.length x - 1) with 
 	[`S s] -> Args.wrap s
       | list   -> Expr.custom list
-      ];
 
-  end;
+  end
  
-value printBNF  = ref (fun (_: option string) (_: string) -> ());
-value printExpr = ref (fun (_: MLast.expr) -> "");
-value printPatt = ref (fun (_: MLast.patt) -> "");
+let printBNF  = ref (fun (_: string option) (_: string) -> ())
+let printExpr = ref (fun (_: MLast.expr) -> "")
+let printPatt = ref (fun (_: MLast.patt) -> "")
 
-value texDef     def  = Def.toTeX def;
-value texDefList defs =
+let texDef     def  = Def.toTeX def
+let texDefList defs =
   let buf = Buffer.create 1024 in
-  do {
-    List.iter (fun def -> Buffer.add_string buf (sprintf "%s\n" (Def.toTeX def))) defs;
-    Buffer.contents buf
-  };
+  List.iter (fun def -> Buffer.add_string buf (sprintf "%s\n" (Def.toTeX def))) defs;
+  Buffer.contents buf 
 
-value bindOption x f =
-  match x with [
+let bindOption x f =
+  match x with 
     None -> None
   | Some x -> Some (f x)
-  ]
-;
 
-value rec get_ident = fun [
+let rec get_ident = function
     <:expr< $lid:x$ >> -> [x]
   | <:expr< [| $list:el$ |] >> -> List.flatten (List.map get_ident el)
   | <:expr< ($list:el$) >> -> List.flatten (List.map get_ident el)
@@ -277,9 +268,8 @@ value rec get_ident = fun [
       List.flatten (List.map (fun (lab, e) -> get_ident e) lel)
   | <:expr< ($e$ : $_$) >> -> get_ident e
   | _ -> []
-  ]
-;
-value rec get_defined_ident = fun [
+
+let rec get_defined_ident = function
     <:patt< $_$ . $_$ >> -> []
   | <:patt< _ >> -> []
   | <:patt< $lid:x$ >> -> [x]
@@ -306,8 +296,6 @@ value rec get_defined_ident = fun [
   | <:patt< ?$_$: ($p$ = $e$) >> -> get_defined_ident p
   | <:patt< $anti:p$ >> -> get_defined_ident p
   | _ -> [] 
-  ]
-;
 
 EXTEND
   GLOBAL: expr patt str_item let_binding; 
@@ -317,20 +305,16 @@ EXTEND
   str_item: LEVEL "top" [
     [ "ostap"; doc=OPT doc_name; "("; rules=o_rules; ")" -> 
       let (rules, defs) = rules in
-      do {
-	printBNF.val doc (texDefList defs);
-        <:str_item< value $opt:True$ $list:rules$ >> 
-      }
+      !printBNF doc (texDefList defs);
+      <:str_item< value $opt:true$ $list:rules$ >>       
     ] 
   ];
 
   let_binding: [
     [ "ostap"; doc=OPT doc_name; "("; rule=o_rule; ")" -> 
       let ((name, rule), def) = rule in 
-      do {
-	printBNF.val doc (texDef def);
-        (<:patt< $lid:name$ >>, rule) 
-      }
+      !printBNF doc (texDef def);
+      (<:patt< $lid:name$ >>, rule) 
     ] 
   ];
 
@@ -338,18 +322,14 @@ EXTEND
     [ "ostap"; "("; (p, tree)=o_alternatives; ")" ->
       let body = <:expr< $p$ s >> in
       let pwel = [(<:patt< s >>, Ploc.VaVal None, body)] in
-      do {
-	let f = <:expr< fun [$list:pwel$] >> in
-	match tree with [Some tree -> Cache.cache (printExpr.val f) tree | None -> ()];
-        f
-      }
+      let f = <:expr< fun [$list:pwel$] >> in
+      (match tree with Some tree -> Cache.cache (!printExpr f) tree | None -> ());
+      f      
     ] |
     [ "let"; "ostap"; doc=OPT doc_name; "("; rules=o_rules; ")"; "in"; e=expr LEVEL "top" ->
       let (rules, defs) = rules in
-      do {
-	printBNF.val doc (texDefList defs);
-        <:expr< let $opt:True$ $list:rules$ in $e$ >> 
-      }
+      !printBNF doc (texDefList defs);
+      <:expr< let $opt:true$ $list:rules$ in $e$ >> 
     ] 
   ];
 
@@ -363,10 +343,9 @@ EXTEND
   o_rule: [
     [ name=LIDENT; args=OPT o_formal_parameters; ":"; (p, tree)=o_alternatives ->
       let args' = 
-	match args with [
+	match args with 
 	  None   -> [<:patt< s >>]
-	| Some l -> [<:patt< s >> :: l]
-	]
+	| Some l -> <:patt< s >> :: l
       in
       let rule =
 	List.fold_right 
@@ -376,39 +355,33 @@ EXTEND
 	  ) 
 	  args'
 	  <:expr< $p$ s >>
-      in
-      do {
-	let p =
-	  match args with [
-	    None      -> []
+      in      
+      let p =	match args with 
+            None      -> []
           | Some args -> 
 	      let args =
 		List.filter 
 		  (fun p -> 
 		    let idents = get_defined_ident p in
-		    List.fold_left (fun acc ident -> acc || (Uses.has ident)) False idents
+		    List.fold_left (fun acc ident -> acc || (Uses.has ident)) false idents
 		  ) 
 		  args
 	      in
-	      List.map printPatt.val args
-	  ]
-	in
-	let tree =
-	  match tree with [
+	      List.map !printPatt args	  
+      in
+      let tree =
+         match tree with 
 	    None      -> Expr.string ""
-	  | Some tree -> tree
-	  ]
-	in
-	let def = 
-          match p with [
+	  | Some tree -> tree	  
+      in
+      let def = 
+          match p with 
 	    []   -> Def.make  name tree
-	  | args -> Def.makeP name args tree
-	  ]
-	in
-        Args.clear ();
-	Uses.clear ();
-        ((name, rule), def)
-      }
+	  | args -> Def.makeP name args tree	  
+      in
+      Args.clear ();
+      Uses.clear ();
+      ((name, rule), def)      
     ]
   ];
 
@@ -416,37 +389,32 @@ EXTEND
 
   o_formal_parameter: [
     [ "["; p=patt; "]" ->
-      do {
         List.iter Args.register (get_defined_ident p);
-        p
-      }
+        p      
     ]
   ];
 
   o_alternatives: [
     [ p=LIST1 o_alternativeItem SEP "|" -> 
-        match p with [
+        match p with 
 	  [p] -> p
         |  _  -> 
 	    let (p, trees) = List.split p in
 	    let trees =
 	      List.map
-		(fun x -> match x with [Some x -> x])
+		(fun x -> match x with Some x -> x)
 		(List.filter (fun x -> x <> None) trees)
 	    in
 	    match
 	      List.fold_right 
 		(fun item expr -> 
-		  match expr with [
+		  match expr with 
 		    None -> Some (item)
-		  | Some expr -> Some (<:expr< Ostap.alt $item$ $expr$ >>)
-	          ]
+		  | Some expr -> Some (<:expr< Ostap.alt $item$ $expr$ >>)	          
 		) p None
-	    with [
+	    with 
 	      None   -> raise (Failure "internal error - must not happen")
-	    | Some x -> (x, match trees with [[] -> None | _ -> Some (Expr.alt trees)])
-	    ]
-	]
+	    | Some x -> (x, match trees with [] -> None | _ -> Some (Expr.alt trees))	    	
     ]
   ];
 
@@ -455,89 +423,79 @@ EXTEND
 	let (p, trees) = List.split p in
 	let trees = 
 	  List.map 
-	    (fun x -> match x with [Some x -> x]) 
+	    (fun x -> match x with Some x -> x) 
 	    (List.filter (fun x -> x <> None) trees) 
 	in
 	let trees = 
-	  match trees with [
+	  match trees with 
 	    [] -> None
 	  | _  -> Some (Expr.seq trees)
-	  ]
 	in
 	let (s, isSema) = 
-	  match s with [
-	    Some s -> (s, True)
+	  match s with 
+	    Some s -> (s, true)
 	  | None -> 
 	      let (tuple, _) =
 		List.fold_right 
 		  (fun (_, omit, _, _) ((acc, i) as x) -> 
-		    if omit then x else ([<:expr< $lid:"_" ^ (string_of_int i)$>> :: acc], i+1)
+		    if omit then x else (<:expr< $lid:"_" ^ (string_of_int i)$>> :: acc, i+1)
 		  ) 
 		  p 
 		  ([], 0) 
 	      in
-	      match tuple with [
-		[]  -> (<:expr< () >>, True)
-	      | [x] -> (x, False)
-	      |  _  -> (<:expr< ($list:tuple$) >>, True)
-	      ]
-
-	  ]
+	      match tuple with 
+		[]  -> (<:expr< () >>, true)
+	      | [x] -> (x, false)
+	      |  _  -> (<:expr< ($list:tuple$) >>, true)
 	in
         match List.fold_right
             (fun (flag, omit, binding, p) rightPart -> 
 	      let p =
-		match flag with [
+		match flag with 
 	          None -> p
 		| Some (f, r) -> 
 		    let pwel = 
-		      match binding with [
+		      match binding with 
 			None   -> [(<:patt< _ >>, Ploc.VaVal None, f)] 
 		      | Some p -> [(<:patt< $p$ >>, Ploc.VaVal None, f)]
-	              ]
 		    in
 		    let pfun = <:expr< fun [$list:pwel$] >> in
-		    match r with [
+		    match r with 
 		      None   -> <:expr< Ostap.guard $p$ $pfun$ None >>
 		    | Some r -> 
 			let pwel = 
-			  match binding with [
+			  match binding with 
 			    None   -> [(<:patt< _ >>, Ploc.VaVal None, r)] 
 			  | Some p -> [(<:patt< $p$ >>, Ploc.VaVal None, r)]
-	                  ]
 			in
 			let rfun = <:expr< fun [$list:pwel$] >> in
 			<:expr< Ostap.guard $p$ $pfun$ (Some $rfun$) >>
-	            ]
-	        ]
 	      in
 	      let (n, right, combi, isMap) = 
-		match rightPart with [
-		  None -> (0, s, (fun x y -> <:expr< Ostap.map $y$ $x$>>), True)
-		| Some (right, n) -> (n, right, (fun x y -> <:expr< Ostap.seq $x$ $y$>>), False)
-	      ]
+		match rightPart with 
+		  None -> (0, s, (fun x y -> <:expr< Ostap.map $y$ $x$>>), true)
+		| Some (right, n) -> (n, right, (fun x y -> <:expr< Ostap.seq $x$ $y$>>), false)
 	      in
 	      if not isSema && not omit && isMap && binding = None
 	      then Some (p, n+1)
 	      else 
-		let patt = match binding with [None -> <:patt< _ >> | Some patt -> patt] in 
+		let patt = match binding with None -> <:patt< _ >> | Some patt -> patt in 
 		let (patt, n) = if not omit then (<:patt< ($patt$ as $lid:"_" ^ (string_of_int n)$) >>, n+1) else (patt, n) in
 		let pwel      = [(patt, Ploc.VaVal None, right)] in
 		let sfun      = <:expr< fun [$list:pwel$] >> in
 		Some (combi p sfun, n)
             ) p None
-	with [
+	with 
 	  Some (expr, _) -> 
-	    match g with [
+	    (match g with 
 	      None   -> (expr, trees)
 	    | Some (g, None) ->
 		(<:expr< Ostap.seq (Ostap.guard Ostap.empty (fun _ -> $g$) None) (fun _ -> $expr$) >>, trees)
 
 	    | Some (g, Some r) ->
 		(<:expr< Ostap.seq (Ostap.guard Ostap.empty (fun _ -> $g$) (Some (fun _ -> $r$))) (fun _ -> $expr$) >>, trees)
-	    ]
-	| None -> raise (Failure "internal error: empty list must not be eaten")
-	]
+	    )
+	  | None -> raise (Failure "internal error: empty list must not be eaten")	
     ] 
   ];
 
@@ -562,17 +520,15 @@ EXTEND
 
   o_primary: [
     [ (p, s)=o_reference; args=OPT o_parameters -> 
-          match args with [
+          match args with 
              None           -> (p, Some s)
            | Some (args, a) -> 
-	       let args = [<:expr< s >> :: args] in
+	       let args = <:expr< s >> :: args in
 	       let body = List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args in
 	       let pwel = [(<:patt< s >>, Ploc.VaVal None, body)] in
 	       (<:expr< fun [$list:pwel$] >>, (Some (Expr.apply s a)))
-          ]
     ] |
     [ p=UIDENT ->  
-          do {
             let p' = "get" ^ p in
             let look = <:expr< s # $p'$ >> in
             let pwel = [
@@ -583,7 +539,6 @@ EXTEND
 	      )
 	    ] in
             (<:expr< fun [$list:pwel$] >>, Some (Expr.term p))
-          }
     ] |
     [ p=STRING -> 
           let look = <:expr< s # look $str:p$ >> in
@@ -605,25 +560,23 @@ EXTEND
 	     look 
 	    )
 	  ] in
-          (<:expr<fun [$list:pwel$]>>, Some (Expr.string (printExpr.val p)))
+          (<:expr<fun [$list:pwel$]>>, Some (Expr.string (!printExpr p)))
     ] |
     [ "$" -> (<:expr< Ostap.lift >>, None) ] |
     [ "("; (p, s)=o_alternatives; ")" -> (p, bindOption s (fun s -> Expr.group s)) ]   
   ];
 
   o_reference: [
-    [ p=LIDENT -> do {Uses.register p; (<:expr< $lid:p$ >>, Args.wrap p)} ] |
-    [ "!"; "("; e=expr; ")" -> (e, Expr.string (printExpr.val e)) ]
+    [ p=LIDENT -> Uses.register p; (<:expr< $lid:p$ >>, Args.wrap p) ] |
+    [ "!"; "("; e=expr; ")" -> (e, Expr.string (!printExpr e)) ]
   ];
 
   o_parameters: [ [ p=LIST1 o_parameter -> List.split p ]];
 
   o_parameter: [ 
-    [ "["; e=expr; "]" -> 
-      do {
-	List.iter Uses.register (get_ident e);
-        (e, Cache.cached (printExpr.val e))
-      }
+    [ "["; e=expr; "]" ->       
+      List.iter Uses.register (get_ident e);
+      (e, Cache.cached (!printExpr e))      
     ] 
   ];
 
@@ -644,31 +597,26 @@ END;
 
 add_option "-tex"  (Arg.String 
 		      (fun s -> 
-			 do {
-		  	   let p = printBNF.val in
+		  	   let p = !printBNF in
 
 			   let ouch = open_out (s ^ ".tex") in
 
 			   close_out ouch;
 
-                           printExpr.val := (fun e -> Eprinter.apply pr_expr Pprintf.empty_pc e);
-			   printPatt.val := (fun p -> Eprinter.apply pr_patt Pprintf.empty_pc p);
+                           printExpr := (fun e -> Eprinter.apply pr_expr Pprintf.empty_pc e);
+			   printPatt := (fun p -> Eprinter.apply pr_patt Pprintf.empty_pc p);
 
-			   printBNF .val := 
-			     (fun name bnf -> 
-			        do {	                          
+			   printBNF  := 
+			     (fun name bnf ->                     
                                   let ouch = 
-				    match name with [
+				    match name with 
 				      None      -> open_out_gen [Open_append; Open_text] 0o66 (s ^ ".tex")
 				    | Some name -> open_out (s ^ "." ^ name ^ ".tex") 
-	                            ]
 				  in
 			          fprintf ouch "%s" bnf; 
 			          close_out ouch;
 			          p name bnf
-                                }
 			     )
-                        }
 		      )
 		   ) 
            "<name> - print TeX grammar documentation to given file";
