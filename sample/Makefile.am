@@ -10,13 +10,18 @@ include $(top_srcdir)/m4/Makefile.am.vars
 # CMO - all compiled objects
 CMO := $(SORTED:.ml=.cmo)
 
-PARSER_INCLUDES += -I $(top_srcdir)/camlp4
-MODULE_INCLUDES += -I $(top_srcdir)/src
+PARSER_INCLUDES += -I $(top_srcdir)/camlp5
+MODULE_INCLUDES += -I $(top_srcdir)/src -I $(top_srcdir)/util
 
-EXTRA_CMA += ostap.cma
+EXTRA_CMA += ../util/ostap.cma
 
 # OCaml parser call with flags
-AM_P4FLAGS := -pp "$(CAMLP4O) $(PARSER_INCLUDES) pa_ostap.cmo pa_log.cmo $(LOG)"
+AM_P5FLAGS := -pp "$(CAMLP5O) ../camlp5/pa_ostap.cmo $(PARSER_INCLUDES)"
+
+# overwrite some variables
+PXFLAGS = $(P5FLAGS)
+CAMLPXLIB = $(CAMLP5LIB)
+MODULE_INCLUDES += -I ../src
 
 TARGET := $(MLI) $(CMO) $(CMI) $(CMA) $(CMXA) $(LIB) META $(BYTE) $(NATIVE)
 CLEAN_EXTRA += $(BYTE) $(NATIVE)
