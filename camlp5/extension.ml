@@ -24,66 +24,111 @@
   [Pa_ostap] extends Objective Caml grammar with construct [ostap (..)], introduced
   at structure and expression levels. The exact allowed forms are the following:
 
-  ostap ()
+  {ol
+   {- [ostap] {i doc_tag} [(]{i rules}[)] --- at the structure (module implementation) level;}
+   {- [let ostap] {i doc_tag} [(]{i rule}[)] --- at the let-binding level; introduces {i recursive} binding;}
+   {- [ostap] {i doc_tag} [(]{i rules}[)] --- at the expression level;}
+   {- [ostap] [(]{i parse_expr}[)] --- at the expression level;}
+   {- [let ostap] {i doc_tag} [(]{i rules}[) in] {i expr} --- at the expression level;}
+  }
 
-  The latter represents a set of (mutually recursive) {b grammar entries definitions}  
-  at the structure level while the former denotes the single {b grammar expression}. Both 
-  constructions are converted into pure OCaml using [Ostap] parser combinators.
+  In the specification above {i rules} denotes a sequence of grammar rules, {i rule} --- a single
+  rule, {i parse_expr} --- parse expression, {i doc_tag} --- documentation specifier. Below the
+  examples of all these constructs are given:
+
+  {v (* Gramar rules specification at the structure level; rules are mutually recursive *)         v}
+  {v ostap (                                                                                       v}
+  {v   x: IDENT; (* rule defining parser x *)                                                      v}
+  {v   y: CONST  (* rule defining parser y *)                                                      v}
+  {v )                                                                                             v}
+  {v                                                                                               v}
+  {v (* Grammar rule at the let-binding level; bindings are mutually recursive *)                  v}
+  {v let ostap (x: IDENT) (* rule defining parser x *)                                             v}
+  {v and ostap (y: CONST) (* rule defining parser y *)                                             v}
+  {v and u = 3            (* an example to demonstrate interoperability with other let-bindings *) v}
+  {v                                                                                               v}
+  {v let _ =                                                                                       v}
+  {v   (* Let-bindings at expression level; x and y are mutually recursive *)                      v}
+  {v   let ostap (x: IDENT; y: CONST) in                                                           v}
+  {v   (* Grammar expression *)                                                                    v}
+  {v   let p = ostap (x y) in                                                                      v}
+  {v   ()                                                                                          v}
+
+  All these constructs are converted into pure OCaml using [Ostap] parser combinators.
 
   While [Ostap] is purely abstract with regard to stream implementation [Pa_ostap] 
-  additionally allows for convenient integration of parsing and lexing by considering {i streams
+  additionally provides convenient integration of parsing and lexing by considering {i streams
   as objects}. Namely, the stream of tokens [L]{_1}, [L]{_2}, ..., [L]{_k} is represented by an object
   with member functions [getL]{_1}, [getL]{_2}, ..., [getL]{_k}. Such a representation allows
   to freely combine various parser functions that operate on different types of streams with almost no
   type limitations at construction time.
 
   Additionally to this documentation we provide a closed example of how to use [Pa_ostap] (see
-  [sample] directory of the distribution.
+  [sample] directory of the distribution).
 
-  {2 Grammar expression}
+  {2 Parse expressions}
 
-  The syntax of {b grammar expression} is as follows:
+  The syntax of parse expressions is as follows (text in {b bold} denotes meta-language syntax description
+  symbols):
   
-  [expr] {b :} [alternative]{_[1]} {b | } [alternative]{_[2]} {b | ... |} [alternative]{_[k]}
+  [parse_expr] {b :} [alternative]{_[1]} {b | } [alternative]{_[2]} {b | ... |} [alternative]{_[k]}
 
-  [alternative] {b :} [prefixed+] {b \[ } [action]  {b \] }
+  [alternative] {b :} [prefixed+] {b \[ } [semantic]  {b \] }
 
   [prefixed] {b : } {b \[ } [-] {b \] } [basic]    
 
   [basic] {b : } {b \[ } [binding] {b \] } [postfix] {b \[ } [predicate] {b \]}
 
-  [postfix] {b : } [primary] {b | } [postfix] {b ( } [*] {b | } [+] {b | } [?] {b ) }
+  [postfix] {b : } [primary] {b | } [postfix] {b ( } [*] {b | } [+] {b | } [?] {b | } [:: (] {i EXPR} [)] {b ) }
 
-  [primary] {b : } {i UIDENT} {b | } {i reference} {b \[ } [parameters] {b \] } {b | } {i STRING} {b | ( } [expr] {b )}
+  [primary] {b : } {i UIDENT} {b | } [parser] {b \[ } [parameters] {b \] } {b | } [string] {b | } [$] {b | ( } [parse_expr] {b )}
 
-  [reference] {b : } {i LIDENT} {b | } {b !} [qualified]
+  [parser] {b : } {i LIDENT} {b | } [!(]{i EXPR}[)]
 
-  [qualified] {i LIDENT} {b | } {i UIDENT} {b .} [qualified]
+  [string] {b : } {i STRING} {b | } [$(]{i EXPR}[)]
 
-  [parameters] {b : } [\[] {i EXPR} [\]]
+  [parameters] {b : } {b (}[\[] {i EXPR} [\]]{b )*}
 
-  [binding] {b : } [<] {i PATT} [>=]
+  [binding] {b : } {i PATT} [:]
 
-  [predicate] {b : } [=> {] {i EXPR}  [}=>]
+  [predicate] {b : } [=> {] {i EXPR}  [}=>] {b \[} [::(] {i EXPR} [)]{b \]}
 
-  [action] {b : } [{] {i EXPR} [}]
+  [semantic] {b : } [{] {i EXPR} [}]
 
   Here {i UIDENT} and {i LIDENT} stand for identifiers starting from uppercase and lowercase letters
-  correspondingly, {i EXPR} --- for OCaml expression, {i PATT} --- for OCaml pattern.
+  correspondingly, {i STRING} --- for OCaml strings, {i EXPR} --- for OCaml expression, {i PATT} --- for OCaml pattern.
 
-  [reference] within grammar expression denotes a {i parse function} that applied to a stream to
+  [parser] within parse expression denotes a {i parse function} that applied to a stream to
   obtain parsed value and residual stream (see module [Ostap]). Each reference is either a {i LIDENT} or
-  a qualified reference as per OCaml, prefixed by ! to distinguish from {i UIDENT}. 
+  arbitrary OCaml expression of appropriate type, surrounded by [!(...)]. Parser invocation may be equipped with parameters
+  each of which has to be surrounded by [\[...\]] (partial application is allowed as well).
   {i UIDENT} is treated as a lexeme reference;
-  thought generally speaking parsing with Ostap does not require any lexer to be provided (you must instead supply
+  thought generally speaking parsing with [Ostap] does not require any lexer to be provided (you may instead supply
   a set of basic parse functions in any way you find convenient) [Pa_ostap] additionally operates with some predefined
   representation of streams as objects (see module [Matcher]). This representation does not interfere with the
-  common approach and you need not use this feature unless you explicitly apply to it. There are only two constructions
-  that refer to object implementation of streams: {i UIDENT} and {i STRING}. If you use {i UIDENT} in grammar 
+  common approach and you need not use this feature unless you explicitly apply to it. There are only three constructs
+  that refer to object implementation of streams: {i UIDENT}, [$(]{i EXPR}[)] and {i STRING}. If you use {i UIDENT} in grammar 
   expression, for example {i NAME}, then the stream to parse with this expression has to provide a member function
-  {i getNAME}. Similarly using {i STRING} in expression requires stream to provide a member {i look}. 
+  {i getNAME}. Similarly using {i STRING} in expression requires stream to provide a member {i look}. Finally you
+  may match a stream against value of any OCaml expression of string type by surrounding it with [$(...)].
 
-  We will not describe the meaning of all constructions in all details since generally it follows the common
+  Postfix operators [+], [*] and [?] denote respectively one-or-more iteration, zero-or-more iteration and
+  optional value. Postfix operator [::(]{i EXPR}[)] can be used to {i comment} the reason returned on
+  failure with the given reason value (see {!Ostap.comment} function and module {!Reason} as reference implementation).
+  
+  Symbol [$] within parse expression serves as a shortcut for {!Ostap.lift} and so delivers underlying stream as
+  its semantic value.
+
+  Prefix operator [-] is used to {i omit} parsed value from the result of parsing (the parsing of its operand however is
+  not omitted).
+
+  Prefix construct {i PATT}[:] is used to match sucesfully parsed value against pattern {i PATT}; this matching
+  may provide bindings that can be used later.
+
+  Construct [=>{]{i EXPR}[}=>] is used to supply additional check of successfully parsed value; {i EXPR} has to
+  be of boolean type and may use bindings made before.
+
+  We will not describe the meaning of all constructs in all details since generally it follows the common
   BNF style; instead we demonstrate some examples that cover all cases of their exploration. 
 
   {b Examples:}
@@ -91,79 +136,68 @@
   {ol
     {li ["(" expression ")"] is a grammar expression to define a function that matches a stream against successive 
      occurrences of ["("], that that parsed by [expression], and [")"]. On success this function returns {i a triple}:
-     the token for ["("], the value parsed by [expression], and the token for [")"]. There are generally two ways
-     to exclude ["("] and [")"] from the result. The first way is to bind the result of [expression] to some name 
-     and then explicitly specify the result of grammar expression as follows:
+     the token for ["("] (of type determined by stream implementation), the value parsed by [expression], and the token 
+     for [")"]. There are generally two ways to exclude ["("] and [")"] from the result. The first way is to bind the 
+     result of [expression] to some name and then explicitly specify the result of grammar expression as follows:
 
-     ["(" <e>=expression ")" {e}]
+     ["(" e:expression ")" {e}]
   
      The second is just to say to omit brackets:
 
      [-"(" expression -")"].
 
-     Note that you may specify any pattern in the left part of binding; note also that you {i must not} split
-     the symbol [">="] in binding specification (so, [<e> =expression] won't be parsed by [Pa_ostap]). Prefix
-     omitting operator "[-]" may also be applied to any grammar expression, enclosed in brackets.
+     Note that you may specify arbitrary pattern in the left part of binding. Prefix omitting operator "[-]" may also be 
+     applied to any grammar expression, enclosed in brackets.
     }
-    {li [<hd>=item <tl>=(-"," item)* {hd :: tl}] defines a function to parse a list of items}
-    {li [(<s>=string {`Str s} | <x>=integer {`Int x})*] defines a function to parse a list of strings or integers}
-    {li [<hd>=integer <tl>=(-(","?) integer)* {hd :: tl}] parses a list of integers delimited by optional commas}
-    {li [<x>=integer => {x > 0} => {x}] parses positive integer value}
-    {li [<x>=(integer?) => {match x with Some 0 -> false | _ -> true} => {x}] parses optional non-zero integer value}    
-    {li [<x>= ! MyParseLibrary.MyModule.parseIt] parses the source with parse function specified by qualified name}    
+    {li [hd:item tl:(-"," item)* {hd :: tl}] defines a function to parse a list of [item]s.}
+    {li [(s:string {`Str s} | x:integer {`Int x})*] defines a function to parse a list of strings or integers.}
+    {li [hd:integer tl:(-(","?) integer)* {hd :: tl}] parses a list of integers delimited by optional commas.}
+    {li [x:integer => {x > 0}::("positive value expected") => {x}] parses positive integer value.}
+    {li [x:(integer?) => {match x with Some 0 -> false | _ -> true} => {x}] parses optional non-zero integer value.}
+    {li [x:!(MyParseLibrary.MyModule.parseIt)] parses a stream with parse function specified by qualified name.}
   }
  
   In all examples above we assume that [integer] parses integer value, [string] --- string value.
-  Additionally you may specify parameters to parse functions used in grammar expression by
-  enclosing them in square brackets.
-
-  {2 Rule definition}
-
-  [rule] construction serves to embed a single grammar expression into the program code. The
-syntax is as follows:
-
-  [rule] {b : } {b rule} [expr] {b end}
-
-  For example, the following code
-
-  [let intPair = rule integer integer end]
-
-  binds identifier [intPair] to parse function that parses and returns a pair of integers. Here
-  assumed that [integer] is a parse function to parse integer literals.
-
-  You may, of course, define a custom parser combinator: 
-
-  [let inBrackets what = rule -"(" what -")" end]
-
-  or
-
-  [let listOf item delim = rule <hd>=item <tl>=(-delim item)* {hd :: tl} end]
-
-  {2 Grammar entries}
+  
+  {2 Rules}
  
-  The following construction allows to define a set of mutually recursive grammar definitions
-  at the structure (module implementation) level:
+  Rule is named and optionally parameterized parse expression; several mutually-recursive rules may be
+  defined at once. The syntax of rule definition is
 
-  [rules] {b : } {b rules} [entry]{_[1]} {b ;} [entry]{_[2]} {b ;} ... {b ;} [entry]{_[k]} {b end}
+  [rule] {b : } {i LIDENT} [arguments] [:] {b \[} [predicate] {b \]} [parse_expr]
 
-  [entry] {b : } {i LIDENT} {b \[ } arguments {b \] } {b : } [expr]
+  [rules] {b : } [rule]{_1}; [rule]{_2}; ...; [rule]{_k}
 
-  [arguments] {b : } [\[] {i PATT} [\]]   
-
+  [arguments] {b : ( }[\[]{i PATT}[\]] {b )*}
+ 
   For example,
 
-  [rules]
- 
-  [   sequence[start]: item[start] | <next>=item[start] sequence[next];]
+  {v ostap (                                                           v}
+  {v   sequence[start]: item[start] | next:item[start] sequence[next]; v}
+  {v   item[start]: x:integer {x+start} | ";" {start};                 v}
+  {v   entry: sequence[0]                                              v}
+  {v )                                                                 v}
 
-  [   item[start]: <x>=integer {x+start} | ";" {start}];
-
-  [   entry: sequence[0]]
-
-  [end]
-
-  declares (among others) the parser function [entry] that parses and sums a semicolon-terminated 
+  declares (among others) the parser function [entry] which parses and sums a semicolon-terminated 
   sequence of integers.
+
+  {2 Documentation generation}
+ 
+  Option [-tex ]{i filename} makes [Pa_ostap] generate [LaTeX] documentation for all rules.
+  On default all text is placed into specified file; however the output can be split into
+  several files by specifying [doc_tag] option for [ostap] construct. The syntax of option is as
+  follows:
+
+  [doc_tag] {b : \[} [\[] {i STRING} [\]] {b \]}
+
+  With this option provided the documentation for corresponding rules will be placed in 
+  file with name {i filename}[.]{i tagname}[.tex], where {i filename} is the name specified
+  by option [-tex] and {i tagname} is string value of [doc_tag].
+
+  Generated documentation uses [ostap.sty] package which provides cross-references and
+  automatic layout for most of the cases. To obtain good documentation it is recommended
+  to use simple parsers (i.e. identifiers) in grammar rules. Parameterized rules are
+  supported as well.
 *)
 
 (**/**)

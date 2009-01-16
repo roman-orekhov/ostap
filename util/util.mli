@@ -62,15 +62,15 @@ val right : 'a assoc
 
     Example:
 
-   {v  let rec parse s =                                                                                                                      v}
-   {v      expr                                                                                                                                     v}
-   {v         [|                                                                                                                                        v}
-   {v            left , [(ostap ("+")), (fun x y -> `Add (x, y)); (ostap ("-")), (fun x y -> `Sub (x, y))];       v}
-   {v            left , [(ostap ("*")), (fun x y -> `Mul (x, y)); (ostap ("/")), (fun x y -> `Div (x, y))]           v}
-   {v         |]                                                                                                                                        v}
-   {v         primary                                                                                                                               v}
-   {v         s                                                                                                                                         v}
-   {v  and ostap (primary:  n:ident \{`Ident n} | -"(" parse -")")                                                          v}    
+   {v  let rec parse s =                                                                                    v}
+   {v      expr                                                                                             v}
+   {v         [|                                                                                            v}
+   {v            left , [(ostap ("+")), (fun x y -> `Add (x, y)); (ostap ("-")), (fun x y -> `Sub (x, y))]; v}
+   {v            left , [(ostap ("*")), (fun x y -> `Mul (x, y)); (ostap ("/")), (fun x y -> `Div (x, y))]  v}
+   {v         |]                                                                                            v}
+   {v         primary                                                                                       v}
+   {v         s                                                                                             v}
+   {v  and ostap (primary:  n:ident \{`Ident n} | -"(" parse -")")                                          v}    
 
     The example above defines parser of expressions with left-associative operators ["+"],  ["-"], ["*"], and ["/"].
     First two operators have lower precedence level than others. Identifier and expressions in brackets
@@ -80,28 +80,6 @@ val expr :
   ('a assoc * (('c, 'b, < add : 'e -> 'e; .. > as 'e) parse * ('a -> 'a -> 'a)) list) array -> 
   ('c, 'a, 'e) parse -> 
   ('c, 'a, 'e) parse
-
-(** {2 Predefined lexer class} *)
-
-class lexer :
-  string ->
-  object ('a)
-    method col : int
-    method coord : Msg.Coord.t
-    method get :
-      string -> Str.regexp -> ('a, Matcher.Token.t, Reason.t) result
-    method getCONST : ('a, Matcher.Token.t, Reason.t) result
-    method getEOF : ('a, Matcher.Token.t, Reason.t) result
-    method getIDENT : ('a, Matcher.Token.t, Reason.t) result
-    method line : int
-    method loc : Msg.Locator.t
-    method look : string -> ('a, Matcher.Token.t, Reason.t) result
-    method pos : int
-    method prefix : int -> string
-    method skip :
-      int ->
-      Msg.Coord.t -> [ `Failed of Msg.t | `Skipped of int * Msg.Coord.t ]
-  end
 
 (** {2 Miscellaneous} *)
 

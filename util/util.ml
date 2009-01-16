@@ -57,21 +57,6 @@ let expr ops opnd =
   )
   in 
   ostap (inner[0][id])
-    
-class lexer s =
-  let skip  = Skip.create [Skip.whitespaces " \n\t\r"] in
-  let ident = Str.regexp "[a-zA-Z][a-zA-Z0-9]*" in
-  let const = Str.regexp "[0-9]+" in
-
-  object (self)
-
-    inherit Matcher.t s
-
-    method skip p c = skip s p c
-    method getIDENT = self#get "identifier" ident
-    method getCONST = self#get "constant"   const
-
-  end
 
 let read name = 
   let inch = open_in_bin name in
