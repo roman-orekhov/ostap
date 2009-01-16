@@ -36,7 +36,7 @@
   rule, {i parse_expr} --- parse expression, {i doc_tag} --- documentation specifier. Below the
   examples of all these constructs are given:
 
-  {v (* Gramar rules specification at the structure level; rules are mutually recursive *)         v}
+  {v (* Grammar rules specification at the structure level; rules are mutually recursive *)        v}
   {v ostap (                                                                                       v}
   {v   x: IDENT; (* rule defining parser x *)                                                      v}
   {v   y: CONST  (* rule defining parser y *)                                                      v}
@@ -122,7 +122,7 @@
   Prefix operator [-] is used to {i omit} parsed value from the result of parsing (the parsing of its operand however is
   not omitted).
 
-  Prefix construct {i PATT}[:] is used to match sucesfully parsed value against pattern {i PATT}; this matching
+  Prefix construct {i PATT}[:] is used to match successfully parsed value against pattern {i PATT}; this matching
   may provide bindings that can be used later.
 
   Construct [=>{]{i EXPR}[}=>] is used to supply additional check of successfully parsed value; {i EXPR} has to
