@@ -1,3 +1,6 @@
+# description
+DESCRIPTION = "Ostap --- parser combinators library and syntax extension"
+
 # type in sources here
 SOURCES = util.ml
 
