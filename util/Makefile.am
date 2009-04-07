@@ -2,25 +2,30 @@
 DESCRIPTION = "Ostap --- parser combinators library and syntax extension"
 
 # type in sources here
-SOURCES = util.ml
+SOURCES = $(top_srcdir)/src/pretty.ml $(top_srcdir)/src/prioReorderer.ml $(top_srcdir)/src/bNF3.ml $(top_srcdir)/src/ostap.ml $(top_srcdir)/src/msg.ml $(top_srcdir)/src/reason.ml $(top_srcdir)/src/matcher.ml $(top_srcdir)/src/trap.ml util.ml
 
 include $(top_srcdir)/m4/Makefile.am.vars
 
-# CMO - all compiled objects
-CMO := ../src/pretty.cmo ../src/prioReorderer.cmo ../src/bNF3.cmo ../src/ostap.cmo ../src/msg.cmo ../src/reason.cmo ../src/matcher.cmo ../src/trap.cmo $(SORTED:.ml=.cmo) 
-MLI := ../src/pretty.mli ../src/prioReorderer.mli ../src/bNF3.mli ../src/ostap.mli ../src/msg.mli ../src/reason.mli ../src/matcher.mli ../src/trap.mli util.mli
+MLI := $(SOURCES:.ml=.mli)
+
+#CMOPK = ostap.cmo
+#CMXPK = ostap.cmx
+CLEAN_EXTRA += ostap.cmi
 
 # overwrite some variables
 OFLAGS += -w x 
 CFLAGS += -w x
 
 # OCaml parser call with flags
-AM_P5FLAGS := -pp "$(CAMLP5O) ../camlp5/pa_ostap.cmo $(PARSER_INCLUDES)"
+AM_P5FLAGS := -pp "$(CAMLP5O) $(top_srcdir)/camlp5/pa_ostap.cmo $(PARSER_INCLUDES)"
+AM_OFLAGS += -for-pack Ostap
 
 # overwrite some variables
 PXFLAGS = $(P5FLAGS)
 CAMLPXLIB = $(CAMLP5LIB)
 MODULE_INCLUDES += -I ../src
+
+TARGET = $(CMOPK) META
 
 include $(top_srcdir)/m4/Makefile.am.targets
 

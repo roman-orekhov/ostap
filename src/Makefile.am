@@ -12,10 +12,14 @@ CMO := $(SORTED:.ml=.cmo)
 AM_P5FLAGS := -pp "$(CAMLP5O) $(PARSER_INCLUDES) pa_checked.cmo pa_log.cmo $(LOG)"
 AM_BFLAGS += -w x 
 AM_OFLAGS += -w x 
+AM_OFLAGS += -for-pack Ostap
 
 # overwrite some variables
 PXFLAGS = $(P5FLAGS)
 CAMLPXLIB = $(CAMLP5LIB)
+CMOPK =
+CMXPK =
+TARGET = $(MLI) $(CMI) $(CMO)
 
 include $(top_srcdir)/m4/Makefile.am.targets
 
