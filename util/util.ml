@@ -15,9 +15,16 @@
  * (enclosed in the file COPYING).
  *)
 
-open Ostap
+open Combinators
 open Matcher 
 open Printf 
+
+module Ostap =
+  struct
+
+    module Combinators = Combinators
+
+  end
 
 ostap (
   listBy[delim][item]: h:item t:(-delim x:item)* {h::t}

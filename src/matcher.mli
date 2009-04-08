@@ -37,18 +37,18 @@
  
     inspect its type 
 
-    {v (< getIDENT : ('a, 'b, 'c) Ostap.result;           v}
-    {v    look     : string -> ('a, 'd, 'c) Ostap.result; v}
-    {v    ..                                              v}
-    {v  > as 'a) ->                                       v}
-    {v ('a, 'b * 'd * 'b * 'b list * 'd, 'c) Ostap.result v}
+    {v (< getIDENT : ('a, 'b, 'c) Combinators.result;           v}
+    {v    look     : string -> ('a, 'd, 'c) Combinators.result; v}
+    {v    ..                                                    v}
+    {v  > as 'a) ->                                             v}
+    {v ('a, 'b * 'd * 'b * 'b list * 'd, 'c) Combinators.result v}
     
     and conclude that you need a stream of type
 
-    {v < getIDENT : ('a, 'b, 'c) Ostap.result;           v}
-    {v   look     : string -> ('a, 'd, 'c) Ostap.result; v}
-    {v   ..                                              v}
-    {v > as 'a                                         v}
+    {v < getIDENT : ('a, 'b, 'c) Combinators.result;           v}
+    {v   look     : string -> ('a, 'd, 'c) Combinators.result; v}
+    {v   ..                                                    v}
+    {v > as 'a                                                 v}
     
     Here ['a] is the type of stream itself, ['b] --- the type of data, returned by successful
     application of [getIDENT], ['c] --- the type of data returned by error/failure, ['d] ---
@@ -182,16 +182,16 @@ class t : string ->
     (** [get name expr] is a parser which parses regular expression [expr] at the current
         position. [name] is a name for diagnostic purposes.
     *)
-    method get : string -> Str.regexp -> ('a, Token.t, Reason.t) Ostap.result
+    method get : string -> Str.regexp -> ('a, Token.t, Reason.t) Combinators.result
 
     (** [getEOF] detects the end of stream. *)
-    method getEOF : ('a, Token.t, Reason.t) Ostap.result
+    method getEOF : ('a, Token.t, Reason.t) Combinators.result
 
     (** [loc] gets the current location in the stream. *)
     method loc : Msg.Locator.t
 
     (** [look str] looks at the current stream for string [str]. *)
-    method look : string -> ('a, Token.t, Reason.t) Ostap.result
+    method look : string -> ('a, Token.t, Reason.t) Combinators.result
 
     (** Method to skip meaningless symbols (e.g. whitespaces); returns
         position and coordinates of first meaningful symbol. [skip] is implicitly

@@ -99,7 +99,7 @@
   correspondingly, {i STRING} --- for OCaml strings, {i EXPR} --- for OCaml expression, {i PATT} --- for OCaml pattern.
 
   [parser] within parse expression denotes a {i parse function} that applied to a stream to
-  obtain parsed value and residual stream (see module [Ostap]). Each reference is either a {i LIDENT} or
+  obtain parsed value and residual stream (see module [Ostap.Combinators]). Each reference is either a {i LIDENT} or
   arbitrary OCaml expression of appropriate type, surrounded by [!(...)]. Parser invocation may be equipped with parameters
   each of which has to be surrounded by [\[...\]] (partial application is allowed as well).
   {i UIDENT} is treated as a lexeme reference;
@@ -114,9 +114,9 @@
 
   Postfix operators [+], [*] and [?] denote respectively one-or-more iteration, zero-or-more iteration and
   optional value. Postfix operator [::(]{i EXPR}[)] can be used to {i comment} the reason returned on
-  failure with the given reason value (see {!Ostap.comment} function and module {!Reason} as reference implementation).
+  failure with the given reason value (see {!Ostap.Combinators.comment} function and module {!Reason} as reference implementation).
   
-  Symbol [$] within parse expression serves as a shortcut for {!Ostap.lift} and so delivers underlying stream as
+  Symbol [$] within parse expression serves as a shortcut for {!Ostap.Combinators.lift} and so delivers underlying stream as
   its semantic value.
 
   Prefix operator [-] is used to {i omit} parsed value from the result of parsing (the parsing of its operand however is
@@ -444,7 +444,7 @@ EXTEND
 		(fun item expr -> 
 		  match expr with 
 		    None -> Some (item)
-		  | Some expr -> Some (<:expr< Ostap.alt $item$ $expr$ >>)	          
+		  | Some expr -> Some (<:expr< Ostap.Combinators.alt $item$ $expr$ >>)	          
 		) p None
 	    with 
 	      None   -> raise (Failure "internal error - must not happen")
@@ -495,7 +495,7 @@ EXTEND
 		    in
 		    let pfun = <:expr< fun [$list:pwel$] >> in
 		    match r with 
-		      None   -> <:expr< Ostap.guard $p$ $pfun$ None >>
+		      None   -> <:expr< Ostap.Combinators.guard $p$ $pfun$ None >>
 		    | Some r -> 
 			let pwel = 
 			  match binding with 
@@ -503,12 +503,12 @@ EXTEND
 			  | Some p -> [(<:patt< $p$ >>, Ploc.VaVal None, r)]
 			in
 			let rfun = <:expr< fun [$list:pwel$] >> in
-			<:expr< Ostap.guard $p$ $pfun$ (Some $rfun$) >>
+			<:expr< Ostap.Combinators.guard $p$ $pfun$ (Some $rfun$) >>
 	      in
 	      let (n, right, combi, isMap) = 
 		match rightPart with 
-		  None -> (0, s, (fun x y -> <:expr< Ostap.map $y$ $x$>>), true)
-		| Some (right, n) -> (n, right, (fun x y -> <:expr< Ostap.seq $x$ $y$>>), false)
+		  None -> (0, s, (fun x y -> <:expr< Ostap.Combinators.map $y$ $x$>>), true)
+		| Some (right, n) -> (n, right, (fun x y -> <:expr< Ostap.Combinators.seq $x$ $y$>>), false)
 	      in
 	      if not isSema && not omit && isMap && binding = None
 	      then Some (p, n+1)
@@ -524,10 +524,10 @@ EXTEND
 	    (match g with 
 	      None   -> (expr, trees)
 	    | Some (g, None) ->
-		(<:expr< Ostap.seq (Ostap.guard Ostap.empty (fun _ -> $g$) None) (fun _ -> $expr$) >>, trees)
+		(<:expr< Ostap.Combinators.seq (Ostap.Combinators.guard Ostap.Combinators.empty (fun _ -> $g$) None) (fun _ -> $expr$) >>, trees)
 
 	    | Some (g, Some r) ->
-		(<:expr< Ostap.seq (Ostap.guard Ostap.empty (fun _ -> $g$) (Some (fun _ -> $r$))) (fun _ -> $expr$) >>, trees)
+		(<:expr< Ostap.Combinators.seq (Ostap.Combinators.guard Ostap.Combinators.empty (fun _ -> $g$) (Some (fun _ -> $r$))) (fun _ -> $expr$) >>, trees)
 	    )
 	  | None -> raise (Failure "internal error: empty list must not be eaten")	
     ] 
@@ -546,10 +546,10 @@ EXTEND
 
   o_postfix: [
     [ o_primary ] |
-    [ (e, s)=o_postfix; "*" -> (<:expr< Ostap.many $e$ >>, bindOption s (fun s -> Expr.star s)) ] |
-    [ (e, s)=o_postfix; "+" -> (<:expr< Ostap.some $e$ >>, bindOption s (fun s -> Expr.plus s)) ] |
-    [ (e, s)=o_postfix; "?" -> (<:expr< Ostap.opt  $e$ >>, bindOption s (fun s -> Expr.opt  s)) ] |
-    [ (e, s)=o_postfix; "::"; "("; c=expr; ")" -> (<:expr< Ostap.comment $e$ ($c$) >>, s) ]
+    [ (e, s)=o_postfix; "*" -> (<:expr< Ostap.Combinators.many $e$ >>, bindOption s (fun s -> Expr.star s)) ] |
+    [ (e, s)=o_postfix; "+" -> (<:expr< Ostap.Combinators.some $e$ >>, bindOption s (fun s -> Expr.plus s)) ] |
+    [ (e, s)=o_postfix; "?" -> (<:expr< Ostap.Combinators.opt  $e$ >>, bindOption s (fun s -> Expr.opt  s)) ] |
+    [ (e, s)=o_postfix; "::"; "("; c=expr; ")" -> (<:expr< Ostap.Combinators.comment $e$ ($c$) >>, s) ]
   ];
 
   o_primary: [
@@ -596,7 +596,7 @@ EXTEND
 	  ] in
           (<:expr<fun [$list:pwel$]>>, Some (Expr.string (!printExpr p)))
     ] |
-    [ "$" -> (<:expr< Ostap.lift >>, None) ] |
+    [ "$" -> (<:expr< Ostap.Combinators.lift >>, None) ] |
     [ "("; (p, s)=o_alternatives; ")" -> (p, bindOption s (fun s -> Expr.group s)) ]   
   ];
 

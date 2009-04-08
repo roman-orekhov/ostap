@@ -2,7 +2,7 @@
 DESCRIPTION = "Ostap --- parser combinators library and syntax extension"
 
 # type in sources here
-SOURCES = $(top_srcdir)/src/pretty.ml $(top_srcdir)/src/prioReorderer.ml $(top_srcdir)/src/bNF3.ml $(top_srcdir)/src/ostap.ml $(top_srcdir)/src/msg.ml $(top_srcdir)/src/reason.ml $(top_srcdir)/src/matcher.ml $(top_srcdir)/src/trap.ml util.ml
+SOURCES = $(top_srcdir)/src/pretty.ml $(top_srcdir)/src/prioReorderer.ml $(top_srcdir)/src/bNF3.ml $(top_srcdir)/src/combinators.ml $(top_srcdir)/src/msg.ml $(top_srcdir)/src/reason.ml $(top_srcdir)/src/matcher.ml $(top_srcdir)/src/trap.ml util.ml
 
 include $(top_srcdir)/m4/Makefile.am.vars
 

@@ -17,6 +17,7 @@
 
 open Str
 open Ostap
+open Combinators
 open Printf
 
 class lexer s p = 

@@ -6,8 +6,9 @@ include $(top_srcdir)/m4/Makefile.am.vars
 
 PARSER_INCLUDES += -I $(top_srcdir)/camlp5
 MODULE_INCLUDES += -I $(top_srcdir)/src
+MODULE_INCLUDES += -I $(top_srcdir)/util
 
-EXTRA_CMA += $(PACKAGE).cma
+EXTRA_CMA += $(PACKAGE).cmo
 
 # OCaml parser call with flags
 AM_P5FLAGS = -pp "$(CAMLP5O) $(PARSER_INCLUDES) pa_ostap.cmo"

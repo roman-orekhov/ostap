@@ -19,7 +19,7 @@ open Printf
 open Matcher
 open String
 open Str
-open Ostap 
+open Ostap
 open Util
 
 let ident = ostap (n:IDENT {Token.repr n})

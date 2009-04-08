@@ -17,6 +17,7 @@
 
 open Str
 open Ostap
+open Combinators
 
 class lexer s p = 
   object

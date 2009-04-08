@@ -15,7 +15,7 @@
  * (enclosed in the file COPYING).
  *)
 
-open Ostap
+open Combinators
 
 (** Predefined parsing utilities. *)
 
@@ -24,7 +24,7 @@ open Ostap
 (** [listBy s delim item] parses a non-empty list of [item]s delimited by [delim] from a stream [s].
      Note that inside Ostap syntax extension the notation [listBy[delim][item]] should be used.
   *)
-val listBy : 'a -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) parse -> ('a, 'd, 'c) parse -> ('a, 'd list, 'c) Ostap.result
+val listBy : 'a -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) parse -> ('a, 'd, 'c) parse -> ('a, 'd list, 'c) Combinators.result
 
 (** [list s item] parses a non-empty list delimited by commas. Inside Ostap syntax extensions this should
      be used in the form [list[item]].
@@ -36,7 +36,7 @@ val list : (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) result; ..
 (** [list0 s item] parses a possibly empty list delimited by commas. Inside Ostap syntax extensions this should
      be used in the form [list0[item]].
  *)
-val list0 : (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Ostap.result; .. > as 'a) ->
+val list0 : (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.result; .. > as 'a) ->
             ('a, 'd, 'c) parse -> 
             ('a, 'd list, 'c) result
 
