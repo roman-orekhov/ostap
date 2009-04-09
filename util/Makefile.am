@@ -8,10 +8,6 @@ include $(top_srcdir)/m4/Makefile.am.vars
 
 MLI := $(SOURCES:.ml=.mli)
 
-#CMOPK = ostap.cmo
-#CMXPK = ostap.cmx
-CLEAN_EXTRA += ostap.cmi
-
 # overwrite some variables
 OFLAGS += -w x 
 CFLAGS += -w x
@@ -25,7 +21,7 @@ PXFLAGS = $(P5FLAGS)
 CAMLPXLIB = $(CAMLP5LIB)
 MODULE_INCLUDES += -I ../src
 
-TARGET = $(CMOPK) META
+TARGET = $(CMOPK) $(CMXPK) $(CMIPK) $(OPK) $(MLI) META
 
 include $(top_srcdir)/m4/Makefile.am.targets
 
