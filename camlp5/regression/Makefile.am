@@ -1,4 +1,4 @@
-TESTS = test001 test002 test003 test004 test005 test006 test007 test008 test009 test010 test011 test012 test013
+TESTS = test001 test002 test003 test004 test005 test006 test007 test008 test009 test010 test011 test012
 
 TESTS_ENVIRONMENT = $(srcdir)/test.sh
 
@@ -26,6 +26,11 @@ CLEAN_EXTRA += *.diff *.log
 
 include $(top_srcdir)/m4/Makefile.am.targets
 
+# do not install anyting
+install-data-am:
+	@true
+uninstall-am:
+	@true
 # do not call ocamldep
 .depend:
 	touch .depend
