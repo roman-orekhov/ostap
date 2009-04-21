@@ -21,11 +21,29 @@ PXFLAGS = $(P5FLAGS)
 CAMLPXLIB = $(CAMLP5LIB)
 MODULE_INCLUDES += -I ../src
 
+# packed CMO, add to TARGET
+CMOPK := $(addsuffix .cmo, $(PACKAGE))
+# packed CMX, add to TARGET
+CMXPK := $(addsuffix .cmx, $(PACKAGE))
+# interface for packed object
+CMIPK := $(addsuffix .cmi, $(PACKAGE))
+# object for linking
+OPK := $(addsuffix .o, $(PACKAGE))
+
 TARGET = $(CMOPK) $(CMXPK) $(CMIPK) $(OPK) $(MLI) META
 
 include $(top_srcdir)/m4/Makefile.am.targets
 
 # overwrite some targets
+
+# META description for package
+META: $(top_srcdir)/VERSION
+	@echo "Generating META description"; \
+	revision=`grep "\\$$Revision:" $< | sed -e 's,^\\$$,,' -e 's, \\$$$$,,'`; \
+	date=`LC_TIME=C date`; \
+	echo "version = \"$$revision\"" > $@; \
+	echo "description = \"$(DESCRIPTION)\"" >> $@; \
+	echo "requires = \"\"" >> $@
 
 install-data-am: $(TARGET)
 if HAVE_OCAMLFIND
