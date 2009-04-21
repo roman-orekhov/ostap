@@ -16,11 +16,11 @@
  *)
 
 open Printf
-open Matcher
 open String
 open Str
 open Ostap
 open Util
+open Matcher
 
 let ident = ostap (n:IDENT {Token.repr n})
 let const = ostap (c:CONST {int_of_string (Token.repr c)})
@@ -89,7 +89,7 @@ class lexer s =
 
   object (self)
 
-    inherit Matcher.t s
+    inherit t s
 
     method skip p c = skip s p c
     method getIDENT = self#get "identifier" ident
@@ -98,6 +98,7 @@ class lexer s =
   end
 
 let _ =
-  unwrap (parse (new lexer "a+b*3-(4-2)"))
+  Combinators.unwrap (parse (new lexer "a+b*3-(4-2)"))
     (fun tree -> printf "Parsed tree:\n%s\n" (toString tree))
     (fun reason -> printf "Parser error:\n%s\n" (Reason.toString (`First 3) `Acc reason))
+
