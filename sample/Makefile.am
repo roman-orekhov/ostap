@@ -13,7 +13,7 @@ CMO := $(SORTED:.ml=.cmo)
 PARSER_INCLUDES += -I $(top_srcdir)/camlp5
 MODULE_INCLUDES += -I $(top_srcdir)/src -I $(top_srcdir)/util
 
-EXTRA_CMA += ../util/ostap.cma
+EXTRA_CMA += ../util/ostap.cmo
 
 # OCaml parser call with flags
 AM_P5FLAGS := -pp "$(CAMLP5O) ../camlp5/pa_ostap.cmo $(PARSER_INCLUDES)"
