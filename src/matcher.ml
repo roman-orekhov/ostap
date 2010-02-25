@@ -236,13 +236,11 @@ class t s =
       in
       match context with 
       | `Failed msg -> Failed (reason msg)
-
       | `Init ->
 	  (match self#skip p coord with
 	  | `Skipped (p, coord) -> inner p coord
 	  | `Failed msg -> Failed (reason msg)
 	  )
-
       | `Skipped (p, coord) -> inner p coord
 
     method loc = Msg.Locator.Point coord
