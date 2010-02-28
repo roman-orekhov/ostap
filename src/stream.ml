@@ -15,43 +15,30 @@
  * (enclosed in the file COPYING).
  *)
 
-type 'a t = [ `EOS | `Cons of 'a * 'a t ] Lazy.t
+open Lazy
 
-let guarded f = try f () with End_of_file -> `EOS
-let defer   f = Lazy.lazy_from_fun (fun () -> guarded f)
+type 'a t = ('a * 'a t) Lazy.t
 
-let rec fromFunction  f      = defer (fun _ -> `Cons (f (), fromFunction f))
-let rec fromChannel   f inch = defer (fun _ -> `Cons (f inch, fromChannel f inch))
-let rec fromIterator  x f    = defer (fun _ -> let y, x' = f x in `Cons (y, fromIterator x' f))
-let rec fromGenerator x n i  = defer (fun _ -> `Cons (i x, fromGenerator (n x) n i))
+let rec fromFunction  f      = lazy_from_fun (fun _ -> f (), fromFunction f)
+let rec fromChannel   f inch = lazy_from_fun (fun _ -> f inch, fromChannel f inch)
+let rec fromIterator  x f    = lazy_from_fun (fun _ -> let y, x' = f x in y, fromIterator x' f)
+let rec fromGenerator x n i  = lazy_from_fun (fun _ -> i x, fromGenerator (n x) n i)
 let rec fromList      l      = fromIterator  l (function [] -> raise End_of_file, [] | hd::tl -> hd, tl)
 let rec fromArray     a      = let n = Array.length a in fromGenerator 0 (fun i -> i+1) (fun i -> if i < n then a.(i) else raise End_of_file)
 let     fromFile             = fromChannel input_char
 
-let get   s = Lazy.force s
-let endOf s = get s = `EOS
+let complete f x = try f () with End_of_file -> x
 
-let elem  s = match get s with `EOS -> raise End_of_file | `Cons (x, _) -> x
+let get   s = force s
+let endOf s = complete (fun _ -> ignore (get s); false) true 
+let hd    s = fst (get s)
+let tl    s = snd (get s)
 
-let rec map  f s = Lazy.lazy_from_val (match get s with `EOS -> `EOS | `Cons (x, y) -> `Cons (f x, map f y))
-let rec iter f s = match get s with `EOS -> () | `Cons (x, y) -> f x; iter f y
+let rec map  f s   = lazy_from_fun (fun _ -> let x, y = get s in f x, map f y)
+let rec iter f s   = complete (fun _ -> let x, y = get s in f x; iter f y) ()
+let rec fold f x s = complete (fun _ -> let z, y = get s in fold f (f x z) y) x
+let rec filter f s = lazy_from_fun (fun _ -> let (x, y) as z = get s in if f x then get (filter f y) else z)
 
-let rec fold f x s = match get s with `EOS -> x | `Cons (z, y) -> fold f (f x z) y
-
-let rec filter f s = Lazy.lazy_from_val (match get s with `EOS -> `EOS | `Cons (x, y) as z -> if f x then get (filter f y) else z) 
-
-let rec zip x y = Lazy.lazy_from_val (match get x, get y with `EOS, _ | _, `EOS -> `EOS | `Cons (x, xl), `Cons (y, yl) -> `Cons ((x, y), zip xl yl))
-
-let rec zip3 x y z = 
-  Lazy.lazy_from_val (
-    match get x, get y, get z with 
-    | `EOS, _, _ | _, `EOS, _ | _, _, `EOS -> `EOS 
-    | `Cons (x, xl), `Cons (y, yl), `Cons (z, zl) -> `Cons ((x, y, z), zip3 xl yl zl)
-  )
-
-let rec zip4 x y z t = 
-  Lazy.lazy_from_val (
-    match get x, get y, get z, get t with 
-    | `EOS, _, _, _ | _, `EOS, _, _ | _, _, `EOS, _ | _, _, _, `EOS -> `EOS 
-    | `Cons (x, xl), `Cons (y, yl), `Cons (z, zl), `Cons (t, tl) -> `Cons ((x, y, z, t), zip4 xl yl zl tl)
-  )
+let rec zip x y      = lazy_from_fun (fun _ -> let (x, xl), (y, yl)                   = get x, get y               in (x, y)      , zip  xl yl      )
+let rec zip3 x y z   = lazy_from_fun (fun _ -> let (x, xl), (y, yl), (z, zl)          = get x, get y, get z        in (x, y, z)   , zip3 xl yl zl   )
+let rec zip4 x y z t = lazy_from_fun (fun _ -> let (x, xl), (y, yl), (z, zl), (t, tl) = get x, get y, get z, get t in (x, y, z, t), zip4 xl yl zl tl)
