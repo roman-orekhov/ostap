@@ -151,10 +151,3 @@ let toChar = function
   | CNTRL x   -> x
 
 let asciiStream s = Stream.map fromChar s
-
-let _ =
-  for i = 0 to 255 do
-    let c = Char.chr i in
-    Printf.printf "%c: %s\n" c (Class.toString (Class.get c))
-  done
-;;
