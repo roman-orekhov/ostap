@@ -2,19 +2,20 @@
 DESCRIPTION = "Ostap --- parser combinators library and syntax extension"
 
 # type in sources here
-SOURCES = $(top_srcdir)/src/pretty.ml $(top_srcdir)/src/prioReorderer.ml $(top_srcdir)/src/bNF3.ml $(top_srcdir)/src/combinators.ml $(top_srcdir)/src/msg.ml $(top_srcdir)/src/reason.ml $(top_srcdir)/src/matcher.ml $(top_srcdir)/src/trap.ml util.ml
+SOURCES = $(top_srcdir)/src/pretty.ml $(top_srcdir)/src/prioReorderer.ml $(top_srcdir)/src/bNF3.ml $(top_srcdir)/src/combinators.ml $(top_srcdir)/src/msg.ml $(top_srcdir)/src/reason.ml $(top_srcdir)/src/aSCII.ml $(top_srcdir)/src/regexp.ml $(top_srcdir)/src/matcher.ml $(top_srcdir)/src/trap.ml util.ml
 
 include $(top_srcdir)/m4/Makefile.am.vars
 
 MLI := $(SOURCES:.ml=.mli)
 
 # overwrite some variables
-OFLAGS += -w x 
+OFLAGS += -w x
 CFLAGS += -w x
 
 # OCaml parser call with flags
 AM_P5FLAGS := -pp "$(CAMLP5O) $(top_srcdir)/camlp5/pa_ostap.cmo $(PARSER_INCLUDES)"
-AM_OFLAGS += -for-pack Ostap
+AM_OFLAGS += -for-pack Ostap -rectypes
+AM_BFLAGS += -rectypes
 
 # overwrite some variables
 PXFLAGS = $(P5FLAGS)

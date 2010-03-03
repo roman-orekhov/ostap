@@ -29,6 +29,8 @@ module Diagram =
   struct
 
     open Printf
+
+    type 'a expr = 'a t
     
     type 'a cond = If of string * ('a -> bool) | Else | EoS | BoS
     and  'a tran = 'a cond * 'a t
