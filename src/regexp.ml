@@ -52,7 +52,7 @@ module Diagram =
           let rec derive = function
             | Back r, _ -> let Some t = !r in derive t
             | t -> t
-          in
+          in      
           let inDOT i j label =
             Buffer.add_string buf (sprintf "node%d -> node%d [label=\"%s\"];\n" i j label)
           in
@@ -64,7 +64,7 @@ module Diagram =
         | EoS      , t -> doit t "EoS"
         | BoS      , t -> doit t "BoS"
       in
-      let rec inner (sort, id) =
+      let rec inner (sort, id) as t =
         match sort with
         | State trans -> 
             node id "state";
@@ -89,6 +89,58 @@ module Diagram =
       Buffer.contents buf
 
     let make expr =
+      let rec simplify = function
+        | Opt   t -> (match simplify t with Opt t -> Opt t | Aster t -> Aster t | Plus t -> Aster t | t -> Opt t)
+        | Aster t -> (match simplify t with Aster t | Plus t | Opt t | t -> Aster t)
+        | Plus  t -> (match simplify t with Plus t -> Plus t | Aster t | Opt t -> Aster t | t -> Plus t)
+        | Juxt tl -> 
+           (match
+              List.flatten (
+                List.map 
+                  (fun t -> 
+                     match simplify t with
+                     | Juxt tl -> tl
+                     | t       -> [t]
+                  ) 
+                  tl
+              )
+             with
+             | [t] -> t
+             | tl  -> Juxt tl
+           )
+        | Alter tl -> 
+           (match
+              List.flatten (
+                List.map 
+                  (fun t -> 
+                     match simplify t with
+                     | Alter tl -> tl
+                     | t        -> [t]
+                  ) 
+                  tl
+              )
+            with
+            | [t] -> t
+            | tl  ->
+               let opt, tl =
+                 List.fold_left 
+                   (fun (opt, tl) t ->
+                      match t with
+                      | Aster t                -> opt && true, (Plus t) :: tl
+                      | Juxt ((Aster t) :: tl') -> 
+                          let tl' = match tl' with [t] -> t | _ -> Juxt tl' in
+                          opt, tl' :: Juxt [Plus t; tl'] :: tl
+                      | t -> opt, t :: tl
+                   )  
+                   (false, [])
+                   tl
+               in
+               let t = Alter tl in
+               if opt then Opt t else t
+           )
+        | Arg (s, t) -> Arg (s, simplify t)
+        | t -> t        
+      in
       let checkName =
         let module S = Set.Make (String) in 
         let names    = ref S.empty in
@@ -119,7 +171,7 @@ module Diagram =
         | BOS         -> State [BoS, succ], (id ())
         | EOS         -> State [EoS, succ], (id ())      
       in  
-      try `Ok (inner (Ok, id ()) expr) with Duplicate name -> `Duplicate name
+      try `Ok (inner (Ok, id ()) (simplify expr)) with Duplicate name -> `Duplicate name
 
   end
 
