@@ -139,7 +139,7 @@ module Diagram =
                  fold_left 
                    (fun (opt, tl) t ->
                       match t with
-                      | `Aster t                -> opt && true, (`Plus t) :: tl
+                      | `Aster t -> opt && true, (`Plus t) :: tl
                       | `Juxt ((`Aster t) :: tl') -> 
                           let tl' = match tl' with [t] -> t | _ -> `Juxt tl' in
                           opt, tl' :: (`Juxt [`Plus t; tl'] :: tl)
@@ -162,30 +162,32 @@ module Diagram =
           incr i;
           j
       in
-      let addElse branch node = setTrans ((Else, [], branch) :: (getTrans node)) node in      
-      let rec inner succ = function
+      let registerNode, busyNode =
+        let module S = Set.Make (struct type t = int include Pervasives end) in
+        let ids = ref S.empty in
+        (fun n -> ids := S.add (getId n) !ids),
+        (fun (tag, id) -> tag = Ok || (S.mem id !ids))
+      in
+      let addElse branch node = 
+        setTrans ((if busyNode branch then [Else, [], branch] else getTrans branch) @ (getTrans node)) node 
+      in
+      let rec inner succ = 
+        let return y = registerNode succ; y in
+        function
         | `Aster t -> 
 	   let back = ref None in
            let t'   = inner (Back back, id ()) t in
+           registerNode t';
 	   back := Some t';
-	   addElse succ t'
+	   return (addElse succ t')
 
-        | `Test (s, t, bs) -> State [If (s, t), bs, succ], (id ())
-        | `Plus  t     -> inner succ (`Juxt [t; `Aster t]) 
-        | `Opt   t     -> addElse succ (inner succ t)
-        | `Alter tl    -> 
-	    let tl = 
-              map (fun t -> 
-                match inner succ t with
-                | ((Ok, _) as t) -> [Else, [], t]
-                | t -> getTrans t
-              ) 
-              tl 
-            in            
-            State (flatten tl), (id ())  
-        | `Juxt  tl    -> fold_right (fun t succ -> inner succ t) tl succ 
-        | `BOS         -> State [BoS, [], succ], (id ())
-        | `EOS         -> State [EoS, [], succ], (id ())      
+        | `Test (s, t, bs) -> return (State [If (s, t), bs, succ], (id ()))
+        | `Plus  t     -> return (inner succ (`Juxt [t; `Aster t]))
+        | `Opt   t     -> return (addElse succ (inner succ t))
+        | `Alter tl    -> return (State (flatten (map (fun t -> getTrans (inner succ t)) tl )), (id ()))
+        | `Juxt  tl    -> return (fold_right (fun t succ -> inner succ t) tl succ)
+        | `BOS         -> return (State [BoS, [], succ], (id ()))
+        | `EOS         -> return (State [EoS, [], succ], (id ()))
       in  
       try `Ok (inner (Ok, id ()) (simplify (eliminateArgs [] expr))) with Duplicate name -> `Duplicate name
 
