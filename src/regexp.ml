@@ -92,42 +92,42 @@ module Diagram =
           if S.mem name !names then raise (Duplicate name) else names := S.add name !names; name       
       in
       let rec eliminateArgs binds = function
-        | Aster  t     -> `Aster (eliminateArgs binds t, binds)
-        | Plus   t     -> `Plus  (eliminateArgs binds t, binds)
-        | Opt    t     -> `Opt   (eliminateArgs binds t, binds)
-        | Alter  tl    -> `Alter (map (eliminateArgs binds) tl, binds)
-        | Juxt   tl    -> `Juxt  (map (eliminateArgs binds) tl, binds)
+        | Aster  t     -> `Aster (eliminateArgs binds t)
+        | Plus   t     -> `Plus  (eliminateArgs binds t)
+        | Opt    t     -> `Opt   (eliminateArgs binds t)
+        | Alter  tl    -> `Alter (map (eliminateArgs binds) tl)
+        | Juxt   tl    -> `Juxt  (map (eliminateArgs binds) tl)
         | Arg   (s, t) -> eliminateArgs ((checkName s) :: binds) t
         | Test  (s, f) -> `Test (s, f, binds)
-        | EOS          -> `EOS binds
-        | BOS          -> `BOS binds
+        | EOS          -> `EOS
+        | BOS          -> `BOS
       in
       let rec simplify = function
-        | Opt   t -> (match simplify t with Opt t -> Opt t | Aster t -> Aster t | Plus t -> Aster t | t -> Opt t)
-        | Aster t -> (match simplify t with Aster t | Plus t | Opt t | t -> Aster t)
-        | Plus  t -> (match simplify t with Plus t -> Plus t | Aster t | Opt t -> Aster t | t -> Plus t)
-        | Juxt tl -> 
+        | `Opt   t -> (match simplify t with `Opt t -> `Opt t | `Aster t -> `Aster t | `Plus t -> `Aster t | t -> `Opt t)
+        | `Aster t -> (match simplify t with `Aster t | `Plus t | `Opt t | t -> `Aster t)
+        | `Plus  t -> (match simplify t with `Plus t -> `Plus t | `Aster t | `Opt t -> `Aster t | t -> `Plus t)
+        | `Juxt tl -> 
            (match
               flatten (
                 map 
                   (fun t -> 
                      match simplify t with
-                     | Juxt tl -> tl
+                     | `Juxt tl -> tl
                      | t       -> [t]
                   ) 
                   tl
               )
              with
              | [t] -> t
-             | tl  -> Juxt tl
+             | tl  -> `Juxt tl
            )
-        | Alter tl -> 
+        | `Alter tl -> 
            (match
               flatten (
                 map 
                   (fun t -> 
                      match simplify t with
-                     | Alter tl -> tl
+                     | `Alter tl -> tl
                      | t        -> [t]
                   ) 
                   tl
@@ -139,20 +139,21 @@ module Diagram =
                  fold_left 
                    (fun (opt, tl) t ->
                       match t with
-                      | Aster t                -> opt && true, (Plus t) :: tl
-                      | Juxt ((Aster t) :: tl') -> 
-                          let tl' = match tl' with [t] -> t | _ -> Juxt tl' in
-                          opt, tl' :: (Juxt [Plus t; tl'] :: tl)
+                      | `Aster t                -> opt && true, (`Plus t) :: tl
+                      | `Juxt ((`Aster t) :: tl') -> 
+                          let tl' = match tl' with [t] -> t | _ -> `Juxt tl' in
+                          opt, tl' :: (`Juxt [`Plus t; tl'] :: tl)
                       | t -> opt, t :: tl
                    )  
                    (false, [])
                    tl
                in
-               let t = Alter tl in
-               if opt then Opt t else t
+               let t = `Alter tl in
+               if opt then `Opt t else t
            )
-        | Arg (s, t) -> Arg (s, simplify t)
-        | t -> t        
+        | `EOS    -> `EOS
+        | `BOS    -> `BOS
+        | `Test x -> `Test x
       in
       let id =
         let i = ref 0 in
@@ -161,33 +162,32 @@ module Diagram =
           incr i;
           j
       in
-      let addElse branch bs node = setTrans ((Else, bs, branch) :: (getTrans node)) node in      
-      let rec inner bs succ = function
-        | Aster t -> 
+      let addElse branch node = setTrans ((Else, [], branch) :: (getTrans node)) node in      
+      let rec inner succ = function
+        | `Aster t -> 
 	   let back = ref None in
-           let t'   = inner bs (Back back, id ()) t in
+           let t'   = inner (Back back, id ()) t in
 	   back := Some t';
-	   addElse succ bs t'
+	   addElse succ t'
 
-        | Test (s, t) -> State [If (s, t), bs, succ], (id ())
-        | Plus  t     -> inner bs succ (Juxt [t; Aster t]) 
-        | Opt   t     -> addElse succ bs (inner bs succ t)
-        | Alter tl    -> 
+        | `Test (s, t, bs) -> State [If (s, t), bs, succ], (id ())
+        | `Plus  t     -> inner succ (`Juxt [t; `Aster t]) 
+        | `Opt   t     -> addElse succ (inner succ t)
+        | `Alter tl    -> 
 	    let tl = 
               map (fun t -> 
-                match inner bs succ t with
-                | ((Ok, _) as t) -> [Else, bs, t]
+                match inner succ t with
+                | ((Ok, _) as t) -> [Else, [], t]
                 | t -> getTrans t
               ) 
               tl 
             in            
             State (flatten tl), (id ())  
-        | Juxt  tl    -> fold_right (fun t succ -> inner bs succ t) tl succ 
-        | Arg (s, t)  -> State [Else, bs, (inner ((checkName s)::bs) (State [Else, bs, succ], (id ())) t)], (id ())
-        | BOS         -> State [BoS, bs, succ], (id ())
-        | EOS         -> State [EoS, bs, succ], (id ())      
+        | `Juxt  tl    -> fold_right (fun t succ -> inner succ t) tl succ 
+        | `BOS         -> State [BoS, [], succ], (id ())
+        | `EOS         -> State [EoS, [], succ], (id ())      
       in  
-      try `Ok (inner [] (Ok, id ()) (simplify expr)) with Duplicate name -> `Duplicate name
+      try `Ok (inner (Ok, id ()) (simplify (eliminateArgs [] expr))) with Duplicate name -> `Duplicate name
 
   end
 
