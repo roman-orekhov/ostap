@@ -29,19 +29,21 @@ module Diagram =
   struct
 
     open Printf
+    open List
 
     type 'a expr = 'a t
     
     type 'a cond = If of string * ('a -> bool) | Else | EoS | BoS
-    and  'a tran = 'a cond * 'a t
-    and  'a sort = State of 'a tran list | Ok | Back of 'a t option ref | Begin of string * 'a t | End of string * 'a t 
+    and  'a tran = 'a cond * string list * 'a t
+    and  'a sort = State of 'a tran list | Ok | Back of 'a t option ref
     and  'a t    = 'a sort * int
 
     exception Duplicate of string
 
-    let getId      = snd 
-    let getTrans   = function (State x, _) -> x | _ -> [] 
-    let setTrans y = function (State x, i) -> State y, i | _ -> invalid_arg "Ostap.Regexp.Diagram.setTrans" 
+    let getId             = snd 
+    let getDest (_, _, x) = x
+    let getTrans          = function (State x, _) -> x | _ -> [] 
+    let setTrans y        = function (State x, i) -> State y, i | _ -> invalid_arg "Ostap.Regexp.Diagram.setTrans" 
 
     let toDOT root =
       let buf = Buffer.create 512 in
@@ -58,45 +60,56 @@ module Diagram =
           in
           inDOT id (getId (derive t)) l
         in
+        let bindings =
+          let module L = View.List (View.String) in
+          L.toString
+        in
         function
-        | If (s, _), t -> doit t (sprintf "if(%s)" s)
-        | Else     , t -> doit t "else"
-        | EoS      , t -> doit t "EoS"
-        | BoS      , t -> doit t "BoS"
+        | If (s, _), bs, t -> doit t (sprintf "if(%s)[%s]" s (bindings bs))
+        | Else     , bs, t -> doit t (sprintf "else [%s]" (bindings bs))
+        | EoS      , _ , t -> doit t "EoS" 
+        | BoS      , _ , t -> doit t "BoS"
       in
       let rec inner (sort, id) as t =
         match sort with
         | State trans -> 
             node id "state";
-            List.iter (fun tran -> edge id tran; inner (snd tran)) trans
+            iter (fun tran -> edge id tran; inner (getDest tran)) trans
            
         | Ok -> node id "ok"
 
         | Back _ -> ()
-
-        | Begin (name, t) -> 
-            node id (sprintf "begin(%s)" name);
-            edge id (Else, t);
-            inner t
-
-        | End (name, t) ->
-            node id (sprintf "end(%s)" name);
-            edge id (Else, t);
-            inner t
       in
       inner root;
       Buffer.add_string buf "}\n";
       Buffer.contents buf
 
     let make expr =
+      let checkName =
+        let module S = Set.Make (String) in 
+        let names    = ref S.empty in
+        fun name -> 
+          if S.mem name !names then raise (Duplicate name) else names := S.add name !names; name       
+      in
+      let rec eliminateArgs binds = function
+        | Aster  t     -> `Aster (eliminateArgs binds t, binds)
+        | Plus   t     -> `Plus  (eliminateArgs binds t, binds)
+        | Opt    t     -> `Opt   (eliminateArgs binds t, binds)
+        | Alter  tl    -> `Alter (map (eliminateArgs binds) tl, binds)
+        | Juxt   tl    -> `Juxt  (map (eliminateArgs binds) tl, binds)
+        | Arg   (s, t) -> eliminateArgs ((checkName s) :: binds) t
+        | Test  (s, f) -> `Test (s, f, binds)
+        | EOS          -> `EOS binds
+        | BOS          -> `BOS binds
+      in
       let rec simplify = function
         | Opt   t -> (match simplify t with Opt t -> Opt t | Aster t -> Aster t | Plus t -> Aster t | t -> Opt t)
         | Aster t -> (match simplify t with Aster t | Plus t | Opt t | t -> Aster t)
         | Plus  t -> (match simplify t with Plus t -> Plus t | Aster t | Opt t -> Aster t | t -> Plus t)
         | Juxt tl -> 
            (match
-              List.flatten (
-                List.map 
+              flatten (
+                map 
                   (fun t -> 
                      match simplify t with
                      | Juxt tl -> tl
@@ -110,8 +123,8 @@ module Diagram =
            )
         | Alter tl -> 
            (match
-              List.flatten (
-                List.map 
+              flatten (
+                map 
                   (fun t -> 
                      match simplify t with
                      | Alter tl -> tl
@@ -123,13 +136,13 @@ module Diagram =
             | [t] -> t
             | tl  ->
                let opt, tl =
-                 List.fold_left 
+                 fold_left 
                    (fun (opt, tl) t ->
                       match t with
                       | Aster t                -> opt && true, (Plus t) :: tl
                       | Juxt ((Aster t) :: tl') -> 
                           let tl' = match tl' with [t] -> t | _ -> Juxt tl' in
-                          opt, tl' :: Juxt [Plus t; tl'] :: tl
+                          opt, tl' :: (Juxt [Plus t; tl'] :: tl)
                       | t -> opt, t :: tl
                    )  
                    (false, [])
@@ -141,12 +154,6 @@ module Diagram =
         | Arg (s, t) -> Arg (s, simplify t)
         | t -> t        
       in
-      let checkName =
-        let module S = Set.Make (String) in 
-        let names    = ref S.empty in
-        fun name -> 
-          if S.mem name !names then raise (Duplicate name) else names := S.add name !names; name       
-      in
       let id =
         let i = ref 0 in
         fun () -> 
@@ -154,24 +161,33 @@ module Diagram =
           incr i;
           j
       in
-      let addElse branch node = setTrans ((Else, branch) :: (getTrans node)) node in      
-      let rec inner succ = function
+      let addElse branch bs node = setTrans ((Else, bs, branch) :: (getTrans node)) node in      
+      let rec inner bs succ = function
         | Aster t -> 
 	   let back = ref None in
-           let t'   = inner (Back back, id ()) t in
+           let t'   = inner bs (Back back, id ()) t in
 	   back := Some t';
-	   addElse succ t'
+	   addElse succ bs t'
 
-        | Test (s, t) -> State [If (s, t), succ], (id ())
-        | Plus  t     -> inner succ (Juxt [t; Aster t]) 
-        | Opt   t     -> addElse succ (inner succ t)
-        | Alter tl    -> State (List.flatten (List.map (fun t -> getTrans (inner succ t)) tl)), (id ())  
-        | Juxt  tl    -> List.fold_right (fun t succ -> inner succ t) tl succ 
-        | Arg (s, t)  -> Begin (checkName s, inner (End (s, succ), (id ())) t), (id ()) 
-        | BOS         -> State [BoS, succ], (id ())
-        | EOS         -> State [EoS, succ], (id ())      
+        | Test (s, t) -> State [If (s, t), bs, succ], (id ())
+        | Plus  t     -> inner bs succ (Juxt [t; Aster t]) 
+        | Opt   t     -> addElse succ bs (inner bs succ t)
+        | Alter tl    -> 
+	    let tl = 
+              map (fun t -> 
+                match inner bs succ t with
+                | ((Ok, _) as t) -> [Else, bs, t]
+                | t -> getTrans t
+              ) 
+              tl 
+            in            
+            State (flatten tl), (id ())  
+        | Juxt  tl    -> fold_right (fun t succ -> inner bs succ t) tl succ 
+        | Arg (s, t)  -> State [Else, bs, (inner ((checkName s)::bs) (State [Else, bs, succ], (id ())) t)], (id ())
+        | BOS         -> State [BoS, bs, succ], (id ())
+        | EOS         -> State [EoS, bs, succ], (id ())      
       in  
-      try `Ok (inner (Ok, id ()) (simplify expr)) with Duplicate name -> `Duplicate name
+      try `Ok (inner [] (Ok, id ()) (simplify expr)) with Duplicate name -> `Duplicate name
 
   end
 
