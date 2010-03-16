@@ -34,9 +34,18 @@ module Diagram =
     type 'a expr = 'a t
     
     type 'a cond = If of string * ('a -> bool) | Else | EoS | BoS
-    and  'a tran = 'a cond * string list * 'a t
-    and  'a sort = State of 'a tran list | Ok | Back of 'a t option ref
-    and  'a t    = 'a sort * int
+    and  'a tran = 'a cond * string list * 'a node
+    and  'a sort = State of 'a tran list | Ok | Back of 'a node option ref
+    and  'a node = 'a sort * int
+    and  'a t    = 'a node * string list * int
+
+    let nnodes (_, _, n) = n
+    let args   (_, n, _) = n
+    let root   (n, _, _) = n
+
+    let rec derive = function
+      | Back r, _ -> let Some t = !r in derive t
+      | t -> t
 
     exception Duplicate of string
 
@@ -45,16 +54,86 @@ module Diagram =
     let getTrans          = function (State x, _) -> x | _ -> [] 
     let setTrans y        = function (State x, i) -> State y, i | _ -> invalid_arg "Ostap.Regexp.Diagram.setTrans" 
 
-    let toDOT root =
+    module Compiled =
+      struct
+
+        module M = Map.Make (Compare.String)
+
+        let empty       = M.empty
+        let funOf m     = (fun name -> try Some (rev (M.find name m)) with Not_found -> None)
+        let bind  n x m = try M.add n (x :: (M.find n m)) m with Not_found -> M.add n [x] m
+
+        type 'a bnds    = 'a list M.t
+        type 'a diagram = 'a t
+        type 'a state   = {epsilon: int list; bos: int list; eos: int list; trans: ('a -> 'a bnds -> (int * 'a bnds) list)} 
+        type 'a t       = {states: 'a state array; start: int; ok : int}
+
+        let make ((root, start), _, num) = 
+          let empty    = {epsilon = []; bos = []; eos = []; trans = (fun _ _ -> [])} in
+          let ok       = ref 0 in
+          let t        = Array.init num (fun _ -> empty) in
+          let filled   = Array.make num false            in
+          let module S = Set.Make (Compare.Integer)      in
+          let elems  s = S.fold (fun x l -> x :: l) s [] in
+          let rec inner ((node, id) as x) =
+            if not filled.(id) then 
+            begin
+              filled.(id) <- true;
+              match node with
+              | Ok -> ok := id
+              | _  ->
+                 let epsilon, bos, eos, trans =
+                   fold_left 
+                     (fun (epsilon, bos, eos, trans) (cond, binds, dst) -> 
+                        let dst    = getId (derive dst) in
+		        let addDst = S.add (dst)        in
+                        match cond with
+                        | If (_, f) -> epsilon, bos, eos, (f, binds, dst) :: trans
+                        | EoS       -> epsilon, bos, addDst eos, trans
+                        | BoS       -> epsilon, addDst bos, eos, trans
+                        | Else      -> addDst epsilon, bos, eos, trans
+		     ) 
+                     (S.empty, S.empty, S.empty, [])
+                     (getTrans x)
+                 in
+                 let trans a m =
+                   flatten (map (fun (f, binds, dst) -> if f a then [dst, fold_left (fun m n -> bind n a m) m binds] else []) trans)
+                 in
+                 t.(id) <- {epsilon = elems epsilon; bos = elems bos; eos = elems eos; trans = trans}
+            end
+          in
+          inner root;
+          {states = t; start = start; ok = !ok}
+          
+        let matchStream t s =
+          let rec inner = function
+            | (i, s, bos, m) :: context ->
+                if i = t.ok 
+                then `Match ((s, funOf m), Lazy.lazy_from_fun (fun _ -> inner context))
+                else 
+                  let state    = t.states.(i) in
+                  let context' =
+                    (map (fun i -> i, s, bos, m) ((if bos then state.bos else []) @ state.epsilon)) @
+                    (try
+                       let a, s' = Stream.get s in
+                       map (fun (i, m) -> i, s', false, m) (state.trans a m)
+                     with End_of_file -> map (fun i -> i, s, bos, m) state.eos
+                    ) @ context
+                  in
+                  inner context'              
+
+            | [] -> `End
+          in
+          Lazy.lazy_from_fun (fun () -> inner [t.start, s, true, empty])
+
+      end
+
+    let toDOT (root, _, _) =
       let buf = Buffer.create 512 in
       Buffer.add_string buf "digraph X {\n";
       let node id label = Buffer.add_string buf (sprintf "node%d [label=\"%s\"];\n" id label) in      
       let edge id = 
         let doit t l =
-          let rec derive = function
-            | Back r, _ -> let Some t = !r in derive t
-            | t -> t
-          in      
           let inDOT i j label =
             Buffer.add_string buf (sprintf "node%d -> node%d [label=\"%s\"];\n" i j label)
           in
@@ -83,13 +162,17 @@ module Diagram =
       inner root;
       Buffer.add_string buf "}\n";
       Buffer.contents buf
-
+    
     let make expr =
-      let checkName =
+      let checkName, getArgs =
         let module S = Set.Make (String) in 
         let names    = ref S.empty in
-        fun name -> 
+        (fun name -> 
           if S.mem name !names then raise (Duplicate name) else names := S.add name !names; name       
+        ),
+        (fun () ->
+          S.fold (fun x l -> x :: l) !names []
+        )
       in
       let rec eliminateArgs binds = function
         | Aster  t     -> `Aster (eliminateArgs binds t)
@@ -189,7 +272,10 @@ module Diagram =
         | `BOS         -> return (State [BoS, [], succ], (id ()))
         | `EOS         -> return (State [EoS, [], succ], (id ()))
       in  
-      try `Ok (inner (Ok, id ()) (simplify (eliminateArgs [] expr))) with Duplicate name -> `Duplicate name
+      try 
+        let d = inner (Ok, id ()) (simplify (eliminateArgs [] expr)) in
+        `Ok (d, getArgs (), id ()) 
+      with 
+        Duplicate name -> `Duplicate name
 
   end
-
