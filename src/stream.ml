@@ -26,6 +26,7 @@ let rec fromGenerator x n i  = lazy_from_fun (fun _ -> i x, fromGenerator (n x) 
 let rec fromList      l      = fromIterator  l (function [] -> raise End_of_file, [] | hd::tl -> hd, tl)
 let rec fromArray     a      = let n = Array.length a in fromGenerator 0 (fun i -> i+1) (fun i -> if i < n then a.(i) else raise End_of_file)
 let     fromFile             = fromChannel input_char
+let     fromString    s      = let n = String.length s in fromGenerator 0 (fun i -> i+1) (fun i -> if i < n then s.[i] else raise End_of_file)
 
 let complete f x = try f () with End_of_file -> x
 
@@ -42,3 +43,16 @@ let rec filter f s = lazy_from_fun (fun _ -> let (x, y) as z = get s in if f x t
 let rec zip x y      = lazy_from_fun (fun _ -> let (x, xl), (y, yl)                   = get x, get y               in (x, y)      , zip  xl yl      )
 let rec zip3 x y z   = lazy_from_fun (fun _ -> let (x, xl), (y, yl), (z, zl)          = get x, get y, get z        in (x, y, z)   , zip3 xl yl zl   )
 let rec zip4 x y z t = lazy_from_fun (fun _ -> let (x, xl), (y, yl), (z, zl), (t, tl) = get x, get y, get z, get t in (x, y, z, t), zip4 xl yl zl tl)
+
+let rec unzip  x = map fst x, map snd x
+let rec unzip3 x = map (fun (x, _, _) -> x) x, map (fun (_, x, _) -> x) x, map (fun (_, _, x) -> x) x
+let rec unzip4 x = map (fun (x, _, _, _) -> x) x, map (fun (_, x, _, _) -> x) x, map (fun (_, _, x, _) -> x) x, map (fun (_, _, _, x) -> x) x
+
+let rangeBy s l u = fromGenerator l (fun i -> i + s) (fun n -> if n > u then raise End_of_file else n)
+let range         = rangeBy 1
+let repeat n      = fromFunction (fun _ -> n)
+
+module S = View.List (View.Char)
+
+let take    n s = List.rev (fold (fun l x -> x :: l) [] (fst (unzip (zip s (range 1 n)))))
+let takeStr n s = S.toString (take n s)

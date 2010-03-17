@@ -1,3 +1,5 @@
+open Printf 
+
 type 'a t = 
     Test   of string * ('a -> bool)
   | Aster  of 'a t
@@ -109,22 +111,22 @@ module Diagram =
           let rec inner = function
             | (i, s, bos, m) :: context ->
                 if i = t.ok 
-                then `Match ((s, funOf m), Lazy.lazy_from_fun (fun _ -> inner context))
+                then (s, funOf m), context
                 else 
-                  let state    = t.states.(i) in
+                  let state    = t.states.(i) in                  
                   let context' =
                     (map (fun i -> i, s, bos, m) ((if bos then state.bos else []) @ state.epsilon)) @
                     (try
                        let a, s' = Stream.get s in
                        map (fun (i, m) -> i, s', false, m) (state.trans a m)
                      with End_of_file -> map (fun i -> i, s, bos, m) state.eos
-                    ) @ context
+                    ) @ context                  
                   in
                   inner context'              
 
-            | [] -> `End
+            | [] -> raise End_of_file
           in
-          Lazy.lazy_from_fun (fun () -> inner [t.start, s, true, empty])
+          Stream.fromIterator [t.start, s, true, empty] inner
 
       end
 
@@ -279,3 +281,13 @@ module Diagram =
         Duplicate name -> `Duplicate name
 
   end
+
+let matchAll expr str =
+  match Diagram.make expr with
+  | `Ok d           -> Diagram.Compiled.matchStream (Diagram.Compiled.make d) str
+  | `Duplicate name -> invalid_arg (sprintf "duplicate argument name '%s' in regular expressioin" name)
+
+let matchAllStr expr str = 
+  let module S = View.List (View.Char) in
+  Stream.map (fun (s, args) -> s, (fun name -> S.toString (args name))) (matchAll expr str)
+

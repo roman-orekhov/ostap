@@ -23,6 +23,9 @@ PXFLAGS = $(P5FLAGS)
 CAMLPXLIB = $(CAMLP5LIB)
 MODULE_INCLUDES += -I ../src
 
+BFLAGS += -rectypes
+OFLAGS += -rectypes
+
 TARGET := $(MLI) $(CMO) $(CMI) $(CMA) $(CMXA) $(LIB) META $(BYTE) $(NATIVE)
 CLEAN_EXTRA += $(BYTE) $(NATIVE)
 

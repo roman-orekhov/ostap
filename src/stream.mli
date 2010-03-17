@@ -24,6 +24,9 @@ type 'a t
 
 (** {2 Constructors} *)
 
+(** [fromString s] constructs stream of characters from [s] *)
+val fromString : string -> char t
+
 (** [fromFunction f] constructs stream of results of successive invocations of function [f]. Function
     [f] should raise exception [End_of_file] to indicate the end of stream.
  *)
@@ -107,3 +110,32 @@ val zip3 : 'a t -> 'b t -> 'c t -> ('a * 'b * 'c) t
 
 (** [zip s d e f] workd similar to [zip] but returns the stream of quadruples. *)
 val zip4 : 'a t -> 'b t -> 'c t -> 'd t -> ('a * 'b * 'c * 'd) t
+
+(** [unzip x] splits the stream of pairs [x] into two streams of it's components. *)
+val unzip : ('a * 'b) t -> 'a t * 'b t
+
+(** [unzip3 x] splits the stream of triples [x] into three streams of it's components. *)
+val unzip3 : ('a * 'b * 'c) t -> 'a t * 'b t * 'c t 
+
+(** [unzip4 x] splits the stream of quadruples [x] into four streams of it's components. *)
+val unzip4 : ('a * 'b * 'c * 'd) t -> 'a t * 'b t * 'c t * 'd t
+
+(** [rangeBy step low high] constructs the stream of integers [[low; low+step; low+step*2; ...]];
+    upper bound is uncluded if reached.
+ *)
+val rangeBy : int -> int -> int -> int t
+
+(** [range] is a shortcut for [rangeBy 1]. *)
+val range : int -> int -> int t
+
+(** [repeat x] constructs infinite stream [[x; x; x; ...]]. *)
+val repeat : 'a -> 'a t
+
+(** [take n s] returns at most [n] first items of [s] as a list;
+    if [s] contains less then [n] items then the list contains
+    all remaining items of [s].
+ *)
+val take : int -> 'a t -> 'a list
+
+(** [takeStr n s] is a specialized version of [take] for character streams. *)
+val takeStr : int -> char t -> string

@@ -72,15 +72,26 @@ module Diagram :
         (** Constructor. *)
         val make : 'a diagram -> 'a t
 
-        (** Matcher againt the stream. [matchStream t s] returns lazy list of 
-            match results. Each match result is either [`Match ((s', args), tl)], where
-            [s'] --- residual stream, [args name] --- the list of items matched by
-            subexpression captured by argument [name] (empty list for non-captured names), 
-            [tl] --- other match results, or [`End] if there are no (other) matches
-            found. The matching is performed from the beginning of the stream.
+        (** [matchStream t s] matched the stream [s] against the expression [t] and returns all 
+            matchings as a stream of pairs [(s', args)], where [s'] --- residual stream,
+            [args name] --- matched value for argument [name] (empty list for non-captured or
+            non-matched names)
           *)
-        val matchStream : 'a t -> 'a Stream.t -> ([ `Match of (('a Stream.t * (string -> 'a list)) * 'b) | `End ] Lazy.t as 'b)
+        val matchStream : 'a t -> 'a Stream.t -> ('a Stream.t * (string -> 'a list)) Stream.t
   
       end
 
   end
+
+(** {2 Shortcuts and synonyms} *)
+
+(** [matchAll expr stream] nondeterministically finds all matchings of [stream] against [expr].
+    The result is a stream of pairs [(s', args)], where [s'] --- residual stream, 
+    [args name] --- matched value for argument [name] (empty list for non-captured or
+    non-matched names); [Invalid_arg] exception is raised if [expr] contains duplicate
+    capturing for some argument name.
+ *)
+val matchAll : 'a t -> 'a Stream.t -> ('a Stream.t * (string -> 'a list)) Stream.t
+
+(** Specialized version of [matchAll] for character streams. *)
+val matchAllStr : char t -> char Stream.t -> (char Stream.t * (string -> string)) Stream.t

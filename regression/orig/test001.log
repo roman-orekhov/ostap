@@ -1,0 +1,18 @@
+matching a* against "aaaa":
+  stream: a, a, a, a...;
+  args  : A=[];
+  stream: a, a, a...;
+  args  : A=[a];
+  stream: a, a...;
+  args  : A=[a, a];
+  stream: a...;
+  args  : A=[a, a, a];
+  stream: ...;
+  args  : A=[a, a, a, a];
+matching a* against "baaa":
+  stream: b, a, a, a...;
+  args  : A=[];
+matching a*$ against "aaaa":
+  stream: ...;
+  args  : A=[a, a, a, a];
+matching a* against "baaa":
