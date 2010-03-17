@@ -60,7 +60,7 @@ module Diagram =
         module M = Map.Make (Compare.String)
 
         let empty       = M.empty
-        let funOf m     = (fun name -> try Some (rev (M.find name m)) with Not_found -> None)
+        let funOf m     = (fun name -> try rev (M.find name m) with Not_found -> [])
         let bind  n x m = try M.add n (x :: (M.find n m)) m with Not_found -> M.add n [x] m
 
         type 'a bnds    = 'a list M.t
@@ -68,7 +68,7 @@ module Diagram =
         type 'a state   = {epsilon: int list; bos: int list; eos: int list; trans: ('a -> 'a bnds -> (int * 'a bnds) list)} 
         type 'a t       = {states: 'a state array; start: int; ok : int}
 
-        let make ((root, start), _, num) = 
+        let make (((root, start), _, num) : 'a diagram) = 
           let empty    = {epsilon = []; bos = []; eos = []; trans = (fun _ _ -> [])} in
           let ok       = ref 0 in
           let t        = Array.init num (fun _ -> empty) in
@@ -102,7 +102,7 @@ module Diagram =
                  t.(id) <- {epsilon = elems epsilon; bos = elems bos; eos = elems eos; trans = trans}
             end
           in
-          inner root;
+          inner (root, start);
           {states = t; start = start; ok = !ok}
           
         let matchStream t s =
