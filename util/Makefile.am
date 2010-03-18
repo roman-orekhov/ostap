@@ -13,7 +13,7 @@ OFLAGS += -w x
 CFLAGS += -w x
 
 # OCaml parser call with flags
-AM_P5FLAGS := -pp "$(CAMLP5O) $(top_srcdir)/camlp5/pa_ostap.cmo $(PARSER_INCLUDES)"
+AM_P5FLAGS := -pp "$(CAMLP5O) $(top_srcdir)/camlp5/pa_ostap.cmo $(PARSER_INCLUDES) pa_log.cmo $(LOG)"
 AM_OFLAGS += -for-pack Ostap -rectypes
 AM_BFLAGS += -rectypes
 

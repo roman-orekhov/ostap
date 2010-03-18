@@ -86,6 +86,9 @@ val hd : 'a t -> 'a
 (** [tl s] gets the rest of the stream past the current element; raises [End_of_file] on empty stream. *)
 val tl : 'a t -> 'a t
 
+(** [concat x y] concatenates streams [x] and [y]. *)
+val concat : 'a t -> 'a t -> 'a t
+
 (** {2 Generic functions} *)
 
 (** [map f s] maps function [f] to stream [s]. *)

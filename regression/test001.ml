@@ -10,7 +10,7 @@ let _ =
       (fun (s, b) -> 
          printf "  stream: %s;\n  args  : %s\n" 
            (rest s) 
-           (S.toString (List.map (fun n -> sprintf "%s=[%s];" n (b n)) names))
+           (S.toString (List.map (fun n -> sprintf "%s=[%s]" n (b n)) names))
       ) 
       s 
   in

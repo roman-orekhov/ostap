@@ -87,10 +87,12 @@ module Diagram =
                  let epsilon, bos, eos, trans =
                    fold_left 
                      (fun (epsilon, bos, eos, trans) (cond, binds, dst) -> 
-                        let dst    = getId (derive dst) in
-		        let addDst = S.add (dst)        in
+                        let dst    = derive dst    in
+                        let dstId  = getId dst     in
+		        let addDst = S.add (dstId) in
+                        inner dst;
                         match cond with
-                        | If (_, f) -> epsilon, bos, eos, (f, binds, dst) :: trans
+                        | If (_, f) -> epsilon, bos, eos, (f, binds, dstId) :: trans
                         | EoS       -> epsilon, bos, addDst eos, trans
                         | BoS       -> epsilon, addDst bos, eos, trans
                         | Else      -> addDst epsilon, bos, eos, trans
@@ -110,6 +112,7 @@ module Diagram =
         let matchStream t s =
           let rec inner = function
             | (i, s, bos, m) :: context ->
+                LOG[traceNFA] (printf "state: %d\n" i);
                 if i = t.ok 
                 then (s, funOf m), context
                 else 
@@ -122,6 +125,11 @@ module Diagram =
                      with End_of_file -> map (fun i -> i, s, bos, m) state.eos
                     ) @ context                  
                   in
+                  LOG[traceNFA] (
+                    printf "next states: ";
+                    List.iter (fun (i, _, _, _) -> printf "%d " i) context';
+                    printf "\n"
+                  );
                   inner context'              
 
             | [] -> raise End_of_file
@@ -133,7 +141,7 @@ module Diagram =
     let toDOT (root, _, _) =
       let buf = Buffer.create 512 in
       Buffer.add_string buf "digraph X {\n";
-      let node id label = Buffer.add_string buf (sprintf "node%d [label=\"%s\"];\n" id label) in      
+      let node id label = Buffer.add_string buf (sprintf "node%d [label=\"id=%d, %s\"];\n" id id label) in      
       let edge id = 
         let doit t l =
           let inDOT i j label =
@@ -288,6 +296,6 @@ let matchAll expr str =
   | `Duplicate name -> invalid_arg (sprintf "duplicate argument name '%s' in regular expressioin" name)
 
 let matchAllStr expr str = 
-  let module S = View.List (View.Char) in
+  let module S = View.ListC (struct let concat = (^) end) (View.Char) in
   Stream.map (fun (s, args) -> s, (fun name -> S.toString (args name))) (matchAll expr str)
 

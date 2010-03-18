@@ -35,6 +35,8 @@ let endOf s = complete (fun _ -> ignore (get s); false) true
 let hd    s = fst (get s)
 let tl    s = snd (get s)
 
+let rec concat x y = lazy_from_fun (fun _ -> try let x, xl = get x in x, concat xl y with End_of_file -> get y)
+
 let rec map  f s   = lazy_from_fun (fun _ -> let x, y = get s in f x, map f y)
 let rec iter f s   = complete (fun _ -> let x, y = get s in f x; iter f y) ()
 let rec fold f x s = complete (fun _ -> let z, y = get s in fold f (f x z) y) x
@@ -52,7 +54,7 @@ let rangeBy s l u = fromGenerator l (fun i -> i + s) (fun n -> if n > u then rai
 let range         = rangeBy 1
 let repeat n      = fromFunction (fun _ -> n)
 
-module S = View.List (View.Char)
+module S = View.ListC (struct let concat = (^) end) (View.Char)
 
 let take    n s = List.rev (fold (fun l x -> x :: l) [] (fst (unzip (zip s (range 1 n)))))
 let takeStr n s = S.toString (take n s)
