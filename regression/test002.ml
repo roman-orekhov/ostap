@@ -18,24 +18,40 @@ let _ =
   let noid   = Test ("noid"  , fun c -> (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9')) in
   let digit  = Test ("digit" , fun c -> c >= '0' && c <= '9'                            ) in
   let nodig  = Test ("nodig" , fun c -> c < '0' || c > '9'                              ) in
-  let sign   = Test ("sign"  , fun c -> c = '+' || c = '-' || c = '*' || c = '/'        ) in
   let ws     = Test ("ws"    , fun c -> c = ' '                                         ) in
+  let nows   = Test ("nows"  , fun c -> c != ' '                                        ) in
 
   let ident  = Juxt [Arg ("ID", Juxt [letter; Aster (Alter [letter; digit])]); Arg ("NEXT", Alter [noid; EOS])] in
-  let decim  = Arg ("DC", Plus digit)                                                             in
-  let sign   = Arg ("SG", sign)                                                                   in
-  let wss    = Aster ws                                                                           in
+  let decim  = Juxt [Arg ("DC", Plus digit); Arg ("NEXT", Alter [nodig; EOS])]                                  in
+ 
+  let item   = Alter [ident; decim]                     in
+  let wss    = Juxt  [Aster ws; Arg ("NEXT", Alter [nows; EOS])] in
+   
+  let item   = matchAllStr item in
+  let wss    = matchAllStr wss  in
 
-  let root   = Juxt [Aster (Alter [ident; decim; sign]); EOS] in
-
- (*  printf "%s" (Diagram.toDOT (match Diagram.make ident with `Ok x ->  x | _ -> invalid_arg ""))  ; *)
-
-  let m0     = matchAllStr ident in
-
-
-  printf "matching ident against \"aaaa123+--+\":\n";
-  print ["ID"; "NEXT"] (m0 (Stream.fromString "aaaa123+--+"));
-  printf "matching ident against \"b+b-c+2*4\":\n";
-  print ["ID"; "NEXT"] (m0 (Stream.fromString "b+b-c+2*4"))
-
+  let analyseString str =
+    printf "Analysing string \"%s\"\n" str;
+    let rec inner s =
+      if Stream.endOf s then ()
+      else 
+        let m = item s in
+        if Stream.endOf m then ()
+        else begin          
+          printf "matched:\n"; 
+          print ["ID"; "DC"; "NEXT"] m;
+          let (s', m) = Stream.hd m in
+          let s'' = Stream.concat (Stream.fromString (m "NEXT")) s' in
+          let m   = wss s'' in          
+          inner (if Stream.endOf m then s'' else let (s', m) = Stream.hd m in Stream.concat (Stream.fromString (m "NEXT")) s')
+        end
+    in
+    inner (Stream.fromString str);
+    printf "End of analysis\n"
+  in
+  analyseString "123abc";
+  analyseString "123 abc def 12 3 4 5 d d";
+  analyseString "123 abc ddd ccc";
+  analyseString "123";
+  analyseString "abc"
 ;;

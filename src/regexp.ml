@@ -178,7 +178,7 @@ module Diagram =
         let module S = Set.Make (String) in 
         let names    = ref S.empty in
         (fun name -> 
-          if S.mem name !names then raise (Duplicate name) else names := S.add name !names; name       
+          (* if S.mem name !names then raise (Duplicate name) else names := S.add name !names; *) name       
         ),
         (fun () ->
           S.fold (fun x l -> x :: l) !names []
@@ -293,7 +293,7 @@ module Diagram =
 let matchAll expr str =
   match Diagram.make expr with
   | `Ok d           -> Diagram.Compiled.matchStream (Diagram.Compiled.make d) str
-  | `Duplicate name -> invalid_arg (sprintf "duplicate argument name '%s' in regular expressioin" name)
+  | `Duplicate name -> invalid_arg (sprintf "duplicate argument name '%s' in regular expression" name)
 
 let matchAllStr expr str = 
   let module S = View.ListC (struct let concat = (^) end) (View.Char) in
