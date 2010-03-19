@@ -49,8 +49,6 @@ module Diagram =
       | Back r, _ -> let Some t = !r in derive t
       | t -> t
 
-    exception Duplicate of string
-
     let getId             = snd 
     let getDest (_, _, x) = x
     let getTrans          = function (State x, _) -> x | _ -> [] 
@@ -178,7 +176,8 @@ module Diagram =
         let module S = Set.Make (String) in 
         let names    = ref S.empty in
         (fun name -> 
-          (* if S.mem name !names then raise (Duplicate name) else names := S.add name !names; *) name       
+          names := S.add name !names; 
+          name
         ),
         (fun () ->
           S.fold (fun x l -> x :: l) !names []
@@ -281,19 +280,14 @@ module Diagram =
         | `Juxt  tl    -> return (fold_right (fun t succ -> inner succ t) tl succ)
         | `BOS         -> return (State [BoS, [], succ], (id ()))
         | `EOS         -> return (State [EoS, [], succ], (id ()))
-      in  
-      try 
-        let d = inner (Ok, id ()) (simplify (eliminateArgs [] expr)) in
-        `Ok (d, getArgs (), id ()) 
-      with 
-        Duplicate name -> `Duplicate name
+      in        
+      let d = inner (Ok, id ()) (simplify (eliminateArgs [] expr)) in
+      (d, getArgs (), id ())      
 
   end
 
 let matchAll expr str =
-  match Diagram.make expr with
-  | `Ok d           -> Diagram.Compiled.matchStream (Diagram.Compiled.make d) str
-  | `Duplicate name -> invalid_arg (sprintf "duplicate argument name '%s' in regular expression" name)
+  Diagram.Compiled.matchStream (Diagram.Compiled.make (Diagram.make expr)) str
 
 let matchAllStr expr str = 
   let module S = View.ListC (struct let concat = (^) end) (View.Char) in

@@ -54,10 +54,8 @@ module Diagram :
     (** DOT visualizer. *)
     val toDOT : 'a t -> string
 
-    (** Constructor; returns [`Duplicate name] when argument [name] is
-        captured more then once.
-     *)
-    val make  : 'a expr -> [ `Duplicate of string | `Ok of 'a t ]
+    (** Constructor. *)
+    val make : 'a expr -> 'a t 
 
     (** Compiled diagram for nondeterministic matching. *)
     module Compiled :
@@ -88,8 +86,7 @@ module Diagram :
 (** [matchAll expr stream] nondeterministically finds all matchings of [stream] against [expr].
     The result is a stream of pairs [(s', args)], where [s'] --- residual stream, 
     [args name] --- matched value for argument [name] (empty list for non-captured or
-    non-matched names); [Invalid_arg] exception is raised if [expr] contains duplicate
-    capturing for some argument name.
+    non-matched names).
  *)
 val matchAll : 'a t -> 'a Stream.t -> ('a Stream.t * (string -> 'a list)) Stream.t
 
