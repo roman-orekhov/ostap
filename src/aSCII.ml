@@ -1,6 +1,6 @@
 open Printf
 
-type ascii = 
+type t = 
   | NULL 
   | BELL 
   | BACKSPACE 
@@ -11,13 +11,14 @@ type ascii =
   | ESC 
   | DEL 
   | CNTRL of char 
-  | CHAR of char 
-  | EXT of char
+  | CHAR  of char 
+  | EXT   of char
 
 module Class =
   struct
  
-    type t = int
+    type t   = int
+    type set = int
 
     let isIn x c = (x lor c) > 0
 
@@ -27,18 +28,19 @@ module Class =
     let _ULETTER    =      8 (* A-Z             *)
     let _LLETTER    =     16 (* a-z             *)
     let _DDIGIT     =     32 (* 0-9             *)
-    let _BDIGIT     =     64 (* 0-1             *) 
-    let _ODIGIT     =    128 (* 0-7             *)
-    let _HDIGIT     =    256 (* 0-9 A-F a-f     *)
-    let _PUNCTUATOR =    512 (* , . ! ? : ; |   *)
-    let _BRACKET    =   1024 (* < { [ ( ) ] } > *)
-    let _LBRACKET   =   2048 (* < { [ (         *)
-    let _RBRACKET   =   4096 (* ) ] } >         *)   
-    let _ARITHMETIC =   8192 (* + - * /         *)
-    let _RELATION   =  16384 (* < > =           *)
-    let _LOGIC      =  32768 (* & ^ | ~         *)
-    let _QUOTE      =  65536 (* ` ' ""          *)
-    let _OTHER      = 131072 (* \ % $ # _ @     *)
+    let _WORD       =     64 (* A-Za-z0-9_      *)
+    let _BDIGIT     =    128 (* 0-1             *) 
+    let _ODIGIT     =    256 (* 0-7             *)
+    let _HDIGIT     =    512 (* 0-9 A-F a-f     *)
+    let _PUNCTUATOR =   1024 (* , . ! ? : ; |   *)
+    let _BRACKET    =   2048 (* < { [ ( ) ] } > *)
+    let _LBRACKET   =   4096 (* < { [ (         *)
+    let _RBRACKET   =   8192 (* ) ] } >         *)   
+    let _ARITHMETIC =  16384 (* + - * /         *)
+    let _RELATION   =  32768 (* < > =           *)
+    let _LOGIC      =  65536 (* & ^ | ~         *)
+    let _QUOTE      = 131072 (* ` ' ""          *)    
+    let _OTHER      = 262144 (* \ % $ # _ @     *)
 
     let names = [|
       "PRINTABLE";
@@ -47,6 +49,7 @@ module Class =
       "ULETTER";
       "LLETTER";
       "DDIGIT";
+      "WORD";
       "BDIGIT";
       "ODIGIT";
       "HDIGIT";
@@ -89,6 +92,7 @@ module Class =
           range 'A' 'Z';
           range 'a' 'z';
           range '0' '9';
+          (range '0' '9') || (range 'A' 'Z') || (range 'a' 'z') || (oneOf "_");
           range '0' '1';
           range '0' '7';
           (range '0' '9') || (range 'A' 'F') || (range 'a' 'f');
