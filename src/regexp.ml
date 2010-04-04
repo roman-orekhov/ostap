@@ -2,17 +2,16 @@ open Printf
 
 type 'a t = 
     Test   of string * ('a -> bool)
-(*  | Not    of 'a t
+  | Not    of 'a t
   | Before of 'a t
   | After  of 'a t
-*)
   | Aster  of 'a t
   | Plus   of 'a t
   | Opt    of 'a t
   | Alter  of 'a t list
   | Juxt   of 'a t list
   | Bind   of string * 'a t
-(*  | Arg    of string *)
+  | Arg    of string 
   | BOS
   | EOS
 
@@ -20,15 +19,19 @@ let rec toText =
   let ttl t   = Pretty.listByComma (List.map toText t) in
   let ptt n t = Pretty.plock (Pretty.string n) t in
   function
-  | Test (s, _) -> ptt "Test"  (Pretty.string s)
-  | Aster t     -> ptt "Aster" (toText t)
-  | Plus  t     -> ptt "Plus"  (toText t)
-  | Opt   t     -> ptt "Opt"   (toText t)
-  | Alter tl    -> ptt "Alter" (ttl tl)
-  | Juxt  tl    -> ptt "Juxt"  (ttl tl)
-  | Bind (s, t) -> ptt "Bind"  (Pretty.seq  [Pretty.string s; toText t])
-  | BOS         -> Pretty.string "BOS"
-  | EOS         -> Pretty.string "EOS"
+  | Test  (s, _) -> ptt "Test"    (Pretty.string s)
+  | Not    t     -> ptt "Not"     (toText t)
+  | Before t     -> ptt "Before"  (toText t)
+  | After  t     -> ptt "After"   (toText t)
+  | Aster  t     -> ptt "Aster"   (toText t)
+  | Plus   t     -> ptt "Plus"    (toText t)
+  | Opt    t     -> ptt "Opt"     (toText t)
+  | Alter  tl    -> ptt "Alter"   (ttl    tl)
+  | Juxt   tl    -> ptt "Juxt"    (ttl    tl)
+  | Bind  (s, t) -> ptt "Bind"    (Pretty.seq  [Pretty.string s; toText t])
+  | Arg    s     -> Pretty.string (sprintf "Arg (%s)" s)
+  | BOS          -> Pretty.string "BOS"
+  | EOS          -> Pretty.string "EOS"
 
 let toString s = Pretty.toString (toText s)
 
@@ -189,21 +192,28 @@ module Diagram =
         )
       in
       let rec eliminateBindings binds = function
-        | Aster  t     -> `Aster (eliminateBindings binds t)
-        | Plus   t     -> `Plus  (eliminateBindings binds t)
-        | Opt    t     -> `Opt   (eliminateBindings binds t)
-        | Alter  tl    -> `Alter (map (eliminateBindings binds) tl)
-        | Juxt   tl    -> `Juxt  (map (eliminateBindings binds) tl)
+        | Aster  t     -> `Aster  (eliminateBindings binds t)
+        | Not    t     -> `Not    (eliminateBindings binds t)
+        | Before t     -> `Before (eliminateBindings binds t)
+        | After  t     -> `After  (eliminateBindings binds t)
+        | Plus   t     -> `Plus   (eliminateBindings binds t)
+        | Opt    t     -> `Opt    (eliminateBindings binds t)
+        | Alter  tl    -> `Alter  (map (eliminateBindings binds) tl)
+        | Juxt   tl    -> `Juxt   (map (eliminateBindings binds) tl)
         | Bind  (s, t) -> eliminateBindings ((checkName s) :: binds) t
+        | Arg    s     -> `Arg s
         | Test  (s, f) -> `Test (s, f, binds)
         | EOS          -> `EOS
         | BOS          -> `BOS
       in
       let rec simplify = function
-        | `Opt   t -> (match simplify t with `Opt t -> `Opt t | `Aster t -> `Aster t | `Plus t -> `Aster t | t -> `Opt t)
-        | `Aster t -> (match simplify t with `Aster t | `Plus t | `Opt t | t -> `Aster t)
-        | `Plus  t -> (match simplify t with `Plus t -> `Plus t | `Aster t | `Opt t -> `Aster t | t -> `Plus t)
-        | `Juxt tl -> 
+        | `Opt    t -> (match simplify t with `Opt t -> `Opt t | `Aster t -> `Aster t | `Plus t -> `Aster t | t -> `Opt t)
+        | `Aster  t -> (match simplify t with `Aster t | `Plus t | `Opt t | t -> `Aster t)
+        | `Plus   t -> (match simplify t with `Plus t -> `Plus t | `Aster t | `Opt t -> `Aster t | t -> `Plus t)
+        | `Not    t -> (match simplify t with `Not  t -> t | t -> `Not t)
+        | `Before t -> `Before t
+        | `After  t -> `After  t
+        | `Juxt   tl -> 
            (match
               flatten (
                 map 
@@ -248,6 +258,7 @@ module Diagram =
                let t = `Alter tl in
                if opt then `Opt t else t
            )
+        | `Arg s  -> `Arg s
         | `EOS    -> `EOS
         | `BOS    -> `BOS
         | `Test x -> `Test x
@@ -283,6 +294,12 @@ module Diagram =
         | `Opt   t     -> return (addElse succ (inner succ t))
         | `Alter tl    -> return (State (flatten (map (fun t -> getTrans (inner succ t)) tl )), (id ()))
         | `Juxt  tl    -> return (fold_right (fun t succ -> inner succ t) tl succ)
+
+        | `Not    _
+        | `Arg    _
+        | `Before _ 
+        | `After  _    -> invalid_arg "not supported"
+
         | `BOS         -> return (State [BoS, [], succ], (id ()))
         | `EOS         -> return (State [EoS, [], succ], (id ()))
       in        

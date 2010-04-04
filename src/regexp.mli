@@ -21,19 +21,27 @@
 
 (** Main type: ['a t] is regular expression over the alphabet ['a]. *)
 type 'a t =
-    Test  of string * ('a -> bool) (** [Test (n, p)] matches the single element 
-                                       against the predicate [p];  argument [n] 
-                                       is provided  for debugging/visualization 
-                                       purposes. 
+    Test   of string * ('a -> bool) (** [Test (n, p)] matches the single element 
+                                        against the predicate [p];  argument [n] 
+                                        is provided  for debugging/visualization 
+                                        purposes. 
                                     *)
-  | Aster of 'a t                  (** Regular zero-or-more repetition.      *)
-  | Plus  of 'a t                  (** Regular one-or-more repetition.       *)
-  | Opt   of 'a t                  (** Optional pattern.                     *)
-  | Alter of 'a t list             (** Alternative.                          *)
-  | Juxt  of 'a t list             (** Juxstaposition.                       *)
-  | Bind  of string * 'a t         (** Argument capturing.                   *)                                       
-  | BOS                            (** Begin of stream.                      *)
-  | EOS                            (** End of stream.                        *)
+  | Not    of 'a t                  (** Negation.                             *)
+  | Before of 'a t                  (** Lookahead condition.                  *)
+  | After  of 'a t                  (** Lookbehind condition. Argument must   
+                                        match a stream of static length.
+                                     *)
+  | Aster  of 'a t                  (** Regular zero-or-more repetition.      *)
+  | Plus   of 'a t                  (** Regular one-or-more repetition.       *)
+  | Opt    of 'a t                  (** Optional pattern.                     *)
+  | Alter  of 'a t list             (** Alternative.                          *)
+  | Juxt   of 'a t list             (** Juxstaposition.                       *)
+  | Bind   of string * 'a t         (** Argument capturing.                   *)                                       
+  | Arg    of string                (** Argument matching. Argument have to be
+                                        completely captured prior to matching.
+                                     *)
+  | BOS                             (** Begin of stream.                      *)
+  | EOS                             (** End of stream.                        *)
 
 (** Pretty-printer. *)
 val toText : 'a t -> Pretty.printer 
