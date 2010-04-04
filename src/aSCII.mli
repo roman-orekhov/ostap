@@ -50,61 +50,61 @@ module Class :
     (** {2 Predefined character classes} *)
  
     (** Printable characters: '\x20' --- '\xE7'. *)
-    val _PRINTABLE  : t
+    val _PRINTABLE : t
 
     (** Control characters: '\x00' --- '\x19'. *)
-    val _CONTROL    : t
+    val _CONTROL : t
 
     (** Extended characters: '\xE8' --- '\xFF'. *)
-    val _EXTENDED   : t
+    val _EXTENDED : t
 
     (** Uppercase letters: 'A' --- 'Z'. *)
-    val _ULETTER    : t
+    val _ULETTER : t
 
     (** Lowercase letters: 'a' --- 'z'. *)
-    val _LLETTER    : t
+    val _LLETTER : t
 
     (** Decimal digits: '0' --- '9'. *)
-    val _DDIGIT     : t
+    val _DDIGIT : t
 
     (** Word characters: 'A' --- 'Z' or 'a' --- 'z' or '0' --- '9' or '_'. *)
-    val _WORD       : t 
+    val _WORD : t 
 
     (** Binary digit: '0' --- '1'. *)
-    val _BDIGIT     : t
+    val _BDIGIT : t
 
     (** Octal digit: '0' --- '7'. *)
-    val _ODIGIT     : t
+    val _ODIGIT : t
 
     (** Hexadecimal digit: '0' --- '9' or 'A' --- 'F' or 'a' --- 'f'. *)
-    val _HDIGIT     : t
+    val _HDIGIT : t
 
     (** Punctuator characters: one of ',', '.', '!', '?', ':', ';', '|'. *)
     val _PUNCTUATOR : t
  
     (** Bracket characters: one of '<', '{', '[', '(', ')', ']', '}', '>'. *)
-    val _BRACKET    : t
+    val _BRACKET : t
 
     (** Left brackets: one of '<', '{', '[', '('. *)
-    val _LBRACKET   : t
+    val _LBRACKET : t
 
     (** Right brackets: one of ')', ']', '}', '>'. *)
-    val _RBRACKET   : t
+    val _RBRACKET : t
 
     (** Arithmetic characters: one of '+', '-', '*', '/'. *)
     val _ARITHMETIC : t
 
     (** Relational characters: one of '<', '>', '='. *)
-    val _RELATION   : t
+    val _RELATION : t
 
     (** Logic characters: one of '&', '^', '|', '~'. *)
-    val _LOGIC      : t
+    val _LOGIC : t
 
     (** Quote characters: one of '`', '\'', '"'. *)
-    val _QUOTE      : t
+    val _QUOTE : t
 
     (** Other characters from standard set: one of '\\', '%', '$', '#', '_', '@'. *)
-    val _OTHER      : t
+    val _OTHER : t
 
     (** String visualizer for the class. *)
     val toString : t -> string
@@ -125,3 +125,12 @@ val toChar : t -> char
 
 (** Converts stream of characters into stream of ASCIIs. *)
 val asciiStream : char Stream.t -> t Stream.t
+
+(** [range x y c] checks whether character [c] is within range [[x..y]]. *)
+val range : char -> char -> char -> bool
+
+(** [nonrange x y c] checkes whether character [c] is outside range [[x..y]]. *)
+val nonrange : char -> char -> char -> bool
+
+(** [oneOf s c] checks whether character [c] is one of those of string [s]. *)
+val oneOf : string -> char -> bool

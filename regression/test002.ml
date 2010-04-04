@@ -21,11 +21,11 @@ let _ =
   let ws     = Test ("ws"    , fun c -> c = ' '                                         ) in
   let nows   = Test ("nows"  , fun c -> c != ' '                                        ) in
 
-  let ident  = Juxt [Arg ("ID", Juxt [letter; Aster (Alter [letter; digit])]); Arg ("NEXT", Alter [noid; EOS])] in
-  let decim  = Juxt [Arg ("DC", Plus digit); Arg ("NEXT", Alter [nodig; EOS])]                                  in
+  let ident  = Juxt [Bind ("ID", Juxt [letter; Aster (Alter [letter; digit])]); Bind ("NEXT", Alter [noid; EOS])] in
+  let decim  = Juxt [Bind ("DC", Plus digit); Bind ("NEXT", Alter [nodig; EOS])]                                  in
  
   let item   = Alter [ident; decim]                     in
-  let wss    = Juxt  [Aster ws; Arg ("NEXT", Alter [nows; EOS])] in
+  let wss    = Juxt  [Aster ws; Bind ("NEXT", Alter [nows; EOS])] in
    
   let item   = matchAllStr item in
   let wss    = matchAllStr wss  in

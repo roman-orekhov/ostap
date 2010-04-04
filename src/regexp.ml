@@ -2,12 +2,17 @@ open Printf
 
 type 'a t = 
     Test   of string * ('a -> bool)
+(*  | Not    of 'a t
+  | Before of 'a t
+  | After  of 'a t
+*)
   | Aster  of 'a t
   | Plus   of 'a t
   | Opt    of 'a t
   | Alter  of 'a t list
   | Juxt   of 'a t list
-  | Arg    of string * 'a t
+  | Bind   of string * 'a t
+(*  | Arg    of string *)
   | BOS
   | EOS
 
@@ -21,7 +26,7 @@ let rec toText =
   | Opt   t     -> ptt "Opt"   (toText t)
   | Alter tl    -> ptt "Alter" (ttl tl)
   | Juxt  tl    -> ptt "Juxt"  (ttl tl)
-  | Arg  (s, t) -> ptt "Arg"   (Pretty.seq  [Pretty.string s; toText t])
+  | Bind (s, t) -> ptt "Bind"  (Pretty.seq  [Pretty.string s; toText t])
   | BOS         -> Pretty.string "BOS"
   | EOS         -> Pretty.string "EOS"
 
@@ -172,7 +177,7 @@ module Diagram =
       Buffer.contents buf
     
     let make expr =
-      let checkName, getArgs =
+      let checkName, getBindings =
         let module S = Set.Make (String) in 
         let names    = ref S.empty in
         (fun name -> 
@@ -183,13 +188,13 @@ module Diagram =
           S.fold (fun x l -> x :: l) !names []
         )
       in
-      let rec eliminateArgs binds = function
-        | Aster  t     -> `Aster (eliminateArgs binds t)
-        | Plus   t     -> `Plus  (eliminateArgs binds t)
-        | Opt    t     -> `Opt   (eliminateArgs binds t)
-        | Alter  tl    -> `Alter (map (eliminateArgs binds) tl)
-        | Juxt   tl    -> `Juxt  (map (eliminateArgs binds) tl)
-        | Arg   (s, t) -> eliminateArgs ((checkName s) :: binds) t
+      let rec eliminateBindings binds = function
+        | Aster  t     -> `Aster (eliminateBindings binds t)
+        | Plus   t     -> `Plus  (eliminateBindings binds t)
+        | Opt    t     -> `Opt   (eliminateBindings binds t)
+        | Alter  tl    -> `Alter (map (eliminateBindings binds) tl)
+        | Juxt   tl    -> `Juxt  (map (eliminateBindings binds) tl)
+        | Bind  (s, t) -> eliminateBindings ((checkName s) :: binds) t
         | Test  (s, f) -> `Test (s, f, binds)
         | EOS          -> `EOS
         | BOS          -> `BOS
@@ -205,7 +210,7 @@ module Diagram =
                   (fun t -> 
                      match simplify t with
                      | `Juxt tl -> tl
-                     | t       -> [t]
+                     | t        -> [t]
                   ) 
                   tl
               )
@@ -220,7 +225,7 @@ module Diagram =
                   (fun t -> 
                      match simplify t with
                      | `Alter tl -> tl
-                     | t        -> [t]
+                     | t         -> [t]
                   ) 
                   tl
               )
@@ -281,10 +286,125 @@ module Diagram =
         | `BOS         -> return (State [BoS, [], succ], (id ()))
         | `EOS         -> return (State [EoS, [], succ], (id ()))
       in        
-      let d = inner (Ok, id ()) (simplify (eliminateArgs [] expr)) in
-      (d, getArgs (), id ())      
+      let d = inner (Ok, id ()) (simplify (eliminateBindings [] expr)) in
+      (d, getBindings (), id ())      
 
   end
+
+(*
+module ASCII =
+  struct
+
+    type expr = ASCII.t t
+
+    let getOf a =
+      let module M = Map.Make (struct type t = char include Pervasives end) in
+      let m = 
+        Array.fold_left 
+          (fun m (c, x) ->
+             if M.find c m 
+             then invalid_arg (sprintf "Ostap.Regexp.ASCII: internal error in initialization: duplicate character class '%c'" c)
+             else M.add c x m
+          )
+          M.empty
+          a
+      in
+      (fun c -> try Some (M.find c m) with Not_found -> None) 
+
+    let s (Test (s, _) as x) = s.[0], x 
+
+    let getSpecial = 
+      getOf [|
+        s Test (".", fun c -> c != '\n');
+        '$', Alter [EOS; Before (Test ("n", fun c -> c = '\n'))]; 
+        '^', Alter [BOS; After  (Test ("n", fun c -> c = '\n'))];
+        '&', BOS;
+        '%', EOS;
+        
+      |]
+
+    let getClass = 
+      getOf [|
+        s Test ("n", ofChar '\n');
+        s Test ("r", ofChar '\r');
+        s Test ("t", ofChar '\t');
+        s Test ("a", ofChar '\x07');
+        s Test ("e", ofChar '\x1B');
+        s Test ("f", ofChar '\x0C');
+        s Test ("v", ofChar '\x0B');
+
+        s Test ("P", ofClass ASCII.Class._PRINTABLE );
+        s Test ("C", ofClass ASCII.Class._CONTROL   );
+        s Test ("E", ofClass ASCII.Class._EXTENDED  );
+        s Test ("O", ofClass ASCII.Class._OTHER     );
+
+        s Test ("u", ofClass ASCII.Class._ULETTER   );
+        s Test ("l", ofClass ASCII.Class._LLETTER   );
+        s Test ("d", ofClass ASCII.Class._DDIGIT    );
+        s Test ("w", ofClass ASCII.Class._WORD      );
+        s Test ("b", ofClass ASCII.Class._BDIGIT    );
+        s Test ("o", ofClass ASCII.Class._ODIGIT    );
+        s Test ("x", ofClass ASCII.Class._HDIGIT    );
+        s Test ("p", ofClass ASCII.Class._PUNCTUATOR);
+
+        s Test ("B", ofClass ASCII.Class._BRACKET   );
+        s Test ("H", ofClass ASCII.Class._LBRACKET  );
+        s Test ("K", ofClass ASCII.Class._RBRACKET  );
+        s Test ("A", ofClass ASCII.Class._ARITHMETIC);
+        s Test ("R", ofClass ASCII.Class._RELATION  );
+        s Test ("L", ofClass ASCII.Class._LOGIC     );
+        s Test ("Q", ofClass ASCII.Class._QUOTE     )
+      |]
+          
+    let range    = ASCII.range
+    let nonrange = ASCII.nonrange
+    let oneOf    = ASCII.oneOf
+      
+    let make s = 
+      let next s =
+        let rec inner f s =
+          let (x, i), s' = Stream.get s in          
+          (match x with
+          | '('  -> `RBR, s'
+          | ')'  -> `RCT, s'
+          | '['  -> `SBR, s'
+          | ']'  -> `SCT, s'
+          | '{'  -> `CBR, s'
+          | '}'  -> `CCT, s'
+          | ':'  -> `CLN, s'
+          | '|'  -> `BAR, s'
+          | '-'  -> `DSH, s'
+          | '~'  -> `TLD, s'
+          | '*'  -> `AST, s'
+          | '+'  -> `STR, s'
+          | '.'  -> `DOT, s'
+          | '?'  -> `QTN, s'
+          | '^'  -> `BEG, s'
+          | '$'  -> `END, s'
+          | '%'  -> `BOS, s'
+          | '&'  -> `EOS, s'
+          | '\\' -> (if f then `CHR '\\' else `ESC (inner true s')), s'
+          | _    -> `CHR x, s'
+          ), i
+        in
+        try inner false s with End_of_file -> `FIN
+      in      
+      let symclass s =
+        let rec inner s =
+          let n, s' = next s in
+          if 
+        in
+      in
+      let rec parse acc s =
+        if Stream.endOf s 
+        then acc
+        else 
+          let 
+      in
+      parse [] (Stream.zip (Stream.fromString s) (Stream.from 0))
+
+  end
+*)
 
 let matchAll expr str =
   Diagram.Compiled.matchStream (Diagram.Compiled.make (Diagram.make expr)) str

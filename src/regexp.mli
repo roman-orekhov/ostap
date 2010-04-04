@@ -31,7 +31,7 @@ type 'a t =
   | Opt   of 'a t                  (** Optional pattern.                     *)
   | Alter of 'a t list             (** Alternative.                          *)
   | Juxt  of 'a t list             (** Juxstaposition.                       *)
-  | Arg   of string * 'a t         (** Argument capturing.                   *)                                       
+  | Bind  of string * 'a t         (** Argument capturing.                   *)                                       
   | BOS                            (** Begin of stream.                      *)
   | EOS                            (** End of stream.                        *)
 

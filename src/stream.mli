@@ -134,6 +134,9 @@ val range : int -> int -> int t
 (** [repeat x] constructs infinite stream [[x; x; x; ...]]. *)
 val repeat : 'a -> 'a t
 
+(** [from n] constructs infinite stream of integers [[n; n+1; n+2; ...]]. *)
+val from : int -> int t
+
 (** [take n s] returns at most [n] first items of [s] as a list;
     if [s] contains less then [n] items then the list contains
     all remaining items of [s].

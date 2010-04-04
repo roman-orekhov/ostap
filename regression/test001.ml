@@ -14,12 +14,12 @@ let _ =
       ) 
       s 
   in
-  let m0 = matchAllStr (Arg ("A", Aster (Test ("a", (fun c -> c = 'a'))))) in
+  let m0 = matchAllStr (Bind ("A", Aster (Test ("a", (fun c -> c = 'a'))))) in
   printf "matching a* against \"aaaa\":\n";
   print ["A"] (m0 (Stream.fromString "aaaa"));
   printf "matching a* against \"baaa\":\n";
   print ["A"] (m0 (Stream.fromString "baaa"));
-  let m1 = matchAllStr (Arg ("A", Juxt [Aster (Test ("a", (fun c -> c = 'a'))); EOS])) in
+  let m1 = matchAllStr (Bind ("A", Juxt [Aster (Test ("a", (fun c -> c = 'a'))); EOS])) in
   printf "matching a*$ against \"aaaa\":\n";
   print ["A"] (m1 (Stream.fromString "aaaa"));
   printf "matching a* against \"baaa\":\n";

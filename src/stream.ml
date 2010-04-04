@@ -53,6 +53,7 @@ let rec unzip4 x = map (fun (x, _, _, _) -> x) x, map (fun (_, x, _, _) -> x) x,
 let rangeBy s l u = fromGenerator l (fun i -> i + s) (fun n -> if n > u then raise End_of_file else n)
 let range         = rangeBy 1
 let repeat n      = fromFunction (fun _ -> n)
+let from   n      = fromGenerator n (fun i -> i+1) (fun i -> i)
 
 module S = View.ListC (struct let concat = (^) end) (View.Char)
 

@@ -14,6 +14,14 @@ type t =
   | CHAR  of char 
   | EXT   of char
 
+let range    x y c = c >= x && c <= y 
+let nonrange x y c = not (range x y c)
+
+let oneOf s c   =
+  let r = ref false in 
+  String.iter (fun x -> r := !r || x = c) s;
+  ! r
+
 module Class =
   struct
  
@@ -78,12 +86,6 @@ module Class =
       
     let table = 
       let classTests = 
-        let range x y c = c >= x && c <= y in
-        let oneOf s c   =
-          let r = ref false in 
-          String.iter (fun x -> r := !r || x = c) s;
-          ! r
-        in
         let (||) f g = (fun c -> f c || g c) in
         [|
           range '\x20' '\xE7';
