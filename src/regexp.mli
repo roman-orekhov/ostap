@@ -43,6 +43,9 @@ type 'a t =
   | BOS                             (** Begin of stream.                      *)
   | EOS                             (** End of stream.                        *)
 
+(** Fold function. *)
+val fold : ('b -> 'a t -> 'b) -> 'b -> 'a t -> 'b
+
 (** Pretty-printer. *)
 val toText : 'a t -> Pretty.printer 
 

@@ -1,4 +1,5 @@
 open Printf 
+open List
 
 type 'a t = 
     Test   of string * ('a -> bool)
@@ -14,6 +15,14 @@ type 'a t =
   | Arg    of string 
   | BOS
   | EOS
+
+let rec fold f x e =
+  let foldF = fold f in
+  let x     = f x e in
+  match e with
+  | Before t | After t | Aster t | Plus t | Opt t | Bind (_, t) | Not t -> foldF x t
+  | Alter tl | Juxt tl -> fold_left (fun x t -> foldF x t) x tl 
+  | _ -> x
 
 let rec toText = 
   let ttl t   = Pretty.listByComma (List.map toText t) in
@@ -37,9 +46,6 @@ let toString s = Pretty.toString (toText s)
 
 module Diagram =
   struct
-
-    open Printf
-    open List
 
     type 'a expr = 'a t
     
@@ -190,21 +196,76 @@ module Diagram =
         (fun () ->
           S.fold (fun x l -> x :: l) !names []
         )
+      in      
+      let getLookBehindLength expr =
+        let bind f x y =
+          match x, y with
+          | `None , x | x, `None  -> x
+          | `Unlim, _ | _, `Unlim -> `Unlim 
+          | `Lim x, `Lim y -> `Lim (f x y)
+        in
+        let add = bind (+) in
+        let max = bind max in
+        let rec capturedLength s = 
+          let module M = Map.Make (Compare.String) in
+          let m = 
+            fold 
+              (fun m t -> 
+                 match t with 
+                 | Bind (s, t) -> 
+                    let l = length t in
+                    (try M.add s (max (M.find s m) l) m with Not_found -> M.add s l m)
+
+                 | _ -> m
+              ) 
+              M.empty 
+              expr 
+          in
+          (try M.find s m with Not_found -> `None)
+        and length = function
+          | Test _           -> `Lim 1
+          | BOS     | EOS    -> `Lim 0
+          | Aster _ | Plus _ -> `Unlim
+
+          | Not t | Bind (_, t) | Before t | After t | Opt t -> length t
+
+          | Alter tl -> fold_left (fun x t -> max x (length t)) `None tl
+          | Juxt  tl -> fold_left (fun x t -> add x (length t)) `None tl
+
+          | Arg s -> capturedLength s
+        in
+        fold
+          (fun acc e ->
+             match e with 
+             | After t -> max acc (length t)
+             | _       -> acc
+          )
+         `None
+          expr
       in
-      let rec eliminateBindings binds = function
-        | Aster  t     -> `Aster  (eliminateBindings binds t)
-        | Not    t     -> `Not    (eliminateBindings binds t)
-        | Before t     -> `Before (eliminateBindings binds t)
-        | After  t     -> `After  (eliminateBindings binds t)
-        | Plus   t     -> `Plus   (eliminateBindings binds t)
-        | Opt    t     -> `Opt    (eliminateBindings binds t)
-        | Alter  tl    -> `Alter  (map (eliminateBindings binds) tl)
-        | Juxt   tl    -> `Juxt   (map (eliminateBindings binds) tl)
-        | Bind  (s, t) -> eliminateBindings ((checkName s) :: binds) t
-        | Arg    s     -> `Arg s
+      let eliminateBindings expr = 
+        let rec inner scoped binds = function
+        | Aster  t     -> `Aster  (inner scoped binds t)
+        | Not    t     -> `Not    (inner scoped binds t)
+        | Before t     -> `Before (inner scoped binds t)
+        | After  t     -> `After  (inner scoped binds t)
+        | Plus   t     -> `Plus   (inner scoped binds t)
+        | Opt    t     -> `Opt    (inner scoped binds t)
+        | Alter  tl    -> `Alter  (map (inner scoped binds) tl)
+        | Juxt   tl    -> `Juxt   (map (inner scoped binds) tl)
+        | Bind  (s, t) -> inner (s :: scoped) ((checkName s) :: binds) t
+
+        | Arg s -> 
+           begin try 
+             ignore (find (fun x -> s = x) scoped); 
+             raise (Failure (sprintf "binding \"%s\" is used within capturing expression" s)) 
+           with Not_found -> `Arg s end
+
         | Test  (s, f) -> `Test (s, f, binds)
         | EOS          -> `EOS
         | BOS          -> `BOS
+        in
+        inner [] [] expr
       in
       let rec simplify = function
         | `Opt    t -> (match simplify t with `Opt t -> `Opt t | `Aster t -> `Aster t | `Plus t -> `Aster t | t -> `Opt t)
@@ -303,7 +364,7 @@ module Diagram =
         | `BOS         -> return (State [BoS, [], succ], (id ()))
         | `EOS         -> return (State [EoS, [], succ], (id ()))
       in        
-      let d = inner (Ok, id ()) (simplify (eliminateBindings [] expr)) in
+      let d = inner (Ok, id ()) (simplify (eliminateBindings expr)) in
       (d, getBindings (), id ())      
 
   end
