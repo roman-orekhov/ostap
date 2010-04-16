@@ -32,7 +32,7 @@ module Make (E : Expression) =
     let rec sort expr =
       let rec reduce p ((oper, opnd) as stacks) = 
         match oper with
-        | (t, p') :: oper' when (p < p') ->
+        | (t, p') :: oper' when (p <= p') ->
             let r::l::tl = opnd in
             reduce p (oper', (E.replace t l r) :: tl)
         | _ -> stacks

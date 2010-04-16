@@ -27,6 +27,7 @@ let rec fromList      l      = fromIterator  l (function [] -> raise End_of_file
 let rec fromArray     a      = let n = Array.length a in fromGenerator 0 (fun i -> i+1) (fun i -> if i < n then a.(i) else raise End_of_file)
 let     fromFile             = fromChannel input_char
 let     fromString    s      = let n = String.length s in fromGenerator 0 (fun i -> i+1) (fun i -> if i < n then s.[i] else raise End_of_file)
+let     cons          x s    = lazy_from_val (x, s)
 
 let complete f x = try f () with End_of_file -> x
 

@@ -42,7 +42,48 @@ let rec toText =
   | BOS          -> Pretty.string "BOS"
   | EOS          -> Pretty.string "EOS"
 
+let rec reverse = function
+  | Test   (s, f) -> Test   (s, f)
+  | Not     t     -> Not    (reverse t)
+  | Before  t     -> After  (reverse t)
+  | After   t     -> Before (reverse t)
+  | Aster   t     -> Aster  (reverse t)
+  | Plus    t     -> Plus   (reverse t)
+  | Opt     t     -> Opt    (reverse t)
+  | Alter   tl    -> Alter  (map reverse tl)
+  | Juxt    tl    -> Juxt   (rev (map reverse tl))
+  | Bind   (s, t) -> Bind   (s, reverse t)
+  | Arg     s     -> Arg s
+  | BOS           -> BOS
+  | EOS           -> EOS
+
 let toString s = Pretty.toString (toText s)
+
+(*
+module WiseBuffer =
+  struct
+    
+    type 'a buf = {data : 'a array; size : int; index : int; limit : int}
+    type 'a t   = {copy : unit -> 'a t; put : 'a -> 'a t; toStream : unit -> 'a Stream.t}
+
+    let init = function
+    | Some () -> {data = Array.init n f; size = 0; index = 0; limit = n}
+    | None    -> {copy : }
+
+    let copy t = {t with data = Array.copy t.data}
+
+    let put t x = 
+      t.data.(t.index) <- x;
+      {t with size = min t.limit (t.size + 1); index = if t.index = t.limit - 1 then 0 else t.index + 1}
+
+    let toStream t = 
+      Stream.fromGenerator 
+        (t.size, if t.index = 0 then t.limit - 1 else t.index - 1)
+        (fun (s, i) -> (s - 1, if i = 0 then t.limit - 1 else i - 1))
+        (fun (s, i) -> if s = 0 then raise End_of_file else t.data.(i))
+      
+  end
+*)
 
 module Diagram =
   struct
