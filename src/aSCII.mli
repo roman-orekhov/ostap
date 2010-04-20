@@ -82,13 +82,13 @@ module Class :
     (** Punctuator characters: one of ',', '.', '!', '?', ':', ';', '|'. *)
     val _PUNCTUATOR : t
  
-    (** Bracket characters: one of '<', '{', '[', '(', ')', ']', '}', '>'. *)
+    (** Bracket characters: one of '\<', '\{', '\[', '\(', '\)', '\]', '\}', '\>'. *)
     val _BRACKET : t
 
-    (** Left brackets: one of '<', '{', '[', '('. *)
+    (** Left brackets: one of '\<', '\{', '\[', '\('. *)
     val _LBRACKET : t
 
-    (** Right brackets: one of ')', ']', '}', '>'. *)
+    (** Right brackets: one of '\)', '\]', '\}', '\>'. *)
     val _RBRACKET : t
 
     (** Arithmetic characters: one of '+', '-', '*', '/'. *)
