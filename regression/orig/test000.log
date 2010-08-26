@@ -1,0 +1,130 @@
+digraph X {
+node11 [label="id=11, state"];
+node11 -> node8 [label="if(letter)[ID]"];
+node8 [label="id=8, state"];
+node8 -> node2 [label="EoS"];
+node2 [label="id=2, state"];
+subgraph cluster_3 {
+  label="lookahead";
+node3 [label="id=3, state"];
+node3 -> node1 [label="EoS"];
+node1 [label="id=1, ok"];
+}
+node2 -> node3 [label=""];
+node1 -> node0;
+node0 [label="id=0, ok"];
+node8 -> node2 [label="if(noid)[NEXT]"];
+node8 -> node8 [label="if(digit)[ID]"];
+node8 -> node8 [label="if(letter)[ID]"];
+
+}
+
+digraph X {
+node13 [label="id=13, state"];
+node13 -> node10 [label="if(letter)[ID]"];
+node10 [label="id=10, state"];
+node10 -> node2 [label="EoS"];
+node2 [label="id=2, state"];
+subgraph cluster_4 {
+  label="lookahead";
+node4 [label="id=4, state"];
+subgraph cluster_5 {
+  label="not";
+node5 [label="id=5, state"];
+node5 -> node3 [label="if(digit)[]"];
+node3 [label="id=3, ok"];
+}
+node4 -> node5 [label=""];
+node3 -> node1;
+node1 [label="id=1, ok"];
+}
+node2 -> node4 [label=""];
+node1 -> node0;
+node0 [label="id=0, ok"];
+node10 -> node2 [label="if(noid)[NEXT]"];
+node10 -> node10 [label="if(digit)[ID]"];
+node10 -> node10 [label="if(letter)[ID]"];
+
+}
+
+digraph X {
+node10 [label="id=10, state"];
+node10 -> node7 [label="if(letter)[ID, 1]"];
+node7 [label="id=7, state"];
+node7 -> node2 [label="EoS"];
+node2 [label="id=2, state"];
+node2 -> node1 [label="if(ws)[]"];
+node1 [label="id=1, state"];
+node1 -> node0 [label="ref(1)[]"];
+node0 [label="id=0, ok"];
+node7 -> node2 [label="if(noid)[NEXT, 1]"];
+node7 -> node7 [label="if(digit)[ID, 1]"];
+node7 -> node7 [label="if(letter)[ID, 1]"];
+
+}
+
+digraph X {
+node1 [label="id=1, state"];
+node1 -> node0 [label="if(letter)[]"];
+node0 [label="id=0, ok"];
+
+}
+
+digraph X {
+node1 [label="id=1, state"];
+node1 -> node0 [label="if(noid)[]"];
+node0 [label="id=0, ok"];
+
+}
+
+digraph X {
+node1 [label="id=1, state"];
+node1 -> node0 [label="if(digit)[]"];
+node0 [label="id=0, ok"];
+
+}
+
+digraph X {
+node1 [label="id=1, state"];
+node1 -> node0 [label="if(nodig)[]"];
+node0 [label="id=0, ok"];
+
+}
+
+digraph X {
+node1 [label="id=1, state"];
+node1 -> node0 [label="if(ws)[]"];
+node0 [label="id=0, ok"];
+
+}
+
+digraph X {
+node1 [label="id=1, state"];
+node1 -> node0 [label="if(nows)[]"];
+node0 [label="id=0, ok"];
+
+}
+
+digraph X {
+node8 [label="id=8, state"];
+node8 -> node5 [label="if(letter)[ID]"];
+node5 [label="id=5, state"];
+node5 -> node0 [label="EoS"];
+node0 [label="id=0, ok"];
+node5 -> node0 [label="if(noid)[NEXT]"];
+node5 -> node5 [label="if(digit)[ID]"];
+node5 -> node5 [label="if(letter)[ID]"];
+
+}
+
+digraph X {
+node6 [label="id=6, state"];
+node6 -> node5 [label="if(digit)[DC]"];
+node5 [label="id=5, state"];
+node5 -> node0 [label="EoS"];
+node0 [label="id=0, ok"];
+node5 -> node0 [label="if(nodig)[NEXT]"];
+node5 -> node5 [label="if(digit)[DC]"];
+
+}
+

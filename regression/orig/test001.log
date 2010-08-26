@@ -16,3 +16,5 @@ matching a*$ against "aaaa":
   stream: ...;
   args  : A=[aaaa]
 matching a* against "baaa":
+  stream: baaa...;
+  args  : A=[]

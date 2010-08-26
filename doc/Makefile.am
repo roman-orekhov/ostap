@@ -9,10 +9,8 @@ PARSER_INCLUDES += -I +camlp5
 
 .PHONY: doc
 # check if style.css already exists to avoid everytime generation
-doc: html/style.css
-
 # use different preprocessors for OCaml and CamlP5 sources
-html/style.css:
+doc: 
 	test -d html || mkdir html
 	dump1=`$(MKTEMP) ocamldoc.XXXXXX` && \
 	dump2=`$(MKTEMP) ocamldoc.XXXXXX` && \

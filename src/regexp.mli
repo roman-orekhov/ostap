@@ -25,12 +25,9 @@ type 'a t =
                                         against the predicate [p];  argument [n] 
                                         is provided  for debugging/visualization 
                                         purposes. 
-                                    *)
+                                     *)
   | Not    of 'a t                  (** Negation.                             *)
   | Before of 'a t                  (** Lookahead condition.                  *)
-  | After  of 'a t                  (** Lookbehind condition. Argument must   
-                                        match a stream of static length.
-                                     *)
   | Aster  of 'a t                  (** Regular zero-or-more repetition.      *)
   | Plus   of 'a t                  (** Regular one-or-more repetition.       *)
   | Opt    of 'a t                  (** Optional pattern.                     *)
@@ -40,7 +37,6 @@ type 'a t =
   | Arg    of string                (** Argument matching. Argument have to be
                                         completely captured prior to matching.
                                      *)
-  | BOS                             (** Begin of stream.                      *)
   | EOS                             (** End of stream.                        *)
 
 (** Fold function. *)

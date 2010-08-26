@@ -5,7 +5,6 @@ type 'a t =
     Test   of string * ('a -> bool)
   | Not    of 'a t
   | Before of 'a t
-  | After  of 'a t
   | Aster  of 'a t
   | Plus   of 'a t
   | Opt    of 'a t
@@ -13,14 +12,13 @@ type 'a t =
   | Juxt   of 'a t list
   | Bind   of string * 'a t
   | Arg    of string 
-  | BOS
   | EOS
 
 let rec fold f x e =
   let foldF = fold f in
   let x     = f x e in
   match e with
-  | Before t | After t | Aster t | Plus t | Opt t | Bind (_, t) | Not t -> foldF x t
+  | Before t | Aster t | Plus t | Opt t | Bind (_, t) | Not t -> foldF x t
   | Alter tl | Juxt tl -> fold_left (fun x t -> foldF x t) x tl 
   | _ -> x
 
@@ -31,7 +29,6 @@ let rec toText =
   | Test  (s, _) -> ptt "Test"    (Pretty.string s)
   | Not    t     -> ptt "Not"     (toText t)
   | Before t     -> ptt "Before"  (toText t)
-  | After  t     -> ptt "After"   (toText t)
   | Aster  t     -> ptt "Aster"   (toText t)
   | Plus   t     -> ptt "Plus"    (toText t)
   | Opt    t     -> ptt "Opt"     (toText t)
@@ -39,58 +36,16 @@ let rec toText =
   | Juxt   tl    -> ptt "Juxt"    (ttl    tl)
   | Bind  (s, t) -> ptt "Bind"    (Pretty.seq  [Pretty.string s; toText t])
   | Arg    s     -> Pretty.string (sprintf "Arg (%s)" s)
-  | BOS          -> Pretty.string "BOS"
   | EOS          -> Pretty.string "EOS"
 
-let rec reverse = function
-  | Test   (s, f) -> Test   (s, f)
-  | Not     t     -> Not    (reverse t)
-  | Before  t     -> After  (reverse t)
-  | After   t     -> Before (reverse t)
-  | Aster   t     -> Aster  (reverse t)
-  | Plus    t     -> Plus   (reverse t)
-  | Opt     t     -> Opt    (reverse t)
-  | Alter   tl    -> Alter  (map reverse tl)
-  | Juxt    tl    -> Juxt   (rev (map reverse tl))
-  | Bind   (s, t) -> Bind   (s, reverse t)
-  | Arg     s     -> Arg s
-  | BOS           -> BOS
-  | EOS           -> EOS
-
 let toString s = Pretty.toString (toText s)
-
-(*
-module WiseBuffer =
-  struct
-    
-    type 'a buf = {data : 'a array; size : int; index : int; limit : int}
-    type 'a t   = {copy : unit -> 'a t; put : 'a -> 'a t; toStream : unit -> 'a Stream.t}
-
-    let init = function
-    | Some () -> {data = Array.init n f; size = 0; index = 0; limit = n}
-    | None    -> {copy : }
-
-    let copy t = {t with data = Array.copy t.data}
-
-    let put t x = 
-      t.data.(t.index) <- x;
-      {t with size = min t.limit (t.size + 1); index = if t.index = t.limit - 1 then 0 else t.index + 1}
-
-    let toStream t = 
-      Stream.fromGenerator 
-        (t.size, if t.index = 0 then t.limit - 1 else t.index - 1)
-        (fun (s, i) -> (s - 1, if i = 0 then t.limit - 1 else i - 1))
-        (fun (s, i) -> if s = 0 then raise End_of_file else t.data.(i))
-      
-  end
-*)
 
 module Diagram =
   struct
 
     type 'a expr = 'a t
     
-    type 'a cond = If of string * ('a -> bool) | Else | EoS | BoS
+    type 'a cond = If of string * ('a -> bool) | Ref of string | Lookahead of 'a node * 'a node | Neg of 'a node * 'a node | Else | EoS 
     and  'a tran = 'a cond * string list * 'a node
     and  'a sort = State of 'a tran list | Ok | Back of 'a node option ref
     and  'a node = 'a sort * int
@@ -145,10 +100,11 @@ module Diagram =
 		        let addDst = S.add (dstId) in
                         inner dst;
                         match cond with
-                        | If (_, f) -> epsilon, bos, eos, (f, binds, dstId) :: trans
-                        | EoS       -> epsilon, bos, addDst eos, trans
-                        | BoS       -> epsilon, addDst bos, eos, trans
-                        | Else      -> addDst epsilon, bos, eos, trans
+                        | If (_, f)   -> epsilon, bos, eos, (f, binds, dstId) :: trans
+                       (* | Ref s       -> epsilon, bos, eos, (, binds, dstId) :: trans
+                        | Lookahead t -> *)
+                        | EoS         -> epsilon, bos, addDst eos, trans
+                        | Else        -> addDst epsilon, bos, eos, trans
 		     ) 
                      (S.empty, S.empty, S.empty, [])
                      (getTrans x)
@@ -192,39 +148,57 @@ module Diagram =
       end
 
     let toDOT (root, _, _) =
-      let buf = Buffer.create 512 in
-      Buffer.add_string buf "digraph X {\n";
-      let node id label = Buffer.add_string buf (sprintf "node%d [label=\"id=%d, %s\"];\n" id id label) in      
-      let edge id = 
-        let doit t l =
-          let inDOT i j label =
-            Buffer.add_string buf (sprintf "node%d -> node%d [label=\"%s\"];\n" i j label)
+      let rec toDOT root =
+        let module S = Set.Make (Compare.Integer) in
+        let buf = Buffer.create 512 in
+        let node id label = Buffer.add_string buf (sprintf "node%d [label=\"id=%d, %s\"];\n" id id label) in 
+        let edge id = 
+          let doit t l =
+            let inDOT i j label =
+              Buffer.add_string buf (sprintf "node%d -> node%d [label=\"%s\"];\n" i j label)
+            in
+            inDOT id (getId (derive t)) l
           in
-          inDOT id (getId (derive t)) l
-        in
-        let bindings =
-          let module L = View.List (View.String) in
-          L.toString
-        in
-        function
-        | If (s, _), bs, t -> doit t (sprintf "if(%s)[%s]" s (bindings bs))
-        | Else     , bs, t -> doit t (sprintf "else [%s]" (bindings bs))
-        | EoS      , _ , t -> doit t "EoS" 
-        | BoS      , _ , t -> doit t "BoS"
-      in
-      let rec inner (sort, id) as t =
-        match sort with
-        | State trans -> 
-            node id "state";
-            iter (fun tran -> edge id tran; inner (getDest tran)) trans
-           
-        | Ok -> node id "ok"
+          let bindings =
+            let module L = View.List (View.String) in
+            L.toString
+          in
+          let cluster x y t label =
+            let xId, yId = getId x, getId y in
+            Buffer.add_string buf (sprintf "subgraph cluster_%d {\n" xId);
+            Buffer.add_string buf (sprintf "  label=\"%s\";\n" label);
+            Buffer.add_string buf (toDOT x);
+            Buffer.add_string buf "}\n";
+            doit x "";
+            Buffer.add_string buf (sprintf "node%d -> node%d;\n" (yId) (getId (derive t)));
+          in
+          function
+          | If (s, _)  , bs, t -> doit t (sprintf "if(%s)[%s]"  s (bindings bs))
+          | Ref s      , bs, t -> doit t (sprintf "ref(%s)[%s]" s (bindings bs)) 
+          | Else       , bs, t -> doit t (sprintf "else [%s]"     (bindings bs))
+          | EoS        , _ , t -> doit t "EoS" 
 
-        | Back _ -> ()
+          | Lookahead (x, y), _, t -> cluster x y t "lookahead"
+          | Neg       (x, y), _, t -> cluster x y t "not"           
+        in
+        let rec inner ((sort, id) as t) visited =
+          if S.mem id visited 
+          then visited
+          else
+            let visited = S.add id visited in
+            match sort with
+            | State trans -> 
+                node id "state"; 
+                fold_left (fun visited tran -> edge id tran; inner (getDest tran) visited) visited trans
+           
+            | Ok -> node id "ok"; visited
+
+            | Back _ -> visited
+        in
+        ignore (inner root S.empty);
+        Buffer.contents buf   
       in
-      inner root;
-      Buffer.add_string buf "}\n";
-      Buffer.contents buf
+      sprintf "digraph X {\n%s\n}\n" (toDOT root)      
     
     let make expr =
       let checkName, getBindings =
@@ -238,83 +212,38 @@ module Diagram =
           S.fold (fun x l -> x :: l) !names []
         )
       in      
-      let getLookBehindLength expr =
-        let bind f x y =
-          match x, y with
-          | `None , x | x, `None  -> x
-          | `Unlim, _ | _, `Unlim -> `Unlim 
-          | `Lim x, `Lim y -> `Lim (f x y)
-        in
-        let add = bind (+) in
-        let max = bind max in
-        let rec capturedLength s = 
-          let module M = Map.Make (Compare.String) in
-          let m = 
-            fold 
-              (fun m t -> 
-                 match t with 
-                 | Bind (s, t) -> 
-                    let l = length t in
-                    (try M.add s (max (M.find s m) l) m with Not_found -> M.add s l m)
-
-                 | _ -> m
-              ) 
-              M.empty 
-              expr 
-          in
-          (try M.find s m with Not_found -> `None)
-        and length = function
-          | Test _           -> `Lim 1
-          | BOS     | EOS    -> `Lim 0
-          | Aster _ | Plus _ -> `Unlim
-
-          | Not t | Bind (_, t) | Before t | After t | Opt t -> length t
-
-          | Alter tl -> fold_left (fun x t -> max x (length t)) `None tl
-          | Juxt  tl -> fold_left (fun x t -> add x (length t)) `None tl
-
-          | Arg s -> capturedLength s
-        in
-        fold
-          (fun acc e ->
-             match e with 
-             | After t -> max acc (length t)
-             | _       -> acc
-          )
-         `None
-          expr
-      in
       let eliminateBindings expr = 
-        let rec inner scoped binds = function
-        | Aster  t     -> `Aster  (inner scoped binds t)
-        | Not    t     -> `Not    (inner scoped binds t)
-        | Before t     -> `Before (inner scoped binds t)
-        | After  t     -> `After  (inner scoped binds t)
-        | Plus   t     -> `Plus   (inner scoped binds t)
-        | Opt    t     -> `Opt    (inner scoped binds t)
-        | Alter  tl    -> `Alter  (map (inner scoped binds) tl)
-        | Juxt   tl    -> `Juxt   (map (inner scoped binds) tl)
-        | Bind  (s, t) -> inner (s :: scoped) ((checkName s) :: binds) t
+        let rec inner lookahead scoped binds = function
+        | Aster  t     -> `Aster  (inner lookahead scoped binds t)
+        | Before t     -> `Before (inner true      scoped []    t)
+        | Plus   t     -> `Plus   (inner lookahead scoped binds t)
+        | Opt    t     -> `Opt    (inner lookahead scoped binds t)
+        | Alter  tl    -> `Alter  (map (inner lookahead scoped binds) tl)
+        | Juxt   tl    -> `Juxt   (map (inner lookahead scoped binds) tl)
+        | Bind  (s, t) -> inner lookahead (s :: scoped) ((checkName s) :: binds) t
+
+        | Not t -> 
+           if lookahead 
+           then `Not (inner true scoped [] t)
+           else raise (Failure "negation is used outside of lookahead")
 
         | Arg s -> 
            begin try 
              ignore (find (fun x -> s = x) scoped); 
              raise (Failure (sprintf "binding \"%s\" is used within capturing expression" s)) 
-           with Not_found -> `Arg s end
+           with Not_found -> `Arg (s, binds) end
 
         | Test  (s, f) -> `Test (s, f, binds)
         | EOS          -> `EOS
-        | BOS          -> `BOS
         in
-        inner [] [] expr
+        inner false [] [] expr
       in
       let rec simplify = function
         | `Opt    t -> (match simplify t with `Opt t -> `Opt t | `Aster t -> `Aster t | `Plus t -> `Aster t | t -> `Opt t)
         | `Aster  t -> (match simplify t with `Aster t | `Plus t | `Opt t | t -> `Aster t)
         | `Plus   t -> (match simplify t with `Plus t -> `Plus t | `Aster t | `Opt t -> `Aster t | t -> `Plus t)
         | `Not    t -> (match simplify t with `Not  t -> t | t -> `Not t)
-        | `Before t -> `Before t
-        | `After  t -> `After  t
+        | `Before t -> `Before (simplify t)
         | `Juxt   tl -> 
            (match
               flatten (
@@ -362,7 +291,6 @@ module Diagram =
            )
         | `Arg s  -> `Arg s
         | `EOS    -> `EOS
-        | `BOS    -> `BOS
         | `Test x -> `Test x
       in
       let id =
@@ -392,18 +320,22 @@ module Diagram =
 	   return (addElse succ t')
 
         | `Test (s, t, bs) -> return (State [If (s, t), bs, succ], (id ()))
-        | `Plus  t     -> return (inner succ (`Juxt [t; `Aster t]))
-        | `Opt   t     -> return (addElse succ (inner succ t))
-        | `Alter tl    -> return (State (flatten (map (fun t -> getTrans (inner succ t)) tl )), (id ()))
-        | `Juxt  tl    -> return (fold_right (fun t succ -> inner succ t) tl succ)
+        | `Arg  (s, bs)    -> return (State [Ref s, bs, succ], (id ()))
 
-        | `Not    _
-        | `Arg    _
-        | `Before _ 
-        | `After  _    -> invalid_arg "not supported"
+        | `Plus   t  -> return (inner succ (`Juxt [t; `Aster t]))
+        | `Opt    t  -> return (addElse succ (inner succ t))
+        | `Alter  tl -> return (State (flatten (map (fun t -> getTrans (inner succ t)) tl )), (id ()))
+        | `Juxt   tl -> return (fold_right (fun t succ -> inner succ t) tl succ)
 
-        | `BOS         -> return (State [BoS, [], succ], (id ()))
-        | `EOS         -> return (State [EoS, [], succ], (id ()))
+        | `Not t -> 
+            let ok = Ok, id () in
+            return (State [Neg (inner ok t, ok), [], succ], (id ()))
+
+        | `Before t -> 
+            let ok = Ok, id () in
+            return (State [Lookahead (inner ok t, ok), [], succ], (id ()))
+
+        | `EOS -> return (State [EoS, [], succ], (id ()))
       in        
       let d = inner (Ok, id ()) (simplify (eliminateBindings expr)) in
       (d, getBindings (), id ())      
@@ -436,10 +368,7 @@ module ASCII =
       getOf [|
         s Test (".", fun c -> c != '\n');
         '$', Alter [EOS; Before (Test ("n", fun c -> c = '\n'))]; 
-        '^', Alter [BOS; After  (Test ("n", fun c -> c = '\n'))];
-        '&', BOS;
-        '%', EOS;
-        
+        '%', EOS;        
       |]
 
     let getClass = 
@@ -500,7 +429,6 @@ module ASCII =
           | '?'  -> `QTN, s'
           | '^'  -> `BEG, s'
           | '$'  -> `END, s'
-          | '%'  -> `BOS, s'
           | '&'  -> `EOS, s'
           | '\\' -> (if f then `CHR '\\' else `ESC (inner true s')), s'
           | _    -> `CHR x, s'
