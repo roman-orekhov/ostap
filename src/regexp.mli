@@ -26,7 +26,6 @@ type 'a t =
                                         is provided  for debugging/visualization 
                                         purposes. 
                                      *)
-  | Not    of 'a t                  (** Negation.                             *)
   | Before of 'a t                  (** Lookahead condition.                  *)
   | Aster  of 'a t                  (** Regular zero-or-more repetition.      *)
   | Plus   of 'a t                  (** Regular one-or-more repetition.       *)

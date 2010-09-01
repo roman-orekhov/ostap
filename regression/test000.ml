@@ -24,13 +24,14 @@ let _ =
   let ident  = Juxt [Bind ("ID", Juxt [letter; Aster (Alter [letter; digit])]); Bind ("NEXT", Alter [noid; EOS])] in
   let decim  = Juxt [Bind ("DC", Plus digit); Bind ("NEXT", Alter [nodig; EOS])]                                  in
 
-  let idents = Juxt [Bind ("1", ident); ws; Arg "1"] in
-  let identNotDigit = Juxt [ident; Before (Not digit)] in
-  let identLookahead = Juxt [ident; Before EOS] in
+  let idents          = Juxt [Bind ("1", ident); ws; Arg "1"] in
+  let identNotDigit   = Juxt [ident; Before (digit)] in
+  let identLookahead  = Juxt [ident; Before EOS] in
+  let doubleLookahead = Juxt [decim; Before identLookahead] in
 
   List.iter 
     (fun expr ->
        printf "%s\n" (Diagram.toDOT (Diagram.make expr))
     )
-    [identLookahead; identNotDigit; idents; letter; noid; digit; nodig; ws; nows; ident; decim]
+    [doubleLookahead; identLookahead; identNotDigit; idents; letter; noid; digit; nodig; ws; nows; ident; decim]
 ;;
