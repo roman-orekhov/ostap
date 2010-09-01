@@ -60,3 +60,32 @@ module S = View.ListC (struct let concat = (^) end) (View.Char)
 
 let take    n s = List.rev (fold (fun l x -> x :: l) [] (fst (unzip (zip s (range 1 n)))))
 let takeStr n s = S.toString (take n s)
+
+let matchPrefix f p s =
+  let rec matchOne p s n =
+    match p with
+    | []     -> s, n
+    | h :: t ->
+        try 
+          let c, s' = get s in
+          if f h c then matchOne t s' (n+1) else s, n
+        with End_of_file -> s, n
+  in
+  matchOne p s 0
+
+let eqPrefix p s= matchPrefix (=) p s
+
+let matchPrefixStr f p s =
+  let m = String.length p in
+  let rec matchOne i s =
+    if i = m then s, i
+    else
+      try 
+        let c, s' = get s in
+        if f p.[i] c then matchOne (i+1) s' else s, i
+      with End_of_file -> s, i
+  in
+  matchOne 0 s 
+
+let eqPrefixStr p s = matchPrefixStr (=) p s
+

@@ -142,9 +142,27 @@ val from : int -> int t
 
 (** [take n s] returns at most [n] first items of [s] as a list;
     if [s] contains less then [n] items then the list contains
-    all remaining items of [s].
+    all remaining items of [s]; the rest of the stream is returned as well.
  *)
 val take : int -> 'a t -> 'a list
 
 (** [takeStr n s] is a specialized version of [take] for character streams. *)
 val takeStr : int -> char t -> string
+
+(** [matchPrefix f p s] matches the prefix of the stream [a] against list [p] element-wise
+    by mean of function [f]. The result is the pair --- the residual stream from the first 
+    non-matching element and the number of matched elements.
+ *)
+val matchPrefix : ('a -> 'a -> bool) -> 'a list -> 'a t -> ('a t * int)
+
+(** [eqPrefix p s] is a shortcut for [matchPrefix (=) p s]. *)
+val eqPrefix : 'a list -> 'a t -> ('a t * int)
+
+(** [matchPrefixStr f p s] is a string version of [matchPrefix]. *)
+val matchPrefixStr : (char -> char -> bool) -> string -> char t -> (char t * int)
+
+(** [eqPrefixStr p s] is a shortcut for [matchPrefixStr (=) p s]. *)
+val eqPrefixStr : string -> char t -> (char t * int)
+
+
+

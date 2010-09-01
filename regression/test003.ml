@@ -20,15 +20,21 @@ let _ =
   let nodig  = Test ("nodig" , fun c -> c < '0' || c > '9'                              ) in
   let ws     = Test ("ws"    , fun c -> c = ' '                                         ) in
   let nows   = Test ("nows"  , fun c -> c != ' '                                        ) in
+  
+  let quote   = Test ("quote"  , fun c -> c = '\'' || c = '"'                           ) in
+  let noquote = Test ("noquote", fun c -> c != '\'' && c != '"'                         ) in
 
-  let ident  = Juxt [Bind ("ID", Juxt [letter; Aster (Alter [letter; digit])]); Bind ("NEXT", Alter [noid; EOS])] in
-  let decim  = Juxt [Bind ("DC", Plus digit); Bind ("NEXT", Alter [nodig; EOS])]                                  in
- 
-  let twoIdents = Juxt [Bind ("1", ident); ws; Arg "1"] in
-  print_string (Diagram.toDOT (Diagram.make twoIdents))
-(*
-  let m0 = matchAllStr twoIdents in
-  printf "matching twoIdents against \"abc abc\":\n";
-  print ["1"] (m0 (Stream.fromString "abc abc"))
-*)
+  let string          = Bind ("S", Juxt [Bind ("Q", quote); Aster noquote; Arg "Q"]) in
+  let stringNotLetter = Juxt [string; Before letter]                                 in
+
+  let m0 = matchAllStr string          in
+  let m1 = matchAllStr stringNotLetter in
+
+  (*  printf "%s" (Diagram.toDOT (Diagram.make string)); *)
+  printf "Matching \"string\" against \"\"abc\"\ and the rest\"\n";
+  print ["Q"; "S"] (m0 (Stream.fromString "\"abc\" and the rest"));
+  printf "Matching \"stringNotLetter\" against \"\"abc\" and the rest\":\n";
+  print ["Q"; "S"] (m1 (Stream.fromString "\"abc\" and the rest"));
+  printf "Matching \"stringNotLetter\" against \"\"abc\"and the rest\":\n";
+  print ["Q"; "S"] (m1 (Stream.fromString "\"abc\"and the rest"))
 ;;

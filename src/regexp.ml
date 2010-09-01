@@ -79,9 +79,9 @@ module Diagram =
             eos       : int list; 
             symbol    : 'a -> 'a bnds -> (int * 'a bnds) list; 
             lookaheads: ('a t * int) list; 
-            args      : (string * int) list
+            args      : (string * string list * int) list
            }
-        type 'a t = {states : 'a state array; start: int; ok : int}
+        and 'a t = {states : 'a state array; start: int; ok : int}
 
         let rec make (((root, start), _, num) : 'a diagram) = 
           let empty    = {epsilon = []; eos = []; symbol = (fun _ _ -> []); lookaheads = []; args = []} in
@@ -106,7 +106,7 @@ module Diagram =
                         inner dst;
                         match cond with
                         | If (_, f)   -> epsilon, eos, (f, binds, dstId) :: trans, lkhds, args
-                        | Ref       s -> epsilon, eos, trans, lkhds, (s, dstId) :: args
+                        | Ref       s -> epsilon, eos, trans, lkhds, (s, binds, dstId) :: args
                         | Lookahead t -> epsilon, eos, trans, (make t, dstId) :: lkhds, args 
                         | EoS         -> epsilon, addDst eos, trans, lkhds, args
                         | Else        -> addDst epsilon, eos, trans, lkhds, args
@@ -117,13 +117,13 @@ module Diagram =
                  let trans a m =
                    flatten (map (fun (f, binds, dst) -> if f a then [dst, fold_left (fun m n -> bind n a m) m binds] else []) trans)
                  in
-                 t.(id) <- {epsilon = elems epsilon; eos = elems eos; symbol = trans; lookaheads = []; args = []}
+                 t.(id) <- {epsilon = elems epsilon; eos = elems eos; symbol = trans; lookaheads = lkhds; args = args}
             end
           in
           inner (root, start);
           {states = t; start = start; ok = !ok}
           
-        let matchStream t s =
+        let rec matchStream t s =
           let rec inner = function
             | (i, s, m) :: context ->
                 LOG[traceNFA] (printf "state: %d\n" i);
@@ -132,7 +132,30 @@ module Diagram =
                 else 
                   let state    = t.states.(i) in                  
                   let context' =
-                    (map (fun i -> i, s, m) state.epsilon) @
+                    (map       (fun i -> i, s, m) state.epsilon) @
+                    (fold_left (fun acc (t, i) -> if Stream.endOf (matchStream t s) then acc else (i, s, m) :: acc) [] state.lookaheads
+                    ) @
+                    (fold_left 
+                       (fun acc (arg, binds, i) -> 
+                          let p     = funOf m arg in 
+                          let s', n = Stream.eqPrefix p s in 
+                          LOG[traceNFA] (
+                            let module S = View.List (View.Char) in
+                            printf "Matching argument: %s\n" arg;
+                            printf "Value: %s\n" (S.toString (Obj.magic p));
+                            printf "Stream: %s\n" (S.toString (Obj.magic (Stream.take 10 s)));
+                            printf "Matched symbols: %d\n" n;
+                            printf "Residual stream: %s\n" (S.toString (Obj.magic (Stream.take 10 s')))
+                          );
+                          if n = List.length p 
+                          then 
+                            let m' = List.fold_left (fun m name -> List.fold_right (fun x m -> bind name x m) p m) m binds in
+			    (i, s', m') :: acc 
+                          else acc
+                       ) 
+                       [] 
+                       state.args
+                    ) @ 
                     (try
                        let a, s' = Stream.get s in
                        map (fun (i, m) -> i, s', m) (state.symbol a m)
