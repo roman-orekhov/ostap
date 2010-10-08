@@ -51,11 +51,11 @@ let sink  p s =
 
 let alt x y s =
   match x s with 
-  | Failed x -> 	
+  | Failed x ->      
       (match y s with 
       | Failed y -> Failed (join x y) 
       | Parsed (ok, err) -> Parsed (ok, join x err)
-      )
+      )     
   | x -> x
     
 let (<|>) = alt
@@ -71,11 +71,31 @@ let seq x y s =
     
 let (|>) = seq
 
-let opt p = p --> (fun x -> Some x) <|> return None
+
+(*
+  The following two combinators --- optionality and Kleene's closure --- can be encoded
+  in much more elegant manner
+
+  let opt  p = p --> (fun x -> Some x) <|> return None 
+  let many p = p |> (fun h -> many p --> (fun t -> h :: t)) <|> return [] 
+
+  but this version can dramatically degrade the performance so we left it in comment.
+*)    
+
+let opt p s =
+  match p s with 
+  | Parsed ((x, s'), d) -> Parsed ((Some x, s'), d) 
+  | Failed d            -> Parsed ((None, s), d)
 
 let (<?>) = opt
-    
-let rec many p = p |> (fun h -> many p --> (fun t -> h :: t)) <|> return []
+
+let many p = 
+  let rec inner acc s =
+    match p s with
+    | Parsed ((x, s'), d) -> inner (x::acc) s'
+    | Failed d -> Parsed ((List.rev acc, s), d)
+  in
+  inner []
   
 let (<*>) = many
 
@@ -102,3 +122,5 @@ let unwrap r f g =
   match r with
   | Parsed ((x, _), _) -> f x
   | Failed x           -> g x
+  
+

@@ -126,10 +126,10 @@ val toChar : t -> char
 (** Converts stream of characters into stream of ASCIIs. *)
 val asciiStream : char Stream.t -> t Stream.t
 
-(** [range x y c] checks whether character [c] is within range [[x..y]]. *)
+(** [range x y c] checks whether character [c] is within the range [[x..y]]. *)
 val range : char -> char -> char -> bool
 
-(** [nonrange x y c] checkes whether character [c] is outside range [[x..y]]. *)
+(** [nonrange x y c] checkes whether character [c] is outside the range [[x..y]]. *)
 val nonrange : char -> char -> char -> bool
 
 (** [oneOf s c] checks whether character [c] is one of those of string [s]. *)

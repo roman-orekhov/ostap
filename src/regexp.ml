@@ -363,7 +363,6 @@ module Diagram =
 
   end
 
-(*
 module ASCII =
   struct
 
@@ -374,7 +373,7 @@ module ASCII =
       let m = 
         Array.fold_left 
           (fun m (c, x) ->
-             if M.find c m 
+             if M.mem c m 
              then invalid_arg (sprintf "Ostap.Regexp.ASCII: internal error in initialization: duplicate character class '%c'" c)
              else M.add c x m
           )
@@ -385,94 +384,123 @@ module ASCII =
 
     let s (Test (s, _) as x) = s.[0], x 
 
-    let getSpecial = 
-      getOf [|
-        s Test (".", fun c -> c != '\n');
-        '$', Alter [EOS; Before (Test ("n", fun c -> c = '\n'))]; 
-        '%', EOS;        
-      |]
+    open ASCII
 
+    let ofChar  c x = x = c 
+    let ofClass c x = Class.isIn c (Class.get x)
+    
     let getClass = 
-      getOf [|
-        s Test ("n", ofChar '\n');
-        s Test ("r", ofChar '\r');
-        s Test ("t", ofChar '\t');
-        s Test ("a", ofChar '\x07');
-        s Test ("e", ofChar '\x1B');
-        s Test ("f", ofChar '\x0C');
-        s Test ("v", ofChar '\x0B');
+      getOf [|        
+(*
+        '$', Alter [EOS; Before (Test ("n", fun c -> c = '\n'))];
+        '%', EOS;
+*)
+        '.', (fun c -> c != '\n');
+        'n', (ofChar '\n');
+        'r', (ofChar '\r');
+        't', (ofChar '\t');
+        'a', (ofChar '\x07');
+        'e', (ofChar '\x1B');
+        'f', (ofChar '\x0C');
+        'v', (ofChar '\x0B');
 
-        s Test ("P", ofClass ASCII.Class._PRINTABLE );
-        s Test ("C", ofClass ASCII.Class._CONTROL   );
-        s Test ("E", ofClass ASCII.Class._EXTENDED  );
-        s Test ("O", ofClass ASCII.Class._OTHER     );
+        'P', (ofClass Class._PRINTABLE );
+        'C', (ofClass Class._CONTROL   );
+        'E', (ofClass Class._EXTENDED  );
+        'O', (ofClass Class._OTHER     );
 
-        s Test ("u", ofClass ASCII.Class._ULETTER   );
-        s Test ("l", ofClass ASCII.Class._LLETTER   );
-        s Test ("d", ofClass ASCII.Class._DDIGIT    );
-        s Test ("w", ofClass ASCII.Class._WORD      );
-        s Test ("b", ofClass ASCII.Class._BDIGIT    );
-        s Test ("o", ofClass ASCII.Class._ODIGIT    );
-        s Test ("x", ofClass ASCII.Class._HDIGIT    );
-        s Test ("p", ofClass ASCII.Class._PUNCTUATOR);
+        'u', (ofClass Class._ULETTER   );
+        'l', (ofClass Class._LLETTER   );
+        'd', (ofClass Class._DDIGIT    );
+        'w', (ofClass Class._WORD      );
+        'b', (ofClass Class._BDIGIT    );
+        'o', (ofClass Class._ODIGIT    );
+        'x', (ofClass Class._HDIGIT    );
+        'p', (ofClass Class._PUNCTUATOR);
 
-        s Test ("B", ofClass ASCII.Class._BRACKET   );
-        s Test ("H", ofClass ASCII.Class._LBRACKET  );
-        s Test ("K", ofClass ASCII.Class._RBRACKET  );
-        s Test ("A", ofClass ASCII.Class._ARITHMETIC);
-        s Test ("R", ofClass ASCII.Class._RELATION  );
-        s Test ("L", ofClass ASCII.Class._LOGIC     );
-        s Test ("Q", ofClass ASCII.Class._QUOTE     )
+        'B', (ofClass Class._BRACKET   );
+        'H', (ofClass Class._LBRACKET  );
+        'K', (ofClass Class._RBRACKET  );
+        'A', (ofClass Class._ARITHMETIC);
+        'R', (ofClass Class._RELATION  );
+        'L', (ofClass Class._LOGIC     );
+        'Q', (ofClass Class._QUOTE     )
       |]
           
     let range    = ASCII.range
     let nonrange = ASCII.nonrange
     let oneOf    = ASCII.oneOf
+
+    exception Reason of int * string
+(*
+    let make s =
+      let explain comment f s =
+        let (_, pos), _ = Stream.get s in
+        try f s with End_of_file -> raise (Reason (pos, comment))
+      in
+      let pos  s =
+        let (_, pos), _ = Stream.get s in
+        pos
+      in
+      let next s = 
+        let (c, pos), s' = Stream.get s in
+        c, s'
+      in
+      let rec ground s =
+        let makeExpr c =
+          match getClass c with
+	  | Some t -> `T t
+          | None   -> `C c
+        in        
+        explain 
+           "unterminated escape sequence or interval" 
+           (fun s ->
+              match next s with
+              | '\\', s' -> let c, s'' = next s' in makeExpr c, s''
+              | '[' , s' ->
+                 let rec inner acc s =
+                   let t, s' = interval s in
+                   let acc x = (acc x) or (t x) in
+                   match next s' with
+                   | ']', s'' -> acc, s''
+                   | _        -> inner acc s'
+                 in
+                 let t, s'' = inner (fun _ -> false) s' in
+                 (`T t), s''
+                 
+              |  c  , s' -> makeExpr c, s'
+           )
+           s
+      and interval s =
+        let charOf s = function
+        | `T e -> raise (Reason (pos s, "character class in range expression"))
+        | `C c -> c          
+        in
+        let e, s' = ground s in
+	match next s' with
+        | '-', s'' -> 
+	   let c        = charOf s e in
+	   let e', s''' = ground s'' in
+           range c (charOf s'' e'), s''' 
+          
+        | _ -> (match e with `T e -> e | `C c -> ofChar c), s'
+      and primary s =
+        match next s with
+        | '^', s' ->
+        | '.', s' ->
+        | '%', s' ->
+        | '$', s' ->
+        | _        -> 
+           let t, s' = ground s in
+           Test ("ground", t), s'
+        
       
-    let make s = 
-      let next s =
-        let rec inner f s =
-          let (x, i), s' = Stream.get s in          
-          (match x with
-          | '('  -> `RBR, s'
-          | ')'  -> `RCT, s'
-          | '['  -> `SBR, s'
-          | ']'  -> `SCT, s'
-          | '{'  -> `CBR, s'
-          | '}'  -> `CCT, s'
-          | ':'  -> `CLN, s'
-          | '|'  -> `BAR, s'
-          | '-'  -> `DSH, s'
-          | '~'  -> `TLD, s'
-          | '*'  -> `AST, s'
-          | '+'  -> `STR, s'
-          | '.'  -> `DOT, s'
-          | '?'  -> `QTN, s'
-          | '^'  -> `BEG, s'
-          | '$'  -> `END, s'
-          | '&'  -> `EOS, s'
-          | '\\' -> (if f then `CHR '\\' else `ESC (inner true s')), s'
-          | _    -> `CHR x, s'
-          ), i
-        in
-        try inner false s with End_of_file -> `FIN
-      in      
-      let symclass s =
-        let rec inner s =
-          let n, s' = next s in
-          if 
-        in
-      in
-      let rec parse acc s =
-        if Stream.endOf s 
-        then acc
-        else 
-          let 
-      in
-      parse [] (Stream.zip (Stream.fromString s) (Stream.from 0))
+      let _ = Stream.zip (Stream.fromString s) (Stream.from 1) in
+      ()
+           
+*)       
 
   end
-*)
 
 let matchAll expr str =
   Diagram.Compiled.matchStream (Diagram.Compiled.make (Diagram.make expr)) str

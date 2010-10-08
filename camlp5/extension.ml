@@ -352,14 +352,17 @@ EXTEND
     ] 
   ];
 
-  expr: LEVEL "top" [
+  expr: LEVEL "expr1" [
     [ "ostap"; "("; (p, tree)=o_alternatives; ")" ->
       let body = <:expr< $p$ s >> in
       let pwel = [(<:patt< s >>, Ploc.VaVal None, body)] in
       let f = <:expr< fun [$list:pwel$] >> in
       (match tree with Some tree -> Cache.cache (!printExpr f) tree | None -> ());
       f      
-    ] |
+    ]
+  ];
+
+  expr: LEVEL "expr1" [
     [ "let"; "ostap"; doc=OPT doc_name; "("; rules=o_rules; ")"; "in"; e=expr LEVEL "top" ->
       let (rules, defs) = rules in
       !printBNF doc (texDefList defs);
