@@ -105,18 +105,23 @@ val opt : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'b option, 'e) parse
 (** <?> is infix synonym for [opt]. *)
 val (<?>) : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'b option, 'e) parse
 
-(** Zero-or-more iteration. [many x] returns parser that {b eagerly} 
-    parses zero of more successive occurrences of items parsed by [x].
-    The reason value type has to supply a method [add] to add one reason value to
-    another to collect multiple reasons.
+(** [manyFold] is a generalization of Kleene closure combinator (zero-or-more iteration).
+    [manyFold f init p] parses the input stream with parser [p] zero-or-more times eagerly
+    and returns the folded value [f .. (f (f init r0) r1) .. rk] where [ri] is the result
+    of i-th parsing with [p]. The reason value type has to supply a method [add] to add one 
+    reason value to another to collect multiple reasons.
+ *)
+val manyFold : ('c -> 'b -> 'c) -> 'c -> ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'c, 'e) parse
+
+(** [many p] is a shortcut for [(manyFold (fun acc x -> (fun l -> acc (x :: l))) (fun x -> x) p) --> (fun x -> x [])].
+    In short, it returns the list of successive parsings with [p].
  *)
 val many : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'b list, 'e) parse
 
-(** One-or-more iteration. [some x] returns parser that {b eagerly} 
-    parses one of more successive occurrences of items parsed by [x].
-    The reason value type has to supply a method [add] to add one reason value to
-    another to collect multiple reasons.
- *)
+(** [someFold p] is similar to [manyFold p] with the exception that it performs one-or-more iteraton of [p]. *)
+val someFold : ('c -> 'b -> 'c) -> 'c -> ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'c, 'e) parse
+
+(** [some p]  is similar to [someFold p] with the exception that it performs one-or-more iteraton of [p]. *)
 val some : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'b list, 'e) parse
 
 (** Infix synonym for [many]. *)

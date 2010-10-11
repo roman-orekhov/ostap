@@ -21,6 +21,17 @@ open Combinators
 
 (** {2 List parsing} *)
 
+(** [listByWith s delim item f x] parses a non-empty list of [item]s delimited by [delim] from a stream [s]
+    and folds it with function [f] and initial value [x]. Note that inside Ostap syntax extension the notation 
+    [listByWith[delim][item][f][x]] should be used.
+ *)
+val listByWith : 'a ->
+                 ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.parse ->
+                 ('a, 'd, 'c) Combinators.parse ->
+                 ('e -> 'd -> 'e) -> '
+                 e -> 
+                 ('a, 'e, 'c) Combinators.result 
+
 (** [listBy s delim item] parses a non-empty list of [item]s delimited by [delim] from a stream [s].
      Note that inside Ostap syntax extension the notation [listBy[delim][item]] should be used.
   *)
@@ -33,9 +44,27 @@ val list : (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) result; ..
            ('a, 'd, 'c) parse -> 
            ('a, 'd list, 'c) result
 
-(** [list0 s item] parses a possibly empty list delimited by commas. Inside Ostap syntax extensions this should
-     be used in the form [list0[item]].
+(** [listWith s item f x] parses a non-empty list delimited by commas and folds it with the function [f] and initial
+    value [x]. Inside Ostap syntax extensions this should be used in the form [listWith[item][f][x]].
  *)
+val listWith : (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.result; .. > as 'a) ->  
+               ('a, 'd, 'c) Combinators.parse -> 
+               ('e -> 'd -> 'e) -> 'e -> ('a, 'e, 'c) Combinators.result
+
+(** [list0*] functions are that analoguous to [list*] but parse possibly empty lists. *)
+val list0ByWith : 'a ->
+                  ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.parse ->
+                  ('a, 'd, 'c) Combinators.parse ->
+                  ('e -> 'd -> 'e) -> '
+                  e -> 
+                  ('a, 'e, 'c) Combinators.result 
+
+val list0By : 'a -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) parse -> ('a, 'd, 'c) parse -> ('a, 'd list, 'c) Combinators.result
+
+val list0With : (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.result; .. > as 'a) ->  
+                ('a, 'd, 'c) Combinators.parse -> 
+                ('e -> 'd -> 'e) -> 'e -> ('a, 'e, 'c) Combinators.result
+
 val list0 : (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.result; .. > as 'a) ->
             ('a, 'd, 'c) parse -> 
             ('a, 'd list, 'c) result
@@ -61,16 +90,18 @@ val right : 'a assoc
     [opparse] is parser of operator symbol and [opsema] is semantic function of type ['a -> 'a -> 'a]. 
 
     Example:
-
-   {v  let rec parse s =                                                                                    v}
-   {v      expr                                                                                             v}
-   {v         [|                                                                                            v}
-   {v            left , [(ostap ("+")), (fun x y -> `Add (x, y)); (ostap ("-")), (fun x y -> `Sub (x, y))]; v}
-   {v            left , [(ostap ("*")), (fun x y -> `Mul (x, y)); (ostap ("/")), (fun x y -> `Div (x, y))]  v}
-   {v         |]                                                                                            v}
-   {v         primary                                                                                       v}
-   {v         s                                                                                             v}
-   {v  and ostap (primary:  n:ident \{`Ident n} | -"(" parse -")")                                          v}    
+    
+    {[
+      let rec parse s =                                                                                    
+        expr                                                                                             
+          [|                                                                                            
+            left , [ostap ("+"), (fun x y -> `Add (x, y)); ostap ("-"), (fun x y -> `Sub (x, y))]; 
+            left , [ostap ("*"), (fun x y -> `Mul (x, y)); ostap ("/"), (fun x y -> `Div (x, y))]  
+          |]                                                                                            
+          primary                                                                                       
+          s                                                                                             
+      and ostap (primary:  n:ident \{`Ident n} | -"(" parse -")")                                        
+    ]}
 
     The example above defines parser of expressions with left-associative operators ["+"],  ["-"], ["*"], and ["/"].
     First two operators have lower precedence level than others. Identifier and expressions in brackets

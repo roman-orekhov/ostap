@@ -36,23 +36,25 @@
   rule, {i parse_expr} --- parse expression, {i doc_tag} --- documentation specifier. Below the
   examples of all these constructs are given:
 
-  {v (* Grammar rules specification at the structure level; rules are mutually recursive *)        v}
-  {v ostap (                                                                                       v}
-  {v   x: IDENT; (* rule defining parser x *)                                                      v}
-  {v   y: CONST  (* rule defining parser y *)                                                      v}
-  {v )                                                                                             v}
-  {v                                                                                               v}
-  {v (* Grammar rule at the let-binding level; bindings are mutually recursive *)                  v}
-  {v let ostap (x: IDENT) (* rule defining parser x *)                                             v}
-  {v and ostap (y: CONST) (* rule defining parser y *)                                             v}
-  {v and u = 3            (* an example to demonstrate interoperability with other let-bindings *) v}
-  {v                                                                                               v}
-  {v let _ =                                                                                       v}
-  {v   (* Let-bindings at expression level; x and y are mutually recursive *)                      v}
-  {v   let ostap (x: IDENT; y: CONST) in                                                           v}
-  {v   (* Grammar expression *)                                                                    v}
-  {v   let p = ostap (x y) in                                                                      v}
-  {v   ()                                                                                          v}
+  {[
+   (* Grammar rules specification at the structure level; rules are mutually recursive *)        
+   ostap (                                                                                       
+     x: IDENT; (* rule defining parser x *)                                                      
+     y: CONST  (* rule defining parser y *)                                                      
+   )                                                                                             
+                                                                                                 
+   (* Grammar rule at the let-binding level; bindings are mutually recursive *)                  
+   let ostap (x: IDENT) (* rule defining parser x *)                                             
+   and ostap (y: CONST) (* rule defining parser y *)                                             
+   and u = 3            (* an example to demonstrate interoperability with other let-bindings *) 
+                                                                                                 
+   let _ =                                                                                       
+     (* Let-bindings at expression level; x and y are mutually recursive *)                      
+     let ostap (x: IDENT; y: CONST) in                                                           
+     (* Grammar expression *)                                                                    
+     let p = ostap (x y) in                                                                      
+     ()                                                                                          
+  ]}
 
   All these constructs are converted into pure OCaml using [Ostap] parser combinators.
 
@@ -79,7 +81,9 @@
 
   [basic] {b : } {b \[ } [binding] {b \] } [postfix] {b \[ } [predicate] {b \]}
 
-  [postfix] {b : } [primary] {b | } [postfix] {b ( } [*] {b | } [+] {b | } [?] {b | } [:: (] {i EXPR} [)] {b ) }
+  [postfix] {b : } [primary] {b | } [postfix] {b ( } [*] {b \[} folding {b \]} {b | } [+] {b \[} folding {b \]} {b | } [?] {b | } [:: (] {i EXPR} [)] {b ) }
+
+  [folding] {b : } {b with} {b \{} {i EXPR} {b \}} {b \{} {i EXPR} {b \}}
 
   [primary] {b : } {i UIDENT} {b | } [parser] {b \[ } [parameters] {b \] } {b | } [string] {b | } [$] {b | ( } [parse_expr] {b )}
 
@@ -115,6 +119,20 @@
   Postfix operators [+], [*] and [?] denote respectively one-or-more iteration, zero-or-more iteration and
   optional value. Postfix operator [::(]{i EXPR}[)] can be used to {i comment} the reason returned on
   failure with the given reason value (see {!Ostap.Combinators.comment} function and module {!Reason} as reference implementation).
+
+  Additionally some folding can be specified for postfix [+] and [*] operators. The folding has the form
+  {b with \{} {i EXPR}{b \}\{} {i EXPR} {b \}} where the first expression in curved brackets denotes
+  initial value for folding with function given by the second expression. For example
+  
+  {[
+    callee:expression call:(-"(" arguments -")")* with{callee}{fun callee args -> `Call (callee, args)} {call}
+  ]}
+  
+  is equivalent to
+
+  {[
+    callee:expression call:(-"(" arguments -")")* {List.fold_left (fun callee args -> `Call (callee, args)) callee call}
+  ]}
   
   Symbol [$] within parse expression serves as a shortcut for {!Ostap.Combinators.lift} and so delivers underlying stream as
   its semantic value.
@@ -172,11 +190,13 @@
  
   For example,
 
-  {v ostap (                                                           v}
-  {v   sequence[start]: item[start] | next:item[start] sequence[next]; v}
-  {v   item[start]: x:integer {x+start} | ";" {start};                 v}
-  {v   entry: sequence[0]                                              v}
-  {v )                                                                 v}
+  {[
+   ostap (                                                           
+     sequence[start]: item[start] | next:item[start] sequence[next]; 
+     item[start]: x:integer {x+start} | ";" {start};                 
+     entry: sequence[0]                                              
+   )                                                                 
+  ]}
 
   declares (among others) the parser function [entry] which parses and sums a semicolon-terminated 
   sequence of integers.
@@ -367,7 +387,7 @@ EXTEND
       let (rules, defs) = rules in
       !printBNF doc (texDefList defs);
       <:expr< let $opt:true$ $list:rules$ in $e$ >> 
-    ] 
+     ] 
   ];
 
   o_rules: [
@@ -549,10 +569,25 @@ EXTEND
 
   o_postfix: [
     [ o_primary ] |
-    [ (e, s)=o_postfix; "*" -> (<:expr< Ostap.Combinators.many $e$ >>, bindOption s (fun s -> Expr.star s)) ] |
-    [ (e, s)=o_postfix; "+" -> (<:expr< Ostap.Combinators.some $e$ >>, bindOption s (fun s -> Expr.plus s)) ] |
+    [ (e, s)=o_postfix; "*"; folding=OPT o_folding -> 
+      (match folding with
+      | None                -> <:expr< Ostap.Combinators.many     $e$ >> 
+      | Some (init, folder) -> <:expr< Ostap.Combinators.manyFold $folder$ $init$ $e$ >>
+      ), bindOption s (fun s -> Expr.star s)
+    ] |
+    [ (e, s)=o_postfix; "+"; folding=OPT o_folding -> 
+      (match folding with
+       | None -> <:expr< Ostap.Combinators.some $e$ >> 
+       | Some (init, folder) -> <:expr< Ostap.Combinators.someFold $folder$ $init$ $e$ >>
+      ), bindOption s (fun s -> Expr.plus s)
+    ] |
     [ (e, s)=o_postfix; "?" -> (<:expr< Ostap.Combinators.opt  $e$ >>, bindOption s (fun s -> Expr.opt  s)) ] |
     [ (e, s)=o_postfix; "::"; "("; c=expr; ")" -> (<:expr< Ostap.Combinators.comment $e$ ($c$) >>, s) ]
+  ];
+
+  o_folding: [
+    [ "with"; "{"; init=expr; "}"; "{"; folder=expr; "}" -> (init, folder)
+    ]
   ];
 
   o_primary: [

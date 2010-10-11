@@ -37,19 +37,23 @@
  
     inspect its type 
 
-    {v (< getIDENT : ('a, 'b, 'c) Combinators.result;           v}
-    {v    look     : string -> ('a, 'd, 'c) Combinators.result; v}
-    {v    ..                                                    v}
-    {v  > as 'a) ->                                             v}
-    {v ('a, 'b * 'd * 'b * 'b list * 'd, 'c) Combinators.result v}
-    
+    {[
+     (< getIDENT : ('a, 'b, 'c) Combinators.result;           
+        look     : string -> ('a, 'd, 'c) Combinators.result; 
+        ..                                                    
+      > as 'a) ->                                             
+     ('a, 'b * 'd * 'b * 'b list * 'd, 'c) Combinators.result 
+    ]}
+
     and conclude that you need a stream of type
 
-    {v < getIDENT : ('a, 'b, 'c) Combinators.result;           v}
-    {v   look     : string -> ('a, 'd, 'c) Combinators.result; v}
-    {v   ..                                                    v}
-    {v > as 'a                                                 v}
-    
+    {[
+     < getIDENT : ('a, 'b, 'c) Combinators.result;           
+       look     : string -> ('a, 'd, 'c) Combinators.result; 
+       ..                                                    
+     > as 'a                                                 
+    }]
+
     Here ['a] is the type of stream itself, ['b] --- the type of data, returned by successful
     application of [getIDENT], ['c] --- the type of data returned by error/failure, ['d] ---
     the type of data, returned by successful application of [look]. [look] is just a member
@@ -59,16 +63,18 @@
     The detailed description is given in the following section; for now we provide a simple example 
     for the last grammar expression:
 
-    {v open Matcher v}
+    {[
+     open Matcher 
 	
-    {v class lexer s = v}
-    {v     let ident = Str.regexp "[a-zA-Z_]\([a-zA-Z_0-9]\)*"] in v}
-    {v     let skip  = Skip.create [Skip.whitespaces " \t\n\r"] in v}
-    {v     object (self) v}
-    {v        inherit Matcher.t s v}   
-    {v        method skip p coord = skip s p coord v}     
-    {v        method getIDENT = self#get "identifier" ident v}         
-    {v     end v}
+     class lexer s = v}
+         let ident = Str.regexp "[a-zA-Z_]\([a-zA-Z_0-9]\)*"] in 
+         let skip  = Skip.create [Skip.whitespaces " \t\n\r"] in 
+         object (self) 
+            inherit Matcher.t s 
+            method skip p coord = skip s p coord 
+            method getIDENT = self#get "identifier" ident 
+         end 
+    ]}
        
     Lexer is an immutable object sprang over the string [s] to parse. Additionally it
     maintains the position within the string and its coordinate. Each time the lexeme is consumed

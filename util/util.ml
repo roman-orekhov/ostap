@@ -27,7 +27,15 @@ module Ostap =
   end
 
 ostap (
-  listBy[delim][item]: h:item t:(-delim x:item)* {h::t}
+  listByWith[delim][item][f][x]: h:item result:(-delim item) * with{f x h}{f} {result}
+)
+
+ostap (
+  listBy[delim][item]: h:item t:(-delim item)* {h::t}
+)
+
+ostap (
+  listWith[item][f][x]: listByWith[ostap (",")][item][f][x]
 )
 
 ostap (
@@ -35,7 +43,19 @@ ostap (
 )
 
 ostap (
-  list0[item]: list[item] | empty {[]}
+  list0ByWith[delim][item][f][x]: h:item result:(-delim item) * with{f x h}{f} {result} | empty {x}
+)
+
+ostap (
+  list0By[delim][item]: listBy[delim][item] | empty {[]}
+)
+
+ostap (
+  list0With[item][f][x]: list0ByWith[ostap (",")][item][f][x]
+)
+
+ostap (
+  list0: list0By[ostap (",")]
 )
 
 type 'a assoc = ('a -> 'a -> 'a) -> ('a -> 'a) -> 'a -> 'a -> 'a

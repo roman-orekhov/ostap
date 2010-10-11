@@ -71,17 +71,6 @@ let seq x y s =
     
 let (|>) = seq
 
-
-(*
-  The following two combinators --- optionality and Kleene's closure --- can be encoded
-  in much more elegant manner
-
-  let opt  p = p --> (fun x -> Some x) <|> return None 
-  let many p = p |> (fun h -> many p --> (fun t -> h :: t)) <|> return [] 
-
-  but this version can dramatically degrade the performance so we left it in comment.
-*)    
-
 let opt p s =
   match p s with 
   | Parsed ((x, s'), d) -> Parsed ((Some x, s'), d) 
@@ -89,17 +78,22 @@ let opt p s =
 
 let (<?>) = opt
 
-let many p = 
+let manyFold f init p =
   let rec inner acc s =
     match p s with
-    | Parsed ((x, s'), d) -> inner (x::acc) s'
-    | Failed d -> Parsed ((List.rev acc, s), d)
+    | Parsed ((x, s'), d) -> inner (f acc x) s'
+    | Failed d            -> Parsed ((acc, s), d)
   in
-  inner []
-  
+  inner init 
+
+let many p = 
+  (manyFold (fun acc x -> fun l -> acc (x::l)) (fun x -> x) p) --> (fun t -> t [])
+
 let (<*>) = many
 
-let some p = p |> (fun h -> many p --> (fun t -> h :: t))
+let someFold f init p = p |> (fun h -> manyFold f (f init h) p)
+
+let some p = (someFold (fun acc x -> fun l -> acc (x::l)) (fun x -> x) p) --> (fun t -> t [])
 
 let (<+>) = some
     
