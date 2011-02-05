@@ -343,11 +343,11 @@ let rec get_defined_ident = function
   | <:patt< $p1$ | $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
   | <:patt< $p1$ .. $p2$ >> -> get_defined_ident p1 @ get_defined_ident p2
   | <:patt< ($p$ : $_$) >> -> get_defined_ident p
-  | <:patt< ~$_$ >> -> []
-  | <:patt< ~$_$: $p$ >> -> get_defined_ident p
-  | <:patt< ?$_$ >> -> []
-  | <:patt< ?$_$: ($p$) >> -> get_defined_ident p
-  | <:patt< ?$_$: ($p$ = $e$) >> -> get_defined_ident p
+  | <:patt< ~{$_$} >> -> []
+  | <:patt< ~{$_$ = $p$} >> -> get_defined_ident p
+  | <:patt< ?{$_$} >> -> []
+  | <:patt< ?{$lid:s$ = $_$} >> -> [s]
+  | <:patt< ?{$_$ = ?{$lid:s$ = $e$}} >> -> [s]
   | <:patt< $anti:p$ >> -> get_defined_ident p
   | _ -> [] 
 
