@@ -79,12 +79,12 @@ let opt p s =
 let (<?>) = opt
 
 let manyFold f init p =
-  let rec inner acc s =
+  let rec inner err acc s =
     match p s with
-    | Parsed ((x, s'), d) -> inner (f acc x) s'
-    | Failed d            -> Parsed ((acc, s), d)
+    | Parsed ((x, s'), d) -> inner (join err d) (f acc x) s'
+    | Failed d            -> Parsed ((acc, s), join err d)
   in
-  inner init 
+  inner None init 
 
 let many p = 
   (manyFold (fun acc x -> fun l -> acc (x::l)) (fun x -> x) p) --> (fun t -> t [])
