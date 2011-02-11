@@ -64,8 +64,8 @@ let seq x y s =
   match x s with
   | Parsed ((b, s'), err) ->	
       (match y b s' with 
-      | Failed x -> Failed (join err x) 
-      | x -> x
+      | Failed  x     -> Failed (join err x) 
+      | Parsed (s, e) -> Parsed (s, join err e)
       )	
   | x -> cast x
     
