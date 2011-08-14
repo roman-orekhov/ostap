@@ -190,6 +190,9 @@ class t : string ->
     *)
     method get : string -> Str.regexp -> ('a, Token.t, Reason.t) Combinators.result
 
+    (** [regexp name str] is a shorthand for [get name (Str.regexp str)]. *)
+    method regexp : string -> string -> ('a, Token.t, Reason.t) Combinators.result
+
     (** [getEOF] detects the end of stream. *)
     method getEOF : ('a, Token.t, Reason.t) Combinators.result
 

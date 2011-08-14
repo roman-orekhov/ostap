@@ -161,9 +161,9 @@ type aux = [`Skipped of int * Msg.Coord.t | `Failed of Msg.t | `Init]
 
 class t s =   
   object (self)
-
-    val p     = 0
-    val coord = (1, 1)
+    val regexps = Hashtbl.create 256
+    val p       = 0
+    val coord   = (1, 1)
   
     method skip (p : int) (c : Msg.Coord.t) = (`Skipped (p, c) :> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t]) 
 
@@ -173,20 +173,34 @@ class t s =
     method private failed x c   = Failed (reason (Msg.make x [||] (Msg.Locator.Point c)))
 
     method pos   = p
-
     method coord = coord
-
     method line  = fst coord
+    method col   = snd coord
 
-    method col = snd coord
+    method private proceed f =
+      match context with 
+      | `Failed msg -> Failed (reason msg)
+      | `Init ->
+	  (match self#skip p coord with
+	  | `Skipped (p, coord) -> f p coord
+	  | `Failed msg -> Failed (reason msg)
+	  )
+      | `Skipped (p, coord) -> f p coord
 
     method prefix n =
       if p + n < String.length s 
       then String.sub s p n
       else String.sub s p (String.length s - p)
 
-    method get name regexp =
-      let inner p coord =
+    method regexp name str = self#get name 
+      (try Hashtbl.find regexps str with Not_found ->
+         let regexp = Str.regexp str in
+         Hashtbl.add regexps str regexp;
+         regexp 
+      )
+
+    method get name regexp = self#proceed 
+      (fun p coord ->
         if string_match regexp s p
         then 
           let m = matched_string s in
@@ -195,53 +209,27 @@ class t s =
           let c = shiftPos coord m 0 l in
           self#parsed m {< p = p;  coord = c; context = ((self#skip p c) :> aux) >} coord
         else self#failed (sprintf "\"%s\" expected" name) coord
-      in
-      match context with 
-      | `Failed msg -> Failed (reason msg)
-      | `Init ->
-	  (match self#skip p coord with
-	  | `Skipped (p, coord) -> inner p coord	
-	  | `Failed msg -> Failed (reason msg)
-	  )
-      | `Skipped (p, coord) -> inner p coord
+      )
 
-    method look str = 
-      let inner p coord =
-	try 
-	  let l = String.length str in
-	  let m = String.sub s p l in
-	  let p = p + l in
-	  let c = shiftPos coord m 0 (length m) in
-	  if str = m 
-	  then self#parsed m {< p = p; coord = c; context = ((self#skip p c) :> aux) >} coord
-	  else self#failed (sprintf "\"%s\" expected" str) coord
-	with Invalid_argument _ -> self#failed (sprintf "\"%s\" expected" str) coord
-      in
-      match context with 
-      | `Failed msg -> Failed (reason msg)
+    method look str = self#proceed 
+      (fun p coord ->
+         try 
+	   let l = String.length str in
+	   let m = String.sub s p l in
+	   let p = p + l in
+	   let c = shiftPos coord m 0 (length m) in
+	   if str = m 
+	   then self#parsed m {< p = p; coord = c; context = ((self#skip p c) :> aux) >} coord
+	   else self#failed (sprintf "\"%s\" expected" str) coord
+         with Invalid_argument _ -> self#failed (sprintf "\"%s\" expected" str) coord
+      )
 
-      | `Init ->
-	  (match self#skip p coord with
-	  | `Skipped (p, coord) -> inner p coord	
-	  | `Failed msg -> Failed (reason msg)
-	  )
-
-      | `Skipped (p, coord) -> inner p coord
-
-    method getEOF = 
-      let inner p coord =
+   method getEOF = self#proceed 
+     (fun p coord ->
 	if p = length s 
 	then self#parsed "<EOF>" {< p = p; coord = coord>} coord
 	else self#failed "<EOF> expected" coord
-      in
-      match context with 
-      | `Failed msg -> Failed (reason msg)
-      | `Init ->
-	  (match self#skip p coord with
-	  | `Skipped (p, coord) -> inner p coord
-	  | `Failed msg -> Failed (reason msg)
-	  )
-      | `Skipped (p, coord) -> inner p coord
+     )
 
     method loc = Msg.Locator.Point coord
 

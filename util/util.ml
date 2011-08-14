@@ -72,7 +72,7 @@ let expr ops opnd =
       ops 
   in
   let n      = Array.length ops in
-  let op s i = ops.(i) s        in
+  let op i s = ops.(i) s        in
   let id x   = x                in  
   let ostap (
     inner[l][c]: 

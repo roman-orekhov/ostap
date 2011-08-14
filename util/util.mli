@@ -25,48 +25,57 @@ open Combinators
     and folds it with function [f] and initial value [x]. Note that inside Ostap syntax extension the notation 
     [listByWith[delim][item][f][x]] should be used.
  *)
-val listByWith : 'a ->
-                 ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.parse ->
+val listByWith : ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.parse ->
                  ('a, 'd, 'c) Combinators.parse ->
-                 ('e -> 'd -> 'e) -> '
-                 e -> 
+                 ('e -> 'd -> 'e) -> 
+                 'e -> 
+                 'a ->
                  ('a, 'e, 'c) Combinators.result 
 
 (** [listBy s delim item] parses a non-empty list of [item]s delimited by [delim] from a stream [s].
      Note that inside Ostap syntax extension the notation [listBy[delim][item]] should be used.
   *)
-val listBy : 'a -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) parse -> ('a, 'd, 'c) parse -> ('a, 'd list, 'c) Combinators.result
+val listBy : ('a, 'b, < add : 'c -> 'c; .. > as 'c) parse -> 
+             ('a, 'd, 'c) parse -> 
+             'a -> 
+             ('a, 'd list, 'c) Combinators.result
 
 (** [list s item] parses a non-empty list delimited by commas. Inside Ostap syntax extensions this should
      be used in the form [list[item]].
  *)
-val list : (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) result; .. > as 'a) ->
-           ('a, 'd, 'c) parse -> 
+val list : ('a, 'd, 'c) parse -> 
+           (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) result; .. > as 'a) ->
            ('a, 'd list, 'c) result
 
 (** [listWith s item f x] parses a non-empty list delimited by commas and folds it with the function [f] and initial
     value [x]. Inside Ostap syntax extensions this should be used in the form [listWith[item][f][x]].
  *)
-val listWith : (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.result; .. > as 'a) ->  
-               ('a, 'd, 'c) Combinators.parse -> 
-               ('e -> 'd -> 'e) -> 'e -> ('a, 'e, 'c) Combinators.result
+val listWith : ('a, 'd, 'c) Combinators.parse -> 
+               ('e -> 'd -> 'e) -> 'e -> 
+               (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.result; .. > as 'a) ->  
+               ('a, 'e, 'c) Combinators.result
 
 (** [list0*] functions are that analoguous to [list*] but parse possibly empty lists. *)
-val list0ByWith : 'a ->
-                  ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.parse ->
+val list0ByWith : ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.parse ->
                   ('a, 'd, 'c) Combinators.parse ->
-                  ('e -> 'd -> 'e) -> '
-                  e -> 
+                  ('e -> 'd -> 'e) -> 
+                  'e -> 
+                  'a ->
                   ('a, 'e, 'c) Combinators.result 
 
-val list0By : 'a -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) parse -> ('a, 'd, 'c) parse -> ('a, 'd list, 'c) Combinators.result
+val list0By : ('a, 'b, < add : 'c -> 'c; .. > as 'c) parse -> 
+              ('a, 'd, 'c) parse -> 
+              'a ->
+              ('a, 'd list, 'c) Combinators.result
 
-val list0With : (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.result; .. > as 'a) ->  
-                ('a, 'd, 'c) Combinators.parse -> 
-                ('e -> 'd -> 'e) -> 'e -> ('a, 'e, 'c) Combinators.result
+val list0With : ('a, 'd, 'c) Combinators.parse -> 
+                ('e -> 'd -> 'e) -> 
+                'e -> 
+                (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.result; .. > as 'a) ->  
+                ('a, 'e, 'c) Combinators.result
 
-val list0 : (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.result; .. > as 'a) ->
-            ('a, 'd, 'c) parse -> 
+val list0 : ('a, 'd, 'c) parse -> 
+            (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.result; .. > as 'a) ->
             ('a, 'd list, 'c) result
 
 (** {2 Expression parsing} *)

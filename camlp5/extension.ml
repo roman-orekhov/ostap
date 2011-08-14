@@ -402,7 +402,7 @@ EXTEND
       let args' = 
 	match args with 
 	  None   -> [<:patt< s >>]
-	| Some l -> <:patt< s >> :: l
+	| Some l -> l @ [<:patt< s >>]
       in
       let rule =
 	List.fold_right 
@@ -413,7 +413,7 @@ EXTEND
 	  args'
 	  <:expr< $p$ s >>
       in      
-      let p =	match args with 
+      let p = match args with 
             None      -> []
           | Some args -> 
 	      let args =
@@ -595,7 +595,7 @@ EXTEND
           match args with 
              None           -> (p, Some s)
            | Some (args, a) -> 
-	       let args = <:expr< s >> :: args in
+	       let args = args @ [<:expr< s >>] in
 	       let body = List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args in
 	       let pwel = [(<:patt< s >>, Ploc.VaVal None, body)] in
 	       (<:expr< fun [$list:pwel$] >>, (Some (Expr.apply s a)))
@@ -625,6 +625,17 @@ EXTEND
     ] |
     [ "$"; "("; p=expr; ")" ->
           let look = <:expr< s # look ($p$) >> in
+          let pwel = [
+	    (
+	     <:patt<$lid:"s"$>>, 
+	     Ploc.VaVal None, 
+	     look 
+	    )
+	  ] in
+          (<:expr<fun [$list:pwel$]>>, Some (Expr.string (!printExpr p)))
+    ] |
+    [ "@"; "("; p=expr; ")" ->
+          let look = <:expr< s # regexp ($p$) ($p$) >> in
           let pwel = [
 	    (
 	     <:patt<$lid:"s"$>>, 
