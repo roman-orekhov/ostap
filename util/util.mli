@@ -117,7 +117,7 @@ val right : 'a assoc
     can be used as operands.
  *)
 val expr :
-  ('a assoc * (('c, 'b, < add : 'e -> 'e; .. > as 'e) parse * ('a -> 'a -> 'a)) list) array -> 
+  ((*'a assoc*)[`Lefta | `Righta | `Nona] * (('c, 'b, < add : 'e -> 'e; .. > as 'e) parse * ('a -> 'a -> 'a)) list) array -> 
   ('c, 'a, 'e) parse -> 
   ('c, 'a, 'e) parse
 
