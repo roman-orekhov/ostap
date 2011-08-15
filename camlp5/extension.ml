@@ -374,8 +374,8 @@ EXTEND
 
   expr: LEVEL "expr1" [
     [ "ostap"; "("; (p, tree)=o_alternatives; ")" ->
-      let body = <:expr< $p$ s >> in
-      let pwel = [(<:patt< s >>, Ploc.VaVal None, body)] in
+      let body = <:expr< $p$ _ostap_stream >> in
+      let pwel = [(<:patt< _ostap_stream >>, Ploc.VaVal None, body)] in
       let f = <:expr< fun [$list:pwel$] >> in
       (match tree with Some tree -> Cache.cache (!printExpr f) tree | None -> ());
       f      
@@ -401,8 +401,8 @@ EXTEND
     [ name=LIDENT; args=OPT o_formal_parameters; ":"; (p, tree)=o_alternatives ->
       let args' = 
 	match args with 
-	  None   -> [<:patt< s >>]
-	| Some l -> l @ [<:patt< s >>]
+	  None   -> [<:patt< _ostap_stream >>]
+	| Some l -> l @ [<:patt< _ostap_stream >>]
       in
       let rule =
 	List.fold_right 
@@ -411,7 +411,7 @@ EXTEND
 	    <:expr< fun [$list:pwel$] >>
 	  ) 
 	  args'
-	  <:expr< $p$ s >>
+	  <:expr< $p$ _ostap_stream >>
       in      
       let p = match args with 
             None      -> []
@@ -470,7 +470,7 @@ EXTEND
 		  | Some expr -> Some (<:expr< Ostap.Combinators.alt $item$ $expr$ >>)	          
 		) p None
 	    with 
-	      None   -> raise (Failure "internal error - must not happen")
+	      None   -> raise (Failure "internal error --- must not happen")
 	    | Some x -> (x, match trees with [] -> None | _ -> Some (Expr.alt trees))	    	
     ]
   ];
@@ -595,17 +595,17 @@ EXTEND
           match args with 
              None           -> (p, Some s)
            | Some (args, a) -> 
-	       let args = args @ [<:expr< s >>] in
+	       let args = args @ [<:expr< _ostap_stream >>] in
 	       let body = List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args in
-	       let pwel = [(<:patt< s >>, Ploc.VaVal None, body)] in
+	       let pwel = [(<:patt< _ostap_stream >>, Ploc.VaVal None, body)] in
 	       (<:expr< fun [$list:pwel$] >>, (Some (Expr.apply s a)))
     ] |
     [ p=UIDENT ->  
             let p' = "get" ^ p in
-            let look = <:expr< s # $p'$ >> in
+            let look = <:expr< _ostap_stream # $p'$ >> in
             let pwel = [
 	      (
-	       <:patt< s >>, 
+	       <:patt< _ostap_stream >>, 
 	       Ploc.VaVal None, 
 	       look
 	      )
@@ -613,10 +613,10 @@ EXTEND
             (<:expr< fun [$list:pwel$] >>, Some (Expr.term p))
     ] |
     [ p=STRING -> 
-          let look = <:expr< s # look $str:p$ >> in
+          let look = <:expr< _ostap_stream # look $str:p$ >> in
           let pwel = [
 	    (
-	     <:patt<$lid:"s"$>>, 
+	     <:patt<$lid:"_ostap_stream"$>>, 
 	     Ploc.VaVal None, 
 	     look 
 	    )
@@ -624,21 +624,22 @@ EXTEND
           (<:expr<fun [$list:pwel$]>>, Some (Expr.string p))
     ] |
     [ "$"; "("; p=expr; ")" ->
-          let look = <:expr< s # look ($p$) >> in
+          let look = <:expr< _ostap_stream # look ($p$) >> in
           let pwel = [
 	    (
-	     <:patt<$lid:"s"$>>, 
+	     <:patt<$lid:"_ostap_stream"$>>, 
 	     Ploc.VaVal None, 
 	     look 
 	    )
 	  ] in
           (<:expr<fun [$list:pwel$]>>, Some (Expr.string (!printExpr p)))
     ] |
-    [ "@"; "("; p=expr; ")" ->
-          let look = <:expr< s # regexp ($p$) ($p$) >> in
+    [ "@"; "("; p=expr; n=OPT o_regexp_name; ")" ->
+          let name = match n with None -> p | Some p -> p in
+          let look = <:expr< _ostap_stream # regexp ($name$) ($p$) >> in
           let pwel = [
 	    (
-	     <:patt<$lid:"s"$>>, 
+	     <:patt<$lid:"_ostap_stream"$>>, 
 	     Ploc.VaVal None, 
 	     look 
 	    )
@@ -648,6 +649,8 @@ EXTEND
     [ "$" -> (<:expr< Ostap.Combinators.lift >>, None) ] |
     [ "("; (p, s)=o_alternatives; ")" -> (p, bindOption s (fun s -> Expr.group s)) ]   
   ];
+
+  o_regexp_name: [[ ":"; e=expr -> e ]];
 
   o_reference: [
     [ p=LIDENT -> Uses.register p; (<:expr< $lid:p$ >>, Args.wrap p) ] |
