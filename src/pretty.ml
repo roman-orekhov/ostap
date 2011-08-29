@@ -51,7 +51,7 @@ let listBy delim list =
       (
        List.fold_left 
 	 (fun flag e -> 
-	   if flag then delim ppf;
+	   if flag && (e != empty) then delim ppf;
            e ppf;
 	   true
 	 ) 
@@ -63,7 +63,7 @@ let arrayBy delim a =
   fun ppf ->
     let l = Array.length a - 1 in
     for i=0 to l do
-      if i>0 then delim ppf;
+      if i>0 && (a.(i) != empty) then delim ppf;
       a.(i) ppf
     done
 

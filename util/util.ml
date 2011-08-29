@@ -58,12 +58,14 @@ ostap (
   list0: list0By[ostap (",")]
 )
 
-type 'a assoc = ('a -> 'a -> 'a) -> ('a -> 'a) -> 'a -> 'a -> 'a
-
 let left  f c x y = f (c x) y 
 let right f c x y = c (f x y) 
 
-let expr ops opnd =
+ostap (
+  id[x]: x
+)
+
+let expr f ops opnd =
   let ops =
     Array.map 
       (fun (assoc, list) ->
@@ -77,14 +79,14 @@ let expr ops opnd =
   let nona i = fst ops.(i)      in
   let id x   = x                in  
   let ostap (
-    inner[l][c]: 
-      {n = l                } => x:opnd {c x}  
+    inner[l][c]: f[ostap (
+      {n = l                } => x:opnd {c x}
     | {n > l && not (nona l)} => x:inner[l+1][id] b:(-o:op[l] inner[l][o c x])? {
         match b with None -> c x | Some x -> x
       }
     | {n > l && nona l} => x:inner[l+1][id] b:(-o:op[l] inner[l+1][o c x])? {
         match b with None -> c x | Some x -> x
-      }
+      })]
   )
   in 
   ostap (inner[0][id])

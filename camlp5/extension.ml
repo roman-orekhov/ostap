@@ -95,7 +95,7 @@
 
   [binding] {b : } {i PATT} [:]
 
-  [predicate] {b : } [=> {] {i EXPR}  [}=>] {b \[} [::(] {i EXPR} [)]{b \]}
+  [predicate] {b : } [=> {] {i EXPR}  [}] {b \[} [::(] {i EXPR} [)]{b \]} [=>]
 
   [semantic] {b : } [{] {i EXPR} [}]
 

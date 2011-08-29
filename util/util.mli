@@ -78,31 +78,28 @@ val list0 : ('a, 'd, 'c) parse ->
             (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.result; .. > as 'a) ->
             ('a, 'd list, 'c) result
 
+(** [id x] is just the parser x *)
+val id : ('a, 'b, 'c) parse -> ('a, 'b, 'c) parse
+
 (** {2 Expression parsing} *)
 
-(** Type to specify associativity of operators for expression of type ['a]. *)
-type 'a assoc
-
-(** Associativity values to represent associativity of operators for expression of type ['a]. *)
-(** *)
-val left : 'a assoc
-val right : 'a assoc
-
-(** Expression parser generator. [expr opers opnd] constructs parser of expressions with (ground) operands
+(** Expression parser generator. [expr f opers opnd] constructs parser of expressions with (ground) operands
     specified by [opnd] and operators specified by [opers]. Operand specification [opnd] has to be
     parser of type [('c, 'a, 'e) parse], where ['c] is the type of stream, ['a] is the type of
     operand (and therefore the type of expression) and ['e] is the type of reason. Operator specification
     [opers] is represented by an array in which binary operators with the same precedence level and the same
     associativity are grouped together (the first array element corresponds to the group of operators with the
     lowest priority). Each elements of the array contains pair [(assoc, oplist)] where [assoc] is
-    associativity value ([left] or [right]) and [oplist] is a list of pairs [(opparse, opsema)], where
-    [opparse] is parser of operator symbol and [opsema] is semantic function of type ['a -> 'a -> 'a]. 
+    associativity value ([`Righta], [`Lefta] or [`Nona]) and [oplist] is a list of pairs [(opparse, opsema)], where
+    [opparse] is parser of operator symbol and [opsema] is semantic function of type ['a -> 'a -> 'a]. Additional
+    higher-order parser [f] is used to allow some post-processing of every subexpression being parsed. In most 
+    cases identity parser [id] is sufficient.
 
     Example:
     
     {[
       let rec parse s =                                                                                    
-        expr                                                                                             
+        expr id
           [|                                                                                            
             left , [ostap ("+"), (fun x y -> `Add (x, y)); ostap ("-"), (fun x y -> `Sub (x, y))]; 
             left , [ostap ("*"), (fun x y -> `Mul (x, y)); ostap ("/"), (fun x y -> `Div (x, y))]  
@@ -116,10 +113,11 @@ val right : 'a assoc
     First two operators have lower precedence level than others. Identifier and expressions in brackets
     can be used as operands.
  *)
-val expr :
-  ((*'a assoc*)[`Lefta | `Righta | `Nona] * (('c, 'b, < add : 'e -> 'e; .. > as 'e) parse * ('a -> 'a -> 'a)) list) array -> 
-  ('c, 'a, 'e) parse -> 
-  ('c, 'a, 'e) parse
+ val expr :
+     (('a, 'b, < add : 'c -> 'c; .. > as 'c) parse -> ('a, 'b, 'c) parse) ->
+     ([< `Lefta | `Nona | `Righta > `Nona ] * (('a, 'd, 'c) parse * ('b -> 'b -> 'b)) list) array ->
+     ('a, 'b, 'c) parse ->
+     ('a, 'b, 'c) parse
 
 (** {2 Miscellaneous} *)
 
