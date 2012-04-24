@@ -17,6 +17,7 @@
 
 open Str
 open Ostap
+open Combinators
 
 class lexer s p = 
   object
@@ -64,9 +65,9 @@ class lexer s p =
       
   end
 
-let list = rule <hd>=IDENT <tl>=(-"," IDENT)* {hd :: tl} end 
-let list = rule <hd>=list <tl>=(-";" list)* {hd :: tl} end
-let m = rule list -EOF end
+let list = ostap (hd:IDENT tl:(-"," IDENT)* {hd :: tl})
+let list = ostap (hd:list  tl:(-";" list)* {hd :: tl})
+let m = ostap (list -EOF)
 let _ =
   begin match m (new lexer "r,t , f , g ,     u, i; u, g " 0) with
   | Parsed ((str, _), _) -> 

@@ -133,19 +133,19 @@ module Diagram =
                   let state    = t.states.(i) in                  
                   let context' =
                     (map       (fun i -> i, s, m) state.epsilon) @
-                    (fold_left (fun acc (t, i) -> if Stream.endOf (matchStream t s) then acc else (i, s, m) :: acc) [] state.lookaheads
+                    (fold_left (fun acc (t, i) -> if Stream_ostap.endOf (matchStream t s) then acc else (i, s, m) :: acc) [] state.lookaheads
                     ) @
                     (fold_left 
                        (fun acc (arg, binds, i) -> 
                           let p     = funOf m arg in 
-                          let s', n = Stream.eqPrefix p s in 
+                          let s', n = Stream_ostap.eqPrefix p s in 
                           LOG[traceNFA] (
                             let module S = View.List (View.Char) in
                             printf "Matching argument: %s\n" arg;
                             printf "Value: %s\n" (S.toString (Obj.magic p));
-                            printf "Stream: %s\n" (S.toString (Obj.magic (Stream.take 10 s)));
+                            printf "Stream: %s\n" (S.toString (Obj.magic (Stream_ostap.take 10 s)));
                             printf "Matched symbols: %d\n" n;
-                            printf "Residual stream: %s\n" (S.toString (Obj.magic (Stream.take 10 s')))
+                            printf "Residual stream: %s\n" (S.toString (Obj.magic (Stream_ostap.take 10 s')))
                           );
                           if n = List.length p 
                           then 
@@ -157,7 +157,7 @@ module Diagram =
                        state.args
                     ) @ 
                     (try
-                       let a, s' = Stream.get s in
+                       let a, s' = Stream_ostap.get s in
                        map (fun (i, m) -> i, s', m) (state.symbol a m)
                      with End_of_file -> map (fun i -> i, s, m) state.eos
                     ) @ context                  
@@ -171,7 +171,7 @@ module Diagram =
 
             | [] -> raise End_of_file
           in
-          Stream.fromIterator [t.start, s, empty] inner
+          Stream_ostap.fromIterator [t.start, s, empty] inner
 
       end
 
@@ -507,5 +507,5 @@ let matchAll expr str =
 
 let matchAllStr expr str = 
   let module S = View.ListC (struct let concat = (^) end) (View.Char) in
-  Stream.map (fun (s, args) -> s, (fun name -> S.toString (args name))) (matchAll expr str)
+  Stream_ostap.map (fun (s, args) -> s, (fun name -> S.toString (args name))) (matchAll expr str)
 

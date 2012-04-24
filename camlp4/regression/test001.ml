@@ -17,6 +17,7 @@
 
 open Str
 open Ostap
+open Combinators
 
 class lexer s p = 
   object
@@ -64,7 +65,7 @@ class lexer s p =
       
   end
 
-let id = rule IDENT -EOF end 
+let id = ostap (IDENT -EOF)
 let _ =
   begin match id (new lexer "   hasToBeParsed " 0) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str

@@ -17,6 +17,7 @@
 
 open Str
 open Ostap
+open Combinators
 
 class lexer s p = 
   object
@@ -64,10 +65,10 @@ class lexer s p =
       
   end
 
-rules 
-  list[elem] : <hd>=elem <tl>=(-"," elem)* {hd :: tl};
-  m : list[rule IDENT end] -EOF 
-end 
+ostap (
+  list[elem] : hd:elem tl:(-"," elem)* {hd :: tl};
+  m : list[ostap (IDENT)] -EOF 
+)
 
 let _ =
   begin match m (new lexer "r,t , f , g ,     u, i " 0) with

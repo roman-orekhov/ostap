@@ -17,6 +17,7 @@
 
 open Str
 open Ostap
+open Combinators
 
 class lexer s p = 
   object
@@ -67,15 +68,15 @@ class lexer s p =
 module X =
   struct
 
-    let parse = rule "," end
+    let parse = ostap (",")
 
   end
 
 class ['a] ppp =
   object (self)
 
-    method list s (elem:'a) = let rules = l[elem]: <hd>=elem <tl>=(- !X.parse elem)* {hd :: tl} end in l s elem
-    method m = rule self#list[rule IDENT end] -EOF end 
+    method list s (elem:'a) = let ostap (l[elem]: hd:elem tl:(- !(X.parse) elem)* {hd :: tl}) in l s elem
+    method m = ostap (!(self#list)[ostap (IDENT)] -EOF)
     
   end 
 

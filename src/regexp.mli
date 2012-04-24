@@ -81,7 +81,7 @@ module Diagram :
             [args name] --- matched value for argument [name] (empty list for non-captured or
             non-matched names)
           *)
-        val matchStream : 'a t -> 'a Stream.t -> ('a Stream.t * (string -> 'a list)) Stream.t
+        val matchStream : 'a t -> 'a Stream_ostap.t -> ('a Stream_ostap.t * (string -> 'a list)) Stream_ostap.t
   
       end
 
@@ -94,7 +94,7 @@ module Diagram :
     [args name] --- matched value for argument [name] (empty list for non-captured or
     non-matched names).
  *)
-val matchAll : 'a t -> 'a Stream.t -> ('a Stream.t * (string -> 'a list)) Stream.t
+val matchAll : 'a t -> 'a Stream_ostap.t -> ('a Stream_ostap.t * (string -> 'a list)) Stream_ostap.t
 
 (** Specialized version of [matchAll] for character streams. *)
-val matchAllStr : char t -> char Stream.t -> (char Stream.t * (string -> string)) Stream.t
+val matchAllStr : char t -> char Stream_ostap.t -> (char Stream_ostap.t * (string -> string)) Stream_ostap.t
