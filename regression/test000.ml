@@ -4,7 +4,7 @@ open Printf
 
 let _ =
   let module S = View.List (View.String) in
-  let rest  s = sprintf "%s..." (Stream.takeStr 10 s) in 
+  let rest  s = sprintf "%s..." (Stream_ostap.takeStr 10 s) in 
   let print names s = 
     Stream.iter 
       (fun (s, b) -> 

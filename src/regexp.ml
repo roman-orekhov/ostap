@@ -42,25 +42,24 @@ module Diagram =
   struct
 
     type 'a expr = 'a t
+
+    module SS = Set.Make (String)
     
-    type 'a cond = If of string * ('a -> bool) | Ref of string | Lookahead of 'a t | Else | EoS 
-    and  'a tran = 'a cond * string list * 'a node
-    and  'a sort = State of 'a tran list | Ok | Back of 'a node option ref
-    and  'a node = 'a sort * int
+    type 'a cond = If of string * ('a -> bool) | Ref of string | Lookahead of 'a t | EoS 
+    and  'a tran = 'a cond * SS.t * 'a node
+    and  'a node = {mutable final: bool; mutable transitions: 'a tran list; id: int; mutable representer: 'a node option}
     and  'a t    = 'a node * string list * int
 
     let nnodes (_, _, n) = n
     let args   (_, n, _) = n
     let root   (n, _, _) = n
 
-    let rec derive = function
-      | Back r, _ -> let Some t = !r in derive t
-      | t -> t
-
-    let getId             = snd 
     let getDest (_, _, x) = x
-    let getTrans          = function (State x, _) -> x | _ -> [] 
-    let setTrans y        = function (State x, i) -> State y, i | _ -> invalid_arg "Ostap.Regexp.Diagram.setTrans" 
+
+    let rec getRepresenter node =
+      match node.representer with
+      | None -> node
+      | Some node -> getRepresenter node
 
     module Compiled =
       struct
@@ -75,101 +74,101 @@ module Diagram =
         type 'a diagram = 'a t
         type 'a state   = 
            {
-            epsilon   : int list; 
             eos       : int list; 
             symbol    : 'a -> 'a bnds -> (int * 'a bnds) list; 
             lookaheads: ('a t * int) list; 
             args      : (string * string list * int) list
            }
-        and 'a t = {states : 'a state array; start: int; ok : int}
+        and 'a t = {states : 'a state array; start: int; ok : int list}
 
-        let rec make (((root, start), _, num) : 'a diagram) = 
-          let empty    = {epsilon = []; eos = []; symbol = (fun _ _ -> []); lookaheads = []; args = []} in
-          let ok       = ref 0 in
+        let rec make ((node, _, num) : 'a diagram) = 
+          let empty    = {eos = []; symbol = (fun _ _ -> []); lookaheads = []; args = []} in
+          let ok       = ref [] in
           let t        = Array.init num (fun _ -> empty) in
           let filled   = Array.make num false            in
           let module S = Set.Make (Compare.Integer)      in
           let elems  s = S.fold (fun x l -> x :: l) s [] in
-          let rec inner ((node, id) as x) =
-            if not filled.(id) then 
+          let rec inner node =
+            let node = getRepresenter node in
+            if not filled.(node.id) then 
             begin
-              filled.(id) <- true;
-              match node with
-              | Ok -> ok := id
-              | _  ->
-                 let epsilon, eos, trans, lkhds, args =
-                   fold_left 
-                     (fun (epsilon, eos, trans, lkhds, args) (cond, binds, dst) -> 
-                        let dst    = derive dst    in
-                        let dstId  = getId dst     in
-		        let addDst = S.add (dstId) in
-                        inner dst;
-                        match cond with
-                        | If (_, f)   -> epsilon, eos, (f, binds, dstId) :: trans, lkhds, args
-                        | Ref       s -> epsilon, eos, trans, lkhds, (s, binds, dstId) :: args
-                        | Lookahead t -> epsilon, eos, trans, (make t, dstId) :: lkhds, args 
-                        | EoS         -> epsilon, addDst eos, trans, lkhds, args
-                        | Else        -> addDst epsilon, eos, trans, lkhds, args
-		     ) 
-                     (S.empty, S.empty, [], [], [])
-                     (getTrans x)
-                 in
-                 let trans a m =
-                   flatten (map (fun (f, binds, dst) -> if f a then [dst, fold_left (fun m n -> bind n a m) m binds] else []) trans)
-                 in
-                 t.(id) <- {epsilon = elems epsilon; eos = elems eos; symbol = trans; lookaheads = lkhds; args = args}
+              filled.(node.id) <- true;
+              if node.final then ok := node.id :: !ok;
+              let eos, trans, lkhds, args =
+                fold_left 
+                  (fun (eos, trans, lkhds, args) (cond, binds, dst) -> 
+                     let dst = getRepresenter dst in
+	             let addDst = S.add (dst.id) in
+                     inner dst;
+                     match cond with
+                     | If (_, f)   -> eos, (f, binds, dst.id) :: trans, lkhds, args
+                     | Ref       s -> eos, trans, lkhds, (s, SS.elements binds, dst.id) :: args
+                     | Lookahead t -> eos, trans, (make t, dst.id) :: lkhds, args 
+                     | EoS         -> addDst eos, trans, lkhds, args
+		  ) 
+                  (S.empty, [], [], [])
+                  node.transitions
+               in
+               let trans a m =
+                 flatten (map (fun (f, binds, dst) -> if f a then [dst, SS.fold (fun n m -> bind n a m) binds m] else []) trans)
+               in
+               t.(node.id) <- {eos = elems eos; symbol = trans; lookaheads = lkhds; args = args}
             end
           in
-          inner (root, start);
-          {states = t; start = start; ok = !ok}
+          inner node;
+          {states = t; start = (getRepresenter node).id; ok = !ok}
           
         let rec matchStream t s =
           let rec inner = function
-            | (i, s, m) :: context ->
-                LOG[traceNFA] (printf "state: %d\n" i);
-                if i = t.ok 
-                then (s, funOf m), context
-                else 
-                  let state    = t.states.(i) in                  
-                  let context' =
-                    (map       (fun i -> i, s, m) state.epsilon) @
-                    (fold_left (fun acc (t, i) -> if Stream_ostap.endOf (matchStream t s) then acc else (i, s, m) :: acc) [] state.lookaheads
-                    ) @
-                    (fold_left 
-                       (fun acc (arg, binds, i) -> 
-                          let p     = funOf m arg in 
-                          let s', n = Stream_ostap.eqPrefix p s in 
-                          LOG[traceNFA] (
-                            let module S = View.List (View.Char) in
-                            printf "Matching argument: %s\n" arg;
-                            printf "Value: %s\n" (S.toString (Obj.magic p));
-                            printf "Stream: %s\n" (S.toString (Obj.magic (Stream_ostap.take 10 s)));
-                            printf "Matched symbols: %d\n" n;
-                            printf "Residual stream: %s\n" (S.toString (Obj.magic (Stream_ostap.take 10 s')))
-                          );
-                          if n = List.length p 
-                          then 
-                            let m' = List.fold_left (fun m name -> List.fold_right (fun x m -> bind name x m) p m) m binds in
-			    (i, s', m') :: acc 
-                          else acc
-                       ) 
-                       [] 
-                       state.args
-                    ) @ 
-                    (try
-                       let a, s' = Stream_ostap.get s in
-                       map (fun (i, m) -> i, s', m) (state.symbol a m)
-                     with End_of_file -> map (fun i -> i, s, m) state.eos
-                    ) @ context                  
-                  in
-                  LOG[traceNFA] (
-                    printf "next states: ";
-                    List.iter (fun (i, _, _) -> printf "%d " i) context';
-                    printf "\n"
-                  );
-                  inner context'              
-
-            | [] -> raise End_of_file
+          | (i, s, m) :: context ->
+              LOG[traceNFA] (printf "state: %d, stream: %s\n" i (Ostream.takeStr 10 s));
+              let result = 
+                try  
+                  ignore (List.find (fun j -> i = j) t.ok); 
+                  Some (s, funOf m)
+                with Not_found -> None
+              in
+              let state    = t.states.(i) in                  
+              let context' =
+                let lkhds = (fold_left (fun acc (t, i) -> if Stream_ostap.endOf (matchStream t s) then acc else (i, s, m) :: acc) [] state.lookaheads) in
+                let args =
+                  fold_left 
+                    (fun acc (arg, binds, i) -> 
+                       let p     = funOf m arg in 
+                       let s', n = Stream_ostap.eqPrefix p s in 
+                       LOG[traceNFA] (
+                         let module S = View.List (View.Char) in
+                         printf "Matching argument: %s\n" arg;
+                         printf "Value: %s\n" (S.toString (Obj.magic p));
+                         printf "Stream: %s\n" (S.toString (Obj.magic (Stream_ostap.take 10 s)));
+                         printf "Matched symbols: %d\n" n;
+                         printf "Residual stream: %s\n" (S.toString (Obj.magic (Stream_ostap.take 10 s')))
+                       );
+                       if n = List.length p 
+                       then 
+                         let m' = List.fold_left (fun m name -> List.fold_right (fun x m -> bind name x m) p m) m binds in
+	                 (i, s', m') :: acc 
+                       else acc
+                    ) 
+                    [] 
+                    state.args                     
+                in
+                let eos = 
+                  try
+                    let a, s' = Stream_ostap.get s in
+                    map (fun (i, m) -> i, s', m) (state.symbol a m)
+                  with End_of_file -> map (fun i -> i, s, m) state.eos                     
+                in
+                lkhds @ args @ eos @ context                  
+              in
+              LOG[traceNFA](
+                printf "next states: ";
+                List.iter (fun (i, _, _) -> printf "%d " i) context';
+                printf "\n"
+              );
+              (match result with None -> inner context' | Some r -> r, context')
+               
+          | [] -> raise End_of_file
           in
           Stream_ostap.fromIterator [t.start, s, empty] inner
 
@@ -190,61 +189,59 @@ module Diagram =
         let node id label = Buffer.add_string buf (sprintf "node_%s_%d [label=\"id=%d, %s\"];\n" prefix id id label) in 
         let edge id = 
           let doit t l =
+            let t = getRepresenter t in 
             let inDOT i j label =
               Buffer.add_string buf (sprintf "node_%s_%d -> node_%s_%d [label=\"%s\"];\n" prefix i prefix j label)
             in
-            inDOT id (getId (derive t)) l
+            inDOT id t.id l
           in
-          let bindings =
+          let bindings b =
             let module L = View.List (View.String) in
-            L.toString
+            L.toString (SS.elements b)
           in
           function
           | If (s, _)  , bs, t -> doit t (sprintf "if(%s)[%s]"  s (bindings bs))
           | Ref s      , bs, t -> doit t (sprintf "ref(%s)[%s]" s (bindings bs)) 
-          | Else       , bs, t -> doit t (sprintf "else [%s]"     (bindings bs))
           | EoS        , _ , t -> doit t "EoS" 
           | Lookahead x, _ , t ->
               let r        = root x                     in
-              let cId, rId = clusterId (), getId r      in
+              let cId, rId = clusterId (), r.id         in
               let prefix'  = sprintf "%s_%d" prefix cId in
               Buffer.add_string buf (sprintf "subgraph cluster_%d {\n" cId);
               Buffer.add_string buf (sprintf "  label=\"lookahead\";\n");
-              let str, okId = toDOT prefix' r in
+              let str, oks = toDOT prefix' r in
               Buffer.add_string buf str;
               Buffer.add_string buf "}\n";
               Buffer.add_string buf (sprintf "node_%s_%d -> node_%s_%d;\n" prefix id prefix' rId);
-              Buffer.add_string buf (sprintf "node_%s_%d -> node_%s_%d;\n" prefix' okId prefix (getId (derive t)))
+              List.iter (
+                 fun ok -> 
+                   Buffer.add_string buf (sprintf "node_%s_%d -> node_%s_%d;\n" prefix' ok prefix t.id)
+                 )
+                 oks
         in
-        let rec inner (sort, id) ((visited, ok) as context) =
-          if S.mem id visited 
+        let rec inner nd ((visited, oks) as context) =
+          let nd = getRepresenter nd in
+          if S.mem nd.id visited 
           then context
           else
-            let (visited', _) as context' = S.add id visited, ok in
-            match sort with
-            | State trans -> 
-                node id "state"; 
-                fold_left (fun acc tran -> edge id tran; inner (getDest tran) acc) context' trans
-           
-            | Ok -> node id "ok"; (visited', Some id)
-
-            | Back _ -> context'
+            let (visited', _) as context' = S.add nd.id visited, oks in
+            node nd.id (sprintf "state (%s)" (if nd.final then "final" else "non-final"));
+            fold_left (fun acc tran -> edge nd.id tran; inner (getDest tran) acc) (visited', if nd.final then nd.id :: oks else oks) nd.transitions
         in
-        let _, Some ok = inner p (S.empty, None) in
-        Buffer.contents buf, ok
+        let _, oks = inner p (S.empty, []) in
+        Buffer.contents buf, oks
       in
       sprintf "digraph X {\n%s\n}\n" (fst (toDOT "" r))
     
     let rec make expr =
       let checkName, getBindings =
-        let module S = Set.Make (String) in 
-        let names    = ref S.empty in
+        let names = ref SS.empty in
         (fun name -> 
-          names := S.add name !names; 
+          names := SS.add name !names; 
           name
         ),
         (fun () ->
-          S.fold (fun x l -> x :: l) !names []
+          SS.fold (fun x l -> x :: l) !names []
         )
       in      
       let eliminateBindings expr = 
@@ -255,7 +252,7 @@ module Diagram =
         | Opt    t     -> `Opt    (inner lookahead scoped binds t)
         | Alter  tl    -> `Alter  (map (inner lookahead scoped binds) tl)
         | Juxt   tl    -> `Juxt   (map (inner lookahead scoped binds) tl)
-        | Bind  (s, t) -> inner lookahead (s :: scoped) ((checkName s) :: binds) t
+        | Bind  (s, t) -> inner lookahead (s :: scoped) (SS.add (checkName s) binds) t
 
         | Arg s -> 
            begin try 
@@ -266,7 +263,7 @@ module Diagram =
         | Test  (s, f) -> `Test (s, f, binds)
         | EOS          -> `EOS
         in
-        inner false [] [] expr
+        inner false [] SS.empty expr
       in
       let rec simplify = function
         | `Opt    t -> (match simplify t with `Opt t -> `Opt t | `Aster t -> `Aster t | `Plus t -> `Aster t | t -> `Opt t)
@@ -301,22 +298,7 @@ module Diagram =
               )
             with
             | [t] -> t
-            | tl  ->
-               let opt, tl =
-                 fold_left 
-                   (fun (opt, tl) t ->
-                      match t with
-                      | `Aster t -> opt && true, (`Plus t) :: tl
-                      | `Juxt ((`Aster t) :: tl') -> 
-                          let tl' = match tl' with [t] -> t | _ -> `Juxt tl' in
-                          opt, tl' :: (`Juxt [`Plus t; tl'] :: tl)
-                      | t -> opt, t :: tl
-                   )  
-                   (false, [])
-                   tl
-               in
-               let t = `Alter tl in
-               if opt then `Opt t else t
+            | tl  -> `Alter tl
            )
         | `Arg s  -> `Arg s
         | `EOS    -> `EOS
@@ -329,37 +311,82 @@ module Diagram =
           incr i;
           j
       in
-      let registerNode, busyNode =
-        let module S = Set.Make (struct type t = int include Pervasives end) in
-        let ids = ref S.empty in
-        (fun n -> ids := S.add (getId n) !ids),
-        (fun (tag, id) -> tag = Ok || (S.mem id !ids))
+      let make_node trans = {final=false; transitions=trans; id=id (); representer=None} in
+      let mergeNodes a b =
+        let a  = getRepresenter a in
+        let b  = getRepresenter b in
+        let ab = {final=a.final || b.final; transitions=a.transitions @ b.transitions; id=id (); representer=None} in
+        a.representer <- Some ab;
+        b.representer <- Some ab;
+        ab     
       in
-      let addElse branch node = 
-        setTrans ((if busyNode branch then [Else, [], branch] else getTrans branch) @ (getTrans node)) node 
-      in
-      let rec inner succ =         
-        let return y = registerNode succ; y in
-        function
-        | `Aster t -> 
-	   let back = ref None in
-           let t'   = inner (Back back, id ()) t in
-           registerNode t';
-	   back := Some t';
-	   return (addElse succ t')
+      let transitions nodes = flatten (map (fun node -> node.transitions) nodes) in
+      let append nodes transitions = iter (fun node -> node.transitions <- node.transitions @ transitions) nodes in
+      let rec inner = function
+      | `Aster t -> 
+         let sn, en, s_en = inner t in
+         let h::t = sn @ en @ s_en in
+         [], [], [fold_left mergeNodes h t]
+      
+      | `Test (s, t, bs) -> 
+         let end_node = make_node [] in
+         let start_node = make_node [If (s, t), bs, end_node] in
+         [start_node], [end_node], []
 
-        | `Test (s, t, bs) -> return (State [If (s, t), bs, succ], (id ()))
-        | `Arg  (s, bs)    -> return (State [Ref s, bs, succ], (id ()))
+      | `Arg (s, bs)  -> 
+         let end_node = make_node [] in
+         let start_node = make_node [Ref s, bs, end_node] in
+         [start_node], [end_node], []         
 
-        | `Plus   t  -> return (inner succ (`Juxt [t; `Aster t]))
-        | `Opt    t  -> return (addElse succ (inner succ t))
-        | `Alter  tl -> return (State (flatten (map (fun t -> getTrans (inner succ t)) tl )), (id ()))
-        | `Juxt   tl -> return (fold_right (fun t succ -> inner succ t) tl succ)
-        | `Before t  -> return (State [Lookahead (make t), [], succ], (id ()))
-        | `EOS       -> return (State [EoS, [], succ], (id ()))
+      | `EOS -> 
+         let end_node = make_node [] in
+         let start_node = make_node [EoS, SS.empty, end_node] in
+         [start_node], [end_node], []         
+
+      | `Plus t -> inner (`Juxt [t; `Aster t])
+      | `Opt t -> 
+          let sn, en, s_en = inner t in
+          [], en, sn @ s_en
+
+      | `Alter tl -> 
+          fold_left 
+            (fun (x, y, z) t -> 
+               let sn, en, s_en = inner t in 
+               sn @ x, en @ y, s_en @ z
+            ) 
+            ([], [], []) 
+            tl
+         
+      | `Juxt (t::tl) -> 
+         let juxt2 (sn, en, s_en) (sn', en', s_en') = 
+           let ends = transitions (sn' @ s_en') in
+           let is_end = s_en' != [] in
+           append en ends;
+           append s_en ends;
+           if is_end 
+           then sn, en @ en' @ s_en', s_en 
+           else sn @ s_en, en' @ s_en', []
+         in
+         fold_left (fun acc t -> juxt2 acc (inner t)) (inner t) tl
+
+      | `Before t -> 
+         let end_node = make_node [] in
+         let start_node = make_node [Lookahead (make t), SS.empty, end_node] in
+         [start_node], [end_node], []
       in        
-      let d = inner (Ok, id ()) (simplify (eliminateBindings expr)) in
-      (d, getBindings (), id ())      
+      let sn, en, s_en = inner (simplify (eliminateBindings expr)) in
+      if s_en = [] && length sn = 1 
+      then begin 
+        iter (fun node -> node.final <- true) en;
+        (hd sn, getBindings (), id ())
+      end
+      else begin
+        let trans = transitions (sn @ s_en) in
+        let start_node = make_node trans in
+        let end_nodes = if s_en != [] then start_node::(s_en @ en) else en in
+        iter (fun a -> a.final <- true) end_nodes;
+        (start_node, getBindings (), id ())
+      end
 
   end
 
@@ -381,8 +408,6 @@ module ASCII =
           a
       in
       (fun c -> try Some (M.find c m) with Not_found -> None) 
-
-    let s (Test (s, _) as x) = s.[0], x 
 
     open ASCII
 
@@ -493,7 +518,7 @@ module ASCII =
         | _        -> 
            let t, s' = ground s in
            Test ("ground", t), s'
-        
+     
       
       let _ = Stream.zip (Stream.fromString s) (Stream.from 1) in
       ()
@@ -508,4 +533,3 @@ let matchAll expr str =
 let matchAllStr expr str = 
   let module S = View.ListC (struct let concat = (^) end) (View.Char) in
   Stream_ostap.map (fun (s, args) -> s, (fun name -> S.toString (args name))) (matchAll expr str)
-

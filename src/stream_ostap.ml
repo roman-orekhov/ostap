@@ -73,7 +73,7 @@ let matchPrefix f p s =
   in
   matchOne p s 0
 
-let eqPrefix p s= matchPrefix (=) p s
+let eqPrefix p s = matchPrefix (=) p s
 
 let matchPrefixStr f p s =
   let m = String.length p in

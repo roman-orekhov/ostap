@@ -97,7 +97,7 @@ module Holder =
 	      (
 	       List.fold_left
 		 (fun fence item ->
-		   match item with
+	   match item with
 		   | `Msg msg -> 
 		       let s = Msg.toString msg in
 		       if M.mem s fence 

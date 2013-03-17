@@ -2,6 +2,8 @@ open Ostap
 open Regexp
 open Printf
 
+module Stream = Stream_ostap
+
 let _ =
   let module S = View.List (View.String) in
   let rest  s = sprintf "%s..." (Stream.takeStr 10 s) in 

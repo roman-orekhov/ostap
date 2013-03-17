@@ -58,8 +58,8 @@ ostap (
   list0: list0By[ostap (",")]
 )
 
-let left  f c x y = f (c x) y 
-let right f c x y = c (f x y) 
+let left  f c x y = f (c x) y
+let right f c x y = f x y
 
 ostap (
   id[x]: x
@@ -69,8 +69,8 @@ let expr f ops opnd =
   let ops =
     Array.map 
       (fun (assoc, list) ->
-        let f = match assoc with `Lefta | `Nona -> left | `Righta -> right in
-	assoc = `Nona, altl (List.map (fun (oper, sema) -> ostap (!(oper) {f sema})) list)
+        let g = match assoc with `Lefta | `Nona -> left | `Righta -> right in
+	assoc = `Nona, altl (List.map (fun (oper, sema) -> ostap (!(oper) {g sema})) list)
       )
       ops 
   in

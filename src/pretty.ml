@@ -99,7 +99,7 @@ let block o c b = vboxed (seq [o; break; pad; b; break; c])
 
 let plock p b = vboxed (seq [p; break; pad; b])
 
-let brboxed o c b = hvboxed (seq [o; break; b; break; c])
+let brboxed o c b = hboxed (seq [o; break; b; break; c])
 
 let rboxed = brboxed (string "(") (string ")")
 let sboxed = brboxed (string "[") (string "]")
