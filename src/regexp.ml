@@ -47,7 +47,7 @@ module Diagram =
     
     type 'a cond = If of string * ('a -> bool) | Ref of string | Lookahead of 'a t | EoS 
     and  'a tran = 'a cond * SS.t * 'a node
-    and  'a node = {mutable final: bool; mutable transitions: 'a tran list; id: int; mutable representer: 'a node option}
+    and  'a node = {mutable final: bool; mutable transitions: 'a tran list; id: int}
     and  'a t    = 'a node * string list * int
 
     let nnodes (_, _, n) = n
@@ -55,11 +55,6 @@ module Diagram =
     let root   (n, _, _) = n
 
     let getDest (_, _, x) = x
-
-    let rec getRepresenter node =
-      match node.representer with
-      | None -> node
-      | Some node -> getRepresenter node
 
     module Compiled =
       struct
@@ -89,7 +84,6 @@ module Diagram =
           let module S = Set.Make (Compare.Integer)      in
           let elems  s = S.fold (fun x l -> x :: l) s [] in
           let rec inner node =
-            let node = getRepresenter node in
             if not filled.(node.id) then 
             begin
               filled.(node.id) <- true;
@@ -97,7 +91,6 @@ module Diagram =
               let eos, trans, lkhds, args =
                 fold_left 
                   (fun (eos, trans, lkhds, args) (cond, binds, dst) -> 
-                     let dst = getRepresenter dst in
 	             let addDst = S.add (dst.id) in
                      inner dst;
                      match cond with
@@ -116,7 +109,7 @@ module Diagram =
             end
           in
           inner node;
-          {states = t; start = (getRepresenter node).id; ok = !ok}
+          {states = t; start = node.id; ok = !ok}
           
         let rec matchStream t s =
           let rec inner = function
@@ -189,7 +182,6 @@ module Diagram =
         let node id label = Buffer.add_string buf (sprintf "node_%s_%d [label=\"id=%d, %s\"];\n" prefix id id label) in 
         let edge id = 
           let doit t l =
-            let t = getRepresenter t in 
             let inDOT i j label =
               Buffer.add_string buf (sprintf "node_%s_%d -> node_%s_%d [label=\"%s\"];\n" prefix i prefix j label)
             in
@@ -220,7 +212,6 @@ module Diagram =
                  oks
         in
         let rec inner nd ((visited, oks) as context) =
-          let nd = getRepresenter nd in
           if S.mem nd.id visited 
           then context
           else
@@ -311,22 +302,15 @@ module Diagram =
           incr i;
           j
       in
-      let make_node trans = {final=false; transitions=trans; id=id (); representer=None} in
-      let mergeNodes a b =
-        let a  = getRepresenter a in
-        let b  = getRepresenter b in
-        let ab = {final=a.final || b.final; transitions=a.transitions @ b.transitions; id=id (); representer=None} in
-        a.representer <- Some ab;
-        b.representer <- Some ab;
-        ab     
-      in
+      let make_node trans = {final=false; transitions=trans; id=id ()} in
       let transitions nodes = flatten (map (fun node -> node.transitions) nodes) in
       let append nodes transitions = iter (fun node -> node.transitions <- node.transitions @ transitions) nodes in
       let rec inner = function
       | `Aster t -> 
          let sn, en, s_en = inner t in
-         let h::t = sn @ en @ s_en in
-         [], [], [fold_left mergeNodes h t]
+         append en (transitions (sn @ s_en));
+         append s_en (transitions sn);
+         [], [], s_en @ en
       
       | `Test (s, t, bs) -> 
          let end_node = make_node [] in
