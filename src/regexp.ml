@@ -123,7 +123,11 @@ module Diagram =
               in
               let state    = t.states.(i) in                  
               let context' =
-                let lkhds = (fold_left (fun acc (t, i) -> if Stream_ostap.endOf (matchStream t s) then acc else (i, s, m) :: acc) [] state.lookaheads) in
+                let lkhds = 
+                  fold_left (fun acc (t, i) -> if Stream_ostap.endOf (matchStream t s) then acc else (i, s, m) :: acc) 
+                  [] 
+                  state.lookaheads 
+                in
                 let args =
                   fold_left 
                     (fun acc (arg, binds, i) -> 
@@ -310,7 +314,7 @@ module Diagram =
          let sn, en, s_en = inner t in
          append en (transitions (sn @ s_en));
          append s_en (transitions sn);
-         [], [], s_en @ en
+         sn, en, s_en
       
       | `Test (s, t, bs) -> 
          let end_node = make_node [] in
