@@ -4,9 +4,9 @@ open Printf
 
 let _ =
   let module S = View.List (View.String) in
-  let rest  s = sprintf "%s..." (Stream_ostap.takeStr 10 s) in 
+  let rest  s = sprintf "%s..." (Ostream.takeStr 10 s) in 
   let print names s = 
-    Stream.iter 
+    Ostream.iter 
       (fun (s, b) -> 
          printf "  stream: %s;\n  args  : %s\n" 
            (rest s) 

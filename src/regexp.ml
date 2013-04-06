@@ -91,14 +91,14 @@ module Diagram =
               let eos, trans, lkhds, args =
                 fold_left 
                   (fun (eos, trans, lkhds, args) (cond, binds, dst) -> 
-	             let addDst = S.add (dst.id) in
+                     let addDst = S.add (dst.id) in
                      inner dst;
                      match cond with
                      | If (_, f)   -> eos, (f, binds, dst.id) :: trans, lkhds, args
                      | Ref       s -> eos, trans, lkhds, (s, SS.elements binds, dst.id) :: args
                      | Lookahead t -> eos, trans, (make t, dst.id) :: lkhds, args 
                      | EoS         -> addDst eos, trans, lkhds, args
-		  ) 
+                  ) 
                   (S.empty, [], [], [])
                   node.transitions
                in
@@ -124,7 +124,7 @@ module Diagram =
               let state    = t.states.(i) in                  
               let context' =
                 let lkhds = 
-                  fold_left (fun acc (t, i) -> if Stream_ostap.endOf (matchStream t s) then acc else (i, s, m) :: acc) 
+                  fold_left (fun acc (t, i) -> if Ostream.endOf (matchStream t s) then acc else (i, s, m) :: acc) 
                   [] 
                   state.lookaheads 
                 in
@@ -132,19 +132,19 @@ module Diagram =
                   fold_left 
                     (fun acc (arg, binds, i) -> 
                        let p     = funOf m arg in 
-                       let s', n = Stream_ostap.eqPrefix p s in 
+                       let s', n = Ostream.eqPrefix p s in 
                        LOG[traceNFA] (
                          let module S = View.List (View.Char) in
                          printf "Matching argument: %s\n" arg;
                          printf "Value: %s\n" (S.toString (Obj.magic p));
-                         printf "Stream: %s\n" (S.toString (Obj.magic (Stream_ostap.take 10 s)));
+                         printf "Stream: %s\n" (S.toString (Obj.magic (Ostream.take 10 s)));
                          printf "Matched symbols: %d\n" n;
-                         printf "Residual stream: %s\n" (S.toString (Obj.magic (Stream_ostap.take 10 s')))
+                         printf "Residual stream: %s\n" (S.toString (Obj.magic (Ostream.take 10 s')))
                        );
                        if n = List.length p 
                        then 
                          let m' = List.fold_left (fun m name -> List.fold_right (fun x m -> bind name x m) p m) m binds in
-	                 (i, s', m') :: acc 
+                         (i, s', m') :: acc 
                        else acc
                     ) 
                     [] 
@@ -152,7 +152,7 @@ module Diagram =
                 in
                 let eos = 
                   try
-                    let a, s' = Stream_ostap.get s in
+                    let a, s' = Ostream.get s in
                     map (fun (i, m) -> i, s', m) (state.symbol a m)
                   with End_of_file -> map (fun i -> i, s, m) state.eos                     
                 in
@@ -167,7 +167,7 @@ module Diagram =
                
           | [] -> raise End_of_file
           in
-          Stream_ostap.fromIterator [t.start, s, empty] inner
+          Ostream.fromIterator [t.start, s, empty] inner
 
       end
 
@@ -462,7 +462,7 @@ module ASCII =
       let rec ground s =
         let makeExpr c =
           match getClass c with
-	  | Some t -> `T t
+          | Some t -> `T t
           | None   -> `C c
         in        
         explain 
@@ -490,10 +490,10 @@ module ASCII =
         | `C c -> c          
         in
         let e, s' = ground s in
-	match next s' with
+        match next s' with
         | '-', s'' -> 
-	   let c        = charOf s e in
-	   let e', s''' = ground s'' in
+           let c        = charOf s e in
+           let e', s''' = ground s'' in
            range c (charOf s'' e'), s''' 
           
         | _ -> (match e with `T e -> e | `C c -> ofChar c), s'
@@ -520,4 +520,4 @@ let matchAll expr str =
 
 let matchAllStr expr str = 
   let module S = View.ListC (struct let concat = (^) end) (View.Char) in
-  Stream_ostap.map (fun (s, args) -> s, (fun name -> S.toString (args name))) (matchAll expr str)
+  Ostream.map (fun (s, args) -> s, (fun name -> S.toString (args name))) (matchAll expr str)

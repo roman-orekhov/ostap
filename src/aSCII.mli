@@ -124,7 +124,7 @@ val fromChar : char -> t
 val toChar : t -> char
 
 (** Converts stream of characters into stream of ASCIIs. *)
-val asciiStream : char Stream_ostap.t -> t Stream_ostap.t
+val asciiStream : char Ostream.t -> t Ostream.t
 
 (** [range x y c] checks whether character [c] is within the range [[x..y]]. *)
 val range : char -> char -> char -> bool

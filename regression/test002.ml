@@ -2,13 +2,11 @@ open Ostap
 open Regexp
 open Printf
 
-module Stream = Stream_ostap
-
 let _ =
   let module S = View.List (View.String) in
-  let rest  s = sprintf "%s..." (Stream.takeStr 10 s) in 
+  let rest  s = sprintf "%s..." (Ostream.takeStr 10 s) in 
   let print names s = 
-    Stream.iter 
+    Ostream.iter 
       (fun (s, b) -> 
          printf "  stream: %s;\n  args  : %s\n" 
            (rest s) 
@@ -35,20 +33,20 @@ let _ =
   let analyseString str =
     printf "Analysing string \"%s\"\n" str;
     let rec inner s =
-      if Stream.endOf s then ()
+      if Ostream.endOf s then ()
       else 
         let m = item s in
-        if Stream.endOf m then ()
+        if Ostream.endOf m then ()
         else begin          
           printf "matched:\n"; 
           print ["ID"; "DC"; "NEXT"] m;
-          let (s', m) = Stream.hd m in
-          let s'' = Stream.concat (Stream.fromString (m "NEXT")) s' in
+          let (s', m) = Ostream.hd m in
+          let s'' = Ostream.concat (Ostream.fromString (m "NEXT")) s' in
           let m   = wss s'' in          
-          inner (if Stream.endOf m then s'' else let (s', m) = Stream.hd m in Stream.concat (Stream.fromString (m "NEXT")) s')
+          inner (if Ostream.endOf m then s'' else let (s', m) = Ostream.hd m in Ostream.concat (Ostream.fromString (m "NEXT")) s')
         end
     in
-    inner (Stream.fromString str);
+    inner (Ostream.fromString str);
     printf "End of analysis\n"
   in
   analyseString "123abc";

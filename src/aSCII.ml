@@ -156,4 +156,4 @@ let toChar = function
   | EXT   x 
   | CNTRL x   -> x
 
-let asciiStream s = Stream_ostap.map fromChar s
+let asciiStream s = Ostream.map fromChar s

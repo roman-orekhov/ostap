@@ -2,13 +2,11 @@ open Ostap
 open Regexp
 open Printf
 
-module Stream = Stream_ostap
-
 let _ =
   let module S = View.List (View.String) in
-  let rest  s = sprintf "%s..." (Stream.takeStr 10 s) in 
+  let rest  s = sprintf "%s..." (Ostream.takeStr 10 s) in 
   let print names s = 
-    Stream.iter 
+    Ostream.iter 
       (fun (s, b) -> 
          printf "  stream: %s;\n  args  : %s\n" 
            (rest s) 
@@ -33,10 +31,10 @@ let _ =
   let m1 = matchAllStr stringNotLetter in
 
   (*  printf "%s" (Diagram.toDOT (Diagram.make string)); *)
-  printf "Matching \"string\" against \"\"abc\"\ and the rest\"\n";
-  print ["Q"; "S"] (m0 (Stream.fromString "\"abc\" and the rest"));
+  printf "Matching \"string\" against \"\"abc\" and the rest\"\n";
+  print ["Q"; "S"] (m0 (Ostream.fromString "\"abc\" and the rest"));
   printf "Matching \"stringNotLetter\" against \"\"abc\" and the rest\":\n";
-  print ["Q"; "S"] (m1 (Stream.fromString "\"abc\" and the rest"));
+  print ["Q"; "S"] (m1 (Ostream.fromString "\"abc\" and the rest"));
   printf "Matching \"stringNotLetter\" against \"\"abc\"and the rest\":\n";
-  print ["Q"; "S"] (m1 (Stream.fromString "\"abc\"and the rest"))
+  print ["Q"; "S"] (m1 (Ostream.fromString "\"abc\"and the rest"))
 ;;
