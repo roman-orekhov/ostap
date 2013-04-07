@@ -521,3 +521,22 @@ let matchAll expr str =
 let matchAllStr expr str = 
   let module S = View.ListC (struct let concat = (^) end) (View.Char) in
   Ostream.map (fun (s, args) -> s, (fun name -> S.toString (args name))) (matchAll expr str)
+
+let streamStateToText names (s, b) =
+   let module S = View.List (View.String) in
+   let rest s = sprintf "%s..." (Ostream.takeStr 10 s) in 
+      sprintf "  stream: %s;\n  args  : %s\n" 
+         (rest s) 
+         (S.toString (List.map (fun n -> sprintf "%s=[%s]" n (b n)) names))
+
+let printUnique names s =
+  let module SS = Set.Make(String) in
+  let results =  
+    Ostream.fold 
+      (fun res s -> SS.add (streamStateToText names s) res)
+      SS.empty
+      s
+  in SS.iter (printf "%s") results
+  
+let print names s =
+   Ostream.iter (fun s -> printf "%s" (streamStateToText names s)) s

@@ -98,3 +98,9 @@ val matchAll : 'a t -> 'a Ostream.t -> ('a Ostream.t * (string -> 'a list)) Ostr
 
 (** Specialized version of [matchAll] for character streams. *)
 val matchAllStr : char t -> char Ostream.t -> (char Ostream.t * (string -> string)) Ostream.t
+
+(** Results printer for matchAllStr - prints all parses. *)
+val print : string list -> (char Ostream.t * (string -> string)) Ostream.t -> unit
+
+(** Results printer for matchAllStr - prints unique parses. *)
+val printUnique : string list -> (char Ostream.t * (string -> string)) Ostream.t -> unit

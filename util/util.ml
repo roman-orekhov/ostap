@@ -70,7 +70,7 @@ let expr f ops opnd =
     Array.map 
       (fun (assoc, list) ->
         let g = match assoc with `Lefta | `Nona -> left | `Righta -> right in
-	assoc = `Nona, altl (List.map (fun (oper, sema) -> ostap (!(oper) {g sema})) list)
+        assoc = `Nona, altl (List.map (fun (oper, sema) -> ostap (!(oper) {g sema})) list)
       )
       ops 
   in
