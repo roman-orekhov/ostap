@@ -59,11 +59,33 @@ let listBy delim list =
 	 list
       )
 
+let listAllBy delim list =
+  fun ppf ->
+    ignore 
+      (
+       List.fold_left 
+	 (fun flag e -> 
+	   if flag then delim ppf;
+           e ppf;
+	   true
+	 ) 
+	 false 
+	 list
+      )
+
 let arrayBy delim a =
   fun ppf ->
     let l = Array.length a - 1 in
     for i=0 to l do
       if i>0 && (a.(i) != empty) then delim ppf;
+      a.(i) ppf
+    done
+
+let arrayAllBy delim a =
+  fun ppf ->
+    let l = Array.length a - 1 in
+    for i=0 to l do
+      if i>0 then delim ppf;
       a.(i) ppf
     done
 

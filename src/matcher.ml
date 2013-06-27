@@ -159,15 +159,25 @@ module Skip =
 
 type aux = [`Skipped of int * Msg.Coord.t | `Failed of Msg.t | `Init]
 
+let defaultSkipper = fun (p : int) (c : Msg.Coord.t) -> (`Skipped (p, c) :> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t])
+
 class t s =   
   object (self)
     val regexps = Hashtbl.create 256
     val p       = 0
     val coord   = (1, 1)
-  
-    method skip (p : int) (c : Msg.Coord.t) = (`Skipped (p, c) :> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t]) 
-
+    val skipper = defaultSkipper
     val context : aux = `Init
+  
+    method skip = skipper
+    method private changeSkip sk =
+      let newContext =
+      match context with
+      | `Failed msg -> `Failed msg
+      | `Init -> ((sk p coord) :> aux)
+      | `Skipped (p, coord) -> ((sk p coord) :> aux)
+      in {< skipper = sk; context = newContext >}
+
  
     method private parsed x y c = Parsed (((x, c), y), None)
     method private failed x c   = Failed (reason (Msg.make x [||] (Msg.Locator.Point c)))

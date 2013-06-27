@@ -90,8 +90,14 @@ val seqa : printer array -> printer
 (** [listBy del list] prints elements of [list] delimited by [del]. *)
 val listBy : printer -> printer list -> printer
 
+(** [listAllBy del list] prints elements of [list] delimited by [del]. Empty elements still cause printing delimiters before them *)
+val listAllBy : printer -> printer list -> printer
+
 (** [arrayBy del array] prints elements of [array] delimited by [del]. *)
 val arrayBy : printer -> printer array -> printer
+
+(** [arrayAllBy del array] prints elements of [array] delimited by [del]. Empty elements still cause printing delimiters before them *)
+val arrayAllBy : printer -> printer array -> printer
 
 (** A synonym for [listBy (string "; ")]. *)
 val listBySemicolon : printer list -> printer 

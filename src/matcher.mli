@@ -129,6 +129,8 @@ val except : string -> string
 (** [checkPrefix prefix s p] returns true iff [s] at the position [p] starts with [prefix]. *)
 val checkPrefix : string -> string -> int -> bool
 
+val defaultSkipper : int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t]
+
 (** Module to provide various skipping functions. *)
 module Skip :
   sig
@@ -207,5 +209,9 @@ class t : string ->
         called prior to all of the above methods except for the [getLAST].
     *)
     method skip : int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t]
+    
+    (*
+    method changeSkip : (int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t]) -> 'a
+    *)
 
   end
