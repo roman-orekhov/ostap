@@ -313,8 +313,8 @@ module Diagram =
       | `Aster t -> 
          let sn, en, s_en = inner t in
          append en (transitions (sn @ s_en));
-         append s_en (transitions sn);
-         sn, en, s_en
+         (*append s_en (transitions sn);*)
+         [], en, sn @ s_en
       
       | `Test (s, t, bs) -> 
          let end_node = make_node [] in
