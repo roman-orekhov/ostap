@@ -46,8 +46,7 @@ module DetNFA (C : StreamChar) =
       
       module MD = Map.Make(struct type a = t type t = a let compare = Pervasives.compare end)
 
-      let rec make ((node, _, num) : C.t Regexp.Diagram.t) =
-         let filled   = Array.make num false            in
+      let rec make ((nodes, _, num) : C.t Regexp.Diagram.t) =
          let ok       = ref [] in
          let created  = ref 0 in
          let cur      = ref 0 in
@@ -64,7 +63,7 @@ module DetNFA (C : StreamChar) =
             created := !created + 1;
             !created - 1
          in
-         ignore (setId [node]);
+         ignore (setId nodes);
          while MI.mem !cur !newToOld do
             let oldStates = MI.find !cur !newToOld in (* Diagram.node list *)
             if List.exists (fun node -> node.final) oldStates then ok := !cur :: !ok;
@@ -114,7 +113,31 @@ module DetNFA (C : StreamChar) =
             cur := !cur + 1
          done;
          {states = Array.of_list (List.rev !table); ok = !ok}
-         
+
+      let rec reverse t =
+         let l = Array.length t.states in
+         let res = Array.init (l + 1) (fun i -> {final = false; transitions = []; id = i}) in
+         res.(0) <- {res.(0) with final = true};
+         Array.iteri
+            (fun beg_id state ->
+               let updTrans end_id cond binds = res.(end_id).transitions <- (cond, binds, res.(beg_id))::res.(end_id).transitions in
+               Array.iteri
+                  (fun i (end_id, binds) ->
+                     if end_id >= 0 then
+                     updTrans end_id (If (sprintf "%s" (C.toString (C.ofInt i)), fun c -> c = C.ofInt i)) binds
+                  )
+                  state.symbols;
+               M.iter
+                  (fun arg (end_id, binds) -> updTrans end_id (Ref arg) binds)
+                  state.args;
+               (match state.eos with None -> () | Some end_id -> updTrans end_id EoS S.empty);
+               List.iter
+                  (fun (t, end_id) -> updTrans end_id (Lookahead (reverse t)) S.empty)
+                  state.lookaheads
+            )
+            t.states;
+         (List.map (fun i -> res.(i)) t.ok), [], l + 1 - List.length t.ok
+
       let printTable t =
          let lkhdnum = ref 0 in
          let lkhds = Hashtbl.create 10 in
@@ -130,4 +153,7 @@ module DetNFA (C : StreamChar) =
             printf "\n"
          )
          t.states
+
+      let minimize diag = make (reverse (let t = make (let d = reverse (make diag) in printf "%s\n" (Regexp.Diagram.toDOT d); d) in printTable t; t))
+
    end

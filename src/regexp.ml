@@ -48,11 +48,11 @@ module Diagram =
     type 'a cond = If of string * ('a -> bool) | Ref of string | Lookahead of 'a t | EoS 
     and  'a tran = 'a cond * SS.t * 'a node
     and  'a node = {mutable final: bool; mutable transitions: 'a tran list; id: int}
-    and  'a t    = 'a node * string list * int
+    and  'a t    = 'a node list * string list * int
 
     let nnodes (_, _, n) = n
     let args   (_, n, _) = n
-    let root   (n, _, _) = n
+    let roots  (n, _, _) = n
 
     let getDest (_, _, x) = x
 
@@ -74,9 +74,9 @@ module Diagram =
             lookaheads: ('a t * int) list; 
             args      : (string * string list * int) list
            }
-        and 'a t = {states : 'a state array; start: int; ok : int list}
+        and 'a t = {states : 'a state array; start: int list; ok : int list}
 
-        let rec make ((node, _, num) : 'a diagram) = 
+        let rec make ((nodes, _, num) : 'a diagram) = 
           let empty    = {eos = []; symbol = (fun _ _ -> []); lookaheads = []; args = []} in
           let ok       = ref [] in
           let t        = Array.init num (fun _ -> empty) in
@@ -108,8 +108,8 @@ module Diagram =
                t.(node.id) <- {eos = elems eos; symbol = trans; lookaheads = lkhds; args = args}
             end
           in
-          inner node;
-          {states = t; start = node.id; ok = !ok}
+          List.iter inner nodes;
+          {states = t; start = List.map (fun node -> node.id) nodes; ok = !ok}
           
         let rec matchStream t s =
           let rec inner = function
@@ -167,7 +167,8 @@ module Diagram =
                
           | [] -> raise End_of_file
           in
-          Ostream.fromIterator [t.start, s, empty] inner
+          let makeOne i = Ostream.fromIterator [i, s, empty] inner in
+          List.fold_left (fun acc i -> Ostream.concat acc (makeOne i)) (makeOne (hd t.start)) (tl t.start)
 
       end
 
@@ -200,8 +201,8 @@ module Diagram =
           | Ref s      , bs, t -> doit t (sprintf "ref(%s)[%s]" s (bindings bs)) 
           | EoS        , _ , t -> doit t "EoS" 
           | Lookahead x, _ , t ->
-              let r        = root x                     in
-              let cId, rId = clusterId (), r.id         in
+              let r        = roots x                    in
+              let cId, rId = clusterId (), (hd r).id    in
               let prefix'  = sprintf "%s_%d" prefix cId in
               Buffer.add_string buf (sprintf "subgraph cluster_%d {\n" cId);
               Buffer.add_string buf (sprintf "  label=\"lookahead\";\n");
@@ -223,7 +224,7 @@ module Diagram =
             node nd.id (sprintf "state (%s)" (if nd.final then "final" else "non-final"));
             fold_left (fun acc tran -> edge nd.id tran; inner (getDest tran) acc) (visited', if nd.final then nd.id :: oks else oks) nd.transitions
         in
-        let _, oks = inner p (S.empty, []) in
+        let _, oks = fold_left (fun ctxt p -> inner p ctxt) (S.empty, []) p in
         Buffer.contents buf, oks
       in
       sprintf "digraph X {\n%s\n}\n" (fst (toDOT "" r))
@@ -363,18 +364,8 @@ module Diagram =
          [start_node], [end_node], []
       in        
       let sn, en, s_en = inner (simplify (eliminateBindings expr)) in
-      if s_en = [] && length sn = 1 
-      then begin 
-        iter (fun node -> node.final <- true) en;
-        (hd sn, getBindings (), id ())
-      end
-      else begin
-        let trans = transitions (sn @ s_en) in
-        let start_node = make_node trans in
-        let end_nodes = if s_en != [] then start_node::(s_en @ en) else en in
-        iter (fun a -> a.final <- true) end_nodes;
-        (start_node, getBindings (), id ())
-      end
+      iter (fun a -> a.final <- true) (s_en @ en);
+      (sn @ s_en, getBindings (), id ())
 
   end
 

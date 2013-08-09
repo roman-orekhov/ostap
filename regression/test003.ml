@@ -16,11 +16,17 @@ let _ =
 
   let string          = Bind ("S", Juxt [Bind ("Q", quote); Aster noquote; Arg "Q"]) in
   let stringNotLetter = Juxt [string; Before letter]                                 in
+  let test = Aster (Juxt [Aster letter; Aster digit]) in
 
   let m0 = matchAllStr string          in
   let m1 = matchAllStr stringNotLetter in
+  let m2 = matchAllStr test in
 
-  (*  printf "%s" (Diagram.toDOT (Diagram.make string)); *)
+(*
+  printf "%s" (Diagram.toDOT (Diagram.make test));
+  printf "Matching \"m2\" against \"1 and the rest\":\n";
+  print ["Q"; "S"] (m2 (Ostream.fromString "1 and the rest"))
+*)
   printf "Matching \"string\" against \"\"abc\" and the rest\"\n";
   print ["Q"; "S"] (m0 (Ostream.fromString "\"abc\" and the rest"));
   printf "Matching \"stringNotLetter\" against \"\"abc\" and the rest\":\n";

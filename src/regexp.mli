@@ -60,7 +60,7 @@ module Diagram :
     type 'a cond = If of string * ('a -> bool) | Ref of string | Lookahead of 'a t | EoS 
     and  'a tran = 'a cond * SS.t * 'a node
     and  'a node = {mutable final: bool; mutable transitions: 'a tran list; id: int}
-    and  'a t    = 'a node * string list * int
+    and  'a t    = 'a node list * string list * int
 
     (** DOT visualizer. *)
     val toDOT : 'a t -> string
