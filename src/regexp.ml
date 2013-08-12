@@ -202,29 +202,29 @@ module Diagram =
           | EoS        , _ , t -> doit t "EoS" 
           | Lookahead x, _ , t ->
               let r        = roots x                    in
-              let cId, rId = clusterId (), (hd r).id    in
+              let cId      = clusterId ()               in
               let prefix'  = sprintf "%s_%d" prefix cId in
               Buffer.add_string buf (sprintf "subgraph cluster_%d {\n" cId);
               Buffer.add_string buf (sprintf "  label=\"lookahead\";\n");
               let str, oks = toDOT prefix' r in
               Buffer.add_string buf str;
               Buffer.add_string buf "}\n";
-              Buffer.add_string buf (sprintf "node_%s_%d -> node_%s_%d;\n" prefix id prefix' rId);
+              List.iter (fun r -> Buffer.add_string buf (sprintf "node_%s_%d -> node_%s_%d;\n" prefix id prefix' r.id)) r;
               List.iter (
                  fun ok -> 
                    Buffer.add_string buf (sprintf "node_%s_%d -> node_%s_%d;\n" prefix' ok prefix t.id)
                  )
                  oks
         in
-        let rec inner nd ((visited, oks) as context) =
+        let rec inner start nd ((visited, oks) as context) =
           if S.mem nd.id visited 
           then context
           else
             let (visited', _) as context' = S.add nd.id visited, oks in
-            node nd.id (sprintf "state (%s)" (if nd.final then "final" else "non-final"));
-            fold_left (fun acc tran -> edge nd.id tran; inner (getDest tran) acc) (visited', if nd.final then nd.id :: oks else oks) nd.transitions
+            node nd.id (sprintf "state (%s)" (if start then "start" else if nd.final then "final" else "non-final"));
+            fold_left (fun acc tran -> edge nd.id tran; inner false (getDest tran) acc) (visited', if nd.final then nd.id :: oks else oks) nd.transitions
         in
-        let _, oks = fold_left (fun ctxt p -> inner p ctxt) (S.empty, []) p in
+        let _, oks = fold_left (fun ctxt p -> inner true p ctxt) (S.empty, []) p in
         Buffer.contents buf, oks
       in
       sprintf "digraph X {\n%s\n}\n" (fst (toDOT "" r))

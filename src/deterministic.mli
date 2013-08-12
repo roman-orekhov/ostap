@@ -36,4 +36,5 @@ module DetNFA :
       val make : C.t Regexp.Diagram.t -> t
       val minimize : C.t Regexp.Diagram.t -> t
       val printTable : t -> unit
+      val toDOT : t -> string
     end

@@ -21,7 +21,11 @@ module ASCIIStreamChar =
 
       let toInt = int_of_char
       let ofInt = char_of_int
-      let toString c = sprintf "%c" c
+      let toString = function
+         | '"' -> "\\\""
+         | c -> if ASCII.Class.isIn ASCII.Class._PRINTABLE (ASCII.Class.get c)
+                then sprintf "%c" c
+                else sprintf "\%d" (toInt c)
       let max = List.length values
    end
 
@@ -54,10 +58,10 @@ module DetNFA (C : StreamChar) =
          let newToOld = ref MI.empty in
          let table    = ref [] in
          let getIds lst = List.fold_left (fun set node -> SI.add node.id set) SI.empty lst in
-         let module VN = struct type t = C.t Regexp.Diagram.node let toString = fun node -> sprintf "%d" node.id end in
+         let module VN = struct type t = C.t Regexp.Diagram.node let toString = fun node -> string_of_int node.id end in
          let setId lst =
             let module VLN = View.List(VN) in
-            printf "setting #%d to %s\n" !created (VLN.toString lst);
+(*            printf "setting #%d to %s\n" !created (VLN.toString lst);*)
             newToOld := MI.add !created lst !newToOld;
             oldToNew := MSI.add (getIds lst) !created !oldToNew;
             created := !created + 1;
@@ -114,29 +118,72 @@ module DetNFA (C : StreamChar) =
          done;
          {states = Array.of_list (List.rev !table); ok = !ok}
 
-      let rec reverse t =
+      let rec toDiagram reverse t =
          let l = Array.length t.states in
-         let res = Array.init (l + 1) (fun i -> {final = false; transitions = []; id = i}) in
-         res.(0) <- {res.(0) with final = true};
+         let res = Array.init l (fun i -> {final = false; transitions = []; id = i}) in
+         List.iter (fun i -> res.(i) <- {res.(i) with final = true}) (if reverse then [0] else t.ok);
          Array.iteri
             (fun beg_id state ->
-               let updTrans end_id cond binds = res.(end_id).transitions <- (cond, binds, res.(beg_id))::res.(end_id).transitions in
-               Array.iteri
+               let updTrans end_id cond binds =
+                  let b, e = if reverse then end_id, beg_id else beg_id, end_id in
+                  res.(b).transitions <- (cond, binds, res.(e))::res.(b).transitions in
+               if reverse
+               then Array.iteri
                   (fun i (end_id, binds) ->
                      if end_id >= 0 then
                      updTrans end_id (If (sprintf "%s" (C.toString (C.ofInt i)), fun c -> c = C.ofInt i)) binds
                   )
-                  state.symbols;
+                  state.symbols
+               else begin
+                  let module P = Compare.Pair(Compare.Integer)(S) in
+                  let module MIS = Map.Make(P) in
+                  let update arrow (a, b) acc =
+                     if fst arrow >= 0
+                     then
+                        let (name, func) = try MIS.find arrow acc with Not_found -> ("", fun c -> false) in
+                        let a, b = C.ofInt a, C.ofInt b in
+                        let name = if name = "" then "" else sprintf "%s," name in
+                        let newval =
+                           if C.compare a b = 0
+                           then name ^ C.toString a, fun c -> C.compare c a = 0 || func c
+                           else sprintf "%s%s-%s" name (C.toString a) (C.toString b), fun c -> C.compare a c <= 0 || C.compare c b <= 0 || func c
+                        in
+                        MIS.add arrow newval acc
+                     else acc
+                  in
+                  let _, last_arrow, (last_from, arrows) =
+                     Array.fold_left
+                        (fun (i, prev, (from, acc)) (end_id, _ as arrow) ->
+                           i + 1,
+                           arrow,
+                           (if P.compare prev arrow != 0
+                           then i, update prev (from, i - 1) acc
+                           else from, acc)
+                        )
+                        (0, ((-2), S.empty), (0, MIS.empty))
+                        state.symbols
+                  in
+                  let arrows = update last_arrow (last_from, C.max - 1) arrows in
+                  MIS.iter
+                     (fun (end_id, binds) (name, func) ->
+                        updTrans end_id (If (name, func)) binds
+                     )
+                     arrows
+               end;
                M.iter
                   (fun arg (end_id, binds) -> updTrans end_id (Ref arg) binds)
                   state.args;
                (match state.eos with None -> () | Some end_id -> updTrans end_id EoS S.empty);
                List.iter
-                  (fun (t, end_id) -> updTrans end_id (Lookahead (reverse t)) S.empty)
+                  (fun (t, end_id) -> updTrans end_id (Lookahead (toDiagram reverse t)) S.empty)
                   state.lookaheads
             )
             t.states;
-         (List.map (fun i -> res.(i)) t.ok), [], l + 1 - List.length t.ok
+         if reverse
+         then (List.map (fun i -> res.(i)) t.ok), [], l
+         else [res.(0)], [], l
+
+      let toDOT t = Regexp.Diagram.toDOT (toDiagram false t)
 
       let printTable t =
          let lkhdnum = ref 0 in
@@ -154,6 +201,8 @@ module DetNFA (C : StreamChar) =
          )
          t.states
 
-      let minimize diag = make (reverse (let t = make (let d = reverse (make diag) in printf "%s\n" (Regexp.Diagram.toDOT d); d) in printTable t; t))
+      let minimize diag =
+         let reverse = toDiagram true in
+         make (reverse (let t = make (reverse (make diag)) in (*printTable t;*) t))
 
    end
