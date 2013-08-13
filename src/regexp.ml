@@ -221,7 +221,7 @@ module Diagram =
           then context
           else
             let (visited', _) as context' = S.add nd.id visited, oks in
-            node nd.id (sprintf "state (%s)" (if start then "start" else if nd.final then "final" else "non-final"));
+            node nd.id (sprintf "state (%s)" ((if start then "start, " else "") ^ if nd.final then "final" else "non-final"));
             fold_left (fun acc tran -> edge nd.id tran; inner false (getDest tran) acc) (visited', if nd.final then nd.id :: oks else oks) nd.transitions
         in
         let _, oks = fold_left (fun ctxt p -> inner true p ctxt) (S.empty, []) p in
