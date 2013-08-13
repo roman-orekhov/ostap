@@ -10,7 +10,6 @@ let _ =
 
   let ident  = Juxt [Bind ("ID", Juxt [letter; Aster (Alter [letter; digit])]); Bind ("NEXT", Alter [noid; EOS])] in
 
-  let letters          = Aster (letter) in
   let digits           = Aster (digit) in
   let identDigits      = Aster (Juxt [ident; digits]) in
 (*

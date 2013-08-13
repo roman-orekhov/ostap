@@ -37,4 +37,7 @@ module DetNFA :
       val minimize : C.t Regexp.Diagram.t -> t
       val printTable : t -> unit
       val toDOT : t -> string
+      val matchStream : t -> C.t Ostream.t -> (C.t Ostream.t * (string -> C.t list)) Ostream.t
     end
+
+val matchAllStr : char Regexp.Diagram.t -> char Ostream.t -> (char Ostream.t * (string -> string)) Ostream.t

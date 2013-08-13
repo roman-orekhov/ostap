@@ -58,10 +58,12 @@ module DetNFA (C : StreamChar) =
          let newToOld = ref MI.empty in
          let table    = ref [] in
          let getIds lst = List.fold_left (fun set node -> SI.add node.id set) SI.empty lst in
-         let module VN = struct type t = C.t Regexp.Diagram.node let toString = fun node -> string_of_int node.id end in
          let setId lst =
+(*
+            let module VN = struct type t = C.t Regexp.Diagram.node let toString = fun node -> string_of_int node.id end in
             let module VLN = View.List(VN) in
-(*            printf "setting #%d to %s\n" !created (VLN.toString lst);*)
+            printf "setting #%d to %s\n" !created (VLN.toString lst);
+*)
             newToOld := MI.add !created lst !newToOld;
             oldToNew := MSI.add (getIds lst) !created !oldToNew;
             created := !created + 1;
@@ -124,14 +126,14 @@ module DetNFA (C : StreamChar) =
          List.iter (fun i -> res.(i) <- {res.(i) with final = true}) (if reverse then [0] else t.ok);
          Array.iteri
             (fun beg_id state ->
-               let updTrans end_id cond binds =
+               let updTrans (end_id, binds) cond =
                   let b, e = if reverse then end_id, beg_id else beg_id, end_id in
                   res.(b).transitions <- (cond, binds, res.(e))::res.(b).transitions in
                if reverse
                then Array.iteri
-                  (fun i (end_id, binds) ->
+                  (fun i (end_id, binds as arrow) ->
                      if end_id >= 0 then
-                     updTrans end_id (If (sprintf "%s" (C.toString (C.ofInt i)), fun c -> c = C.ofInt i)) binds
+                     updTrans arrow (If (sprintf "%s" (C.toString (C.ofInt i)), fun c -> c = C.ofInt i))
                   )
                   state.symbols
                else begin
@@ -164,18 +166,12 @@ module DetNFA (C : StreamChar) =
                         state.symbols
                   in
                   let arrows = update last_arrow (last_from, C.max - 1) arrows in
-                  MIS.iter
-                     (fun (end_id, binds) (name, func) ->
-                        updTrans end_id (If (name, func)) binds
-                     )
-                     arrows
+                  MIS.iter (fun arrow (name, func) -> updTrans arrow (If (name, func))) arrows
                end;
-               M.iter
-                  (fun arg (end_id, binds) -> updTrans end_id (Ref arg) binds)
-                  state.args;
-               (match state.eos with None -> () | Some end_id -> updTrans end_id EoS S.empty);
+               M.iter (fun arg arrow -> updTrans arrow (Ref arg)) state.args;
+               (match state.eos with None -> () | Some end_id -> updTrans (end_id, S.empty) EoS);
                List.iter
-                  (fun (t, end_id) -> updTrans end_id (Lookahead (toDiagram reverse t)) S.empty)
+                  (fun (t, end_id) -> updTrans (end_id, S.empty) (Lookahead (toDiagram reverse t)))
                   state.lookaheads
             )
             t.states;
@@ -205,4 +201,71 @@ module DetNFA (C : StreamChar) =
          let reverse = toDiagram true in
          make (reverse (let t = make (reverse (make diag)) in (*printTable t;*) t))
 
+      let funOf : C.t list M.t -> string -> C.t list =
+         fun binds name -> try List.rev (M.find name binds) with Not_found -> []
+      let bind : string -> C.t -> C.t list M.t -> C.t list M.t =
+         fun name sym binds -> try M.add name (sym :: (M.find name binds)) binds with Not_found -> M.add name [sym] binds
+      let rec matchStream t s =
+         let module VLC = View.List (C) in
+         let rec inner = function
+         | (i, s, m) :: context ->
+            LOG[traceDFA] (printf "state: %d, stream: %s\n" i (VLC.toString (Ostream.take 10 s)));
+            let result = if List.mem i t.ok then Some (s, funOf m) else None in
+            let state  = t.states.(i) in                  
+            let context' =
+               let sym_eos = 
+                  try
+                     let a, s' = Ostream.get s in
+                     let i, args = state.symbols.(C.toInt a) in
+                     if i >= 0 then
+                        let m' = S.fold (fun name -> bind name a) args m in
+                        [i, s', m']
+                     else []
+                  with End_of_file -> match state.eos with None -> [] | Some i -> [i, s, m]
+               in
+               let lkhds = 
+                  List.fold_left (fun acc (t, i) -> if Ostream.endOf (matchStream t s) then acc else (i, s, m) :: acc) 
+                  [] 
+                  state.lookaheads 
+               in
+               let args =
+                  M.fold 
+                     (fun arg (i, args) acc -> 
+                        let p     = funOf m arg in 
+                        let s', n = Ostream.eqPrefix p s in 
+                        LOG[traceDFA] (
+                          printf "Matching argument: %s\n" arg;
+                          printf "Value: %s\n" (VLC.toString p);
+                          printf "Stream: %s\n" (VLC.toString (Ostream.take 10 s));
+                          printf "Matched symbols: %d\n" n;
+                          printf "Residual stream: %s\n" (VLC.toString (Ostream.take 10 s'))
+                        );
+                        if n = List.length p 
+                        then 
+                          let m' = S.fold (fun name -> List.fold_right (bind name) p) args m in
+                          (i, s', m') :: acc 
+                        else acc
+                     ) 
+                     state.args
+                     []
+               in
+               sym_eos @ args @ lkhds @ context                  
+            in
+            LOG[traceDFA](
+              printf "next states: ";
+              List.iter (fun (i, _, _) -> printf "%d " i) context';
+              printf "\n"
+            );
+            (match result with None -> inner context' | Some r -> r, context')
+
+         | [] -> raise End_of_file
+         in
+         Ostream.fromIterator [0, s, M.empty] inner
+         
    end
+
+let matchAllStr diag str = 
+  let module VLC = View.ListC (struct let concat = (^) end) (View.Char) in
+  let module D = DetNFA(ASCIIStreamChar) in
+  Ostream.map (fun (s, args) -> s, (fun name -> VLC.toString (args name))) (D.matchStream (D.minimize diag) str)
+
