@@ -114,7 +114,7 @@ module Diagram =
         let rec matchStream t s =
           let rec inner = function
           | (i, s, m) :: context ->
-              LOG[traceNFA] (printf "state: %d, stream: %s\n" i (Ostream.takeStr 10 s));
+(*              LOG[traceNFA] (printf "state: %d, stream: %s\n" i (Ostream.takeStr 10 s));*)
               let result = 
                 try  
                   ignore (List.find (fun j -> i = j) t.ok); 
@@ -133,6 +133,7 @@ module Diagram =
                     (fun acc (arg, binds, i) -> 
                        let p     = funOf m arg in 
                        let s', n = Ostream.eqPrefix p s in 
+(*
                        LOG[traceNFA] (
                          let module S = View.List (View.Char) in
                          printf "Matching argument: %s\n" arg;
@@ -141,6 +142,7 @@ module Diagram =
                          printf "Matched symbols: %d\n" n;
                          printf "Residual stream: %s\n" (S.toString (Obj.magic (Ostream.take 10 s')))
                        );
+*)
                        if n = List.length p 
                        then 
                          let m' = List.fold_left (fun m name -> List.fold_right (fun x m -> bind name x m) p m) m binds in
@@ -158,11 +160,13 @@ module Diagram =
                 in
                 lkhds @ args @ eos @ context                  
               in
+(*
               LOG[traceNFA](
                 printf "next states: ";
                 List.iter (fun (i, _, _) -> printf "%d " i) context';
                 printf "\n"
               );
+*)
               (match result with None -> inner context' | Some r -> r, context')
                
           | [] -> raise End_of_file

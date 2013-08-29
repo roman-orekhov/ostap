@@ -239,7 +239,7 @@ and FileLoc :
          let module VL = View.List (View.Pair(View.Integer)(View.Pair(View.String)(Coord))) in
          MC.iter (fun p lst -> printf "%s: %s\n" (Coord.toString p) (VL.toString lst)) m
 
-      let printReloc s m (Interval (p, q)) as intrvl =
+      let printReloc s m (Interval (p, q) as intrvl) =
          let succ, Some fil, beg_c = getSuccReloc s m p in
          let _, _, end_c = getSuccReloc s succ q in
          printf "%s -> \"%s\" %s\n" (toString intrvl) fil (toString (Interval (beg_c, end_c)))

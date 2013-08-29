@@ -17,7 +17,7 @@ module ASCIIStreamChar =
 
       let compare = compare
 
-      let values = Ostream.take 256 (Ostream.fromIterator 0 (fun i -> char_of_int i, i+1))
+      let values = Ostream.take 256 (Ostream.map char_of_int (Ostream.range 0 255))
 
       let toInt = int_of_char
       let ofInt = char_of_int
@@ -27,6 +27,80 @@ module ASCIIStreamChar =
                 then sprintf "%c" c
                 else sprintf "\%d" (toInt c)
       let max = List.length values
+      
+      open Regexp
+(*
+      primary: sym | range | "\(" main "\)"
+      juxt: (primary postfix?)+
+      main: juxt ('\|' main)*
+*)
+      exception Nomatch
+      
+      let regexp s =
+         let l = String.length s in
+         let rec main i =
+            match alter i with
+            | [res], j -> res, j
+            | l, j -> Alter l, j
+         and alter i =
+            let res, j = juxt i in
+            let res = match res with
+               | [res] -> res
+               | l -> Juxt l
+            in
+            if j+2 < l && s.[j] = '\\' && s.[j+1] = '|'
+            then let inner, j = alter (j+2) in res::inner, j
+            else [res], j
+         and juxt i =
+            let prim, j = primary i in
+            let res, j =
+               if j >= l then prim, j
+               else
+               match s.[j] with
+               | '*' -> Aster prim, (j+1)
+               | '+' -> Plus  prim, (j+1)
+               | '?' -> Opt   prim, (j+1)
+               | _   ->       prim,  j
+            in try
+               let inner, j' = juxt j in
+               res::inner, j'
+            with Nomatch -> [res], j
+         and primary i =
+            if i >= l
+            then raise Nomatch
+            else
+            let i1 = i + 1 in
+            match s.[i] with
+            | '\\' ->
+               begin
+               let i2 = i1 + 1 in
+               match s.[i1] with
+               | '|'
+               | ')' -> raise Nomatch
+               | '$' | '^' | '.' | '*' | '+' | '?' | '[' | ']' as c -> Test (sprintf "%c" c, fun x -> x = c), i2
+               | 'b' -> Alter [Before (Test ("boundary", fun x -> ('a' > x || 'z' < x) && ('A' > x || 'Z' < x) && ('0' > x || '9' < x) && x <> '_')); EOS], i2
+               | '(' -> let group, j = main i2 in group, (j+2) (* assume each group successfully ends with \) *)
+               end
+            | '.' -> Test ("any", fun _ -> true), i1
+            | '[' ->
+               let rec inner acc i =
+                  let f, j = interval i in
+                  let acc x = acc x || f x in
+                  match s.[j] with
+                  | ']' -> acc, (j+1)
+                  | _ -> inner acc j
+               and interval i =
+                  match s.[i+1] with
+                  | '-' -> (fun x -> s.[i] <= x && x <= s.[i+2]), (i+3)
+                  | _ -> (fun x -> x = s.[i]), (i+1)
+               in 
+               let f, j = inner (fun _ -> false) (i+1) in
+               Test (String.sub s (i+1) (j-i-2), f), j
+            | '^' -> invalid_arg "ASCIIStreamChar.primary"
+            | '$' -> Alter [Before (Test ("\\n", fun x -> x = '\n')); EOS], i1
+            | c -> Test (sprintf "%c" c, fun x -> x = c), i1
+         in
+         fst (main 0)
    end
 
 module DetNFA (C : StreamChar) =
@@ -44,9 +118,10 @@ module DetNFA (C : StreamChar) =
           eos       : int option; 
           lookaheads: (t * int) list; 
           args      : (int * S.t) M.t;
-          symbols   : (int * S.t) array
+          symbols   : (int * S.t) array;
+          final     : bool
          }
-      and t = {states : state array; ok : int list} (* start always from 0 *)
+      and t = {states : state array} (* start always from 0 *)
       
       module MD = Map.Make(struct type a = t type t = a let compare = Pervasives.compare end)
 
@@ -72,7 +147,6 @@ module DetNFA (C : StreamChar) =
          ignore (setId nodes);
          while MI.mem !cur !newToOld do
             let oldStates = MI.find !cur !newToOld in (* Diagram.node list *)
-            if List.exists (fun node -> node.final) oldStates then ok := !cur :: !ok;
             let trans, refs, eos, lookaheads =
                List.fold_left 
                (fun acc node ->
@@ -104,7 +178,7 @@ module DetNFA (C : StreamChar) =
                oldStates
             in
             let toId states = try MSI.find (getIds states) !oldToNew with Not_found -> setId states in
-            let update states, binds =
+            let update (states, binds) =
                (match states with
                | [] -> -1
                | _ -> toId states
@@ -114,16 +188,17 @@ module DetNFA (C : StreamChar) =
                {symbols = Array.map update trans;
                 args = M.map update refs;
                 lookaheads = MD.fold (fun t states acc -> if states = [] then acc else (t, toId states)::acc) lookaheads [];
+                final = List.exists (fun node -> node.Regexp.Diagram.final) oldStates;
                 eos = match eos with [] -> None | _ -> Some (toId eos)
                } :: !table;
             cur := !cur + 1
          done;
-         {states = Array.of_list (List.rev !table); ok = !ok}
+         {states = Array.of_list (List.rev !table)}
 
       let rec toDiagram reverse t =
          let l = Array.length t.states in
-         let res = Array.init l (fun i -> {final = false; transitions = []; id = i}) in
-         List.iter (fun i -> res.(i) <- {res.(i) with final = true}) (if reverse then [0] else t.ok);
+         let ok = ref [] in
+         let res = Array.init l (fun i -> {Regexp.Diagram.final = (if reverse then i = 0 else t.states.(i).final); transitions = []; id = i}) in
          Array.iteri
             (fun beg_id state ->
                let updTrans (end_id, binds) cond =
@@ -172,12 +247,11 @@ module DetNFA (C : StreamChar) =
                (match state.eos with None -> () | Some end_id -> updTrans (end_id, S.empty) EoS);
                List.iter
                   (fun (t, end_id) -> updTrans (end_id, S.empty) (Lookahead (toDiagram reverse t)))
-                  state.lookaheads
+                  state.lookaheads;
+               if state.final then ok := beg_id :: !ok
             )
             t.states;
-         if reverse
-         then (List.map (fun i -> res.(i)) t.ok), [], l
-         else [res.(0)], [], l
+         List.map (Array.get res) (if reverse then !ok else [0]), [], l
 
       let toDOT t = Regexp.Diagram.toDOT (toDiagram false t)
 
@@ -187,12 +261,12 @@ module DetNFA (C : StreamChar) =
          let getNum t = try Hashtbl.find lkhds t with Not_found -> Hashtbl.add lkhds t !lkhdnum; lkhdnum := !lkhdnum + 1; !lkhdnum - 1 in
          Array.iteri
          (fun i state ->
-            printf "%d%c: " i (if List.mem i t.ok then 'f' else ' ');
+            printf "%d%c: " i (if state.final then 'f' else ' ');
             let module VSS = View.Set(S)(View.String) in
-            Array.iteri (fun i id, binds -> if id >= 0 then printf "'%s' -> %d, %s " (C.toString (C.ofInt i)) id (VSS.toString binds)) state.symbols;
-            M.iter (fun arg    id, binds -> if id >= 0 then printf "[%s] -> %d, %s " arg                      id (VSS.toString binds)) state.args;
-            (match state.eos with None -> () | Some id ->   printf  "EoS -> %d "                              id);
-            List.iter (fun t, id ->                         printf "#%d  -> %d "                   (getNum t) id)                      state.lookaheads;
+            Array.iteri (fun i (id, binds) -> if id >= 0 then printf "'%s' -> %d, %s " (C.toString (C.ofInt i)) id (VSS.toString binds)) state.symbols;
+            M.iter (fun arg    (id, binds) -> if id >= 0 then printf "[%s] -> %d, %s " arg                      id (VSS.toString binds)) state.args;
+            (match state.eos with None -> () | Some id ->     printf  "EoS -> %d "                              id);
+            List.iter (fun (t, id) ->                         printf "#%d  -> %d "                   (getNum t) id)                      state.lookaheads;
             printf "\n"
          )
          t.states
@@ -206,11 +280,10 @@ module DetNFA (C : StreamChar) =
       let bind : string -> C.t -> C.t list M.t -> C.t list M.t =
          fun name sym binds -> try M.add name (sym :: (M.find name binds)) binds with Not_found -> M.add name [sym] binds
       let rec matchStream t s =
-         let module VLC = View.List (C) in
+(*         let module VLC = View.List (C) in*)
          let rec inner = function
          | (i, s, m) :: context ->
-            LOG[traceDFA] (printf "state: %d, stream: %s\n" i (VLC.toString (Ostream.take 10 s)));
-            let result = if List.mem i t.ok then Some (s, funOf m) else None in
+(*            LOG[traceDFA] (printf "state: %d, stream: %s\n" i (VLC.toString (Ostream.take 10 s)));*)
             let state  = t.states.(i) in                  
             let context' =
                let sym_eos = 
@@ -223,16 +296,17 @@ module DetNFA (C : StreamChar) =
                      else []
                   with End_of_file -> match state.eos with None -> [] | Some i -> [i, s, m]
                in
-               let lkhds = 
+               let lkhds = if state.lookaheads = [] then [] else
                   List.fold_left (fun acc (t, i) -> if Ostream.endOf (matchStream t s) then acc else (i, s, m) :: acc) 
                   [] 
                   state.lookaheads 
                in
-               let args =
+               let args = if M.is_empty state.args then [] else
                   M.fold 
                      (fun arg (i, args) acc -> 
                         let p     = funOf m arg in 
                         let s', n = Ostream.eqPrefix p s in 
+(*
                         LOG[traceDFA] (
                           printf "Matching argument: %s\n" arg;
                           printf "Value: %s\n" (VLC.toString p);
@@ -240,6 +314,7 @@ module DetNFA (C : StreamChar) =
                           printf "Matched symbols: %d\n" n;
                           printf "Residual stream: %s\n" (VLC.toString (Ostream.take 10 s'))
                         );
+*)
                         if n = List.length p 
                         then 
                           let m' = S.fold (fun name -> List.fold_right (bind name) p) args m in
@@ -251,12 +326,14 @@ module DetNFA (C : StreamChar) =
                in
                sym_eos @ args @ lkhds @ context                  
             in
+(*
             LOG[traceDFA](
               printf "next states: ";
               List.iter (fun (i, _, _) -> printf "%d " i) context';
               printf "\n"
             );
-            (match result with None -> inner context' | Some r -> r, context')
+*)
+            if state.final then ((s, funOf m), context') else inner context'
 
          | [] -> raise End_of_file
          in

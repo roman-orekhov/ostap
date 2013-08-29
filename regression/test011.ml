@@ -5,13 +5,13 @@ open Deterministic
 
 let _ =
    let print = printUnique in
-   let letter   = Test ("letter", fun c -> (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) in
-   let noletter = Test ("letter", fun c -> (c < 'a' || c > 'z') && (c < 'A' || c > 'Z')    ) in
-   let digit    = Test ("digit" , fun c -> c >= '0' && c <= '9'                            ) in
-   let nodig    = Test ("nodig" , fun c -> c < '0' || c > '9'                              ) in
-   let noid     = Test ("noid"  , fun c -> (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9')) in
-   let quote    = Test ("quote"  , fun c -> c = '\'' || c = '"'                            ) in
-   let noquote  = Test ("noquote", fun c -> c != '\'' && c != '"'                          ) in
+   let letter   = Test ("letter"  , fun c -> (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) in
+   let noletter = Test ("noletter", fun c -> (c < 'a' || c > 'z') && (c < 'A' || c > 'Z')    ) in
+   let digit    = Test ("digit"   , fun c -> c >= '0' && c <= '9'                            ) in
+   let nodig    = Test ("nodig"   , fun c -> c < '0' || c > '9'                              ) in
+   let noid     = Test ("noid"    , fun c -> (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9')) in
+   let quote    = Test ("quote"   , fun c -> c = '\'' || c = '"'                            ) in
+   let noquote  = Test ("noquote" , fun c -> c != '\'' && c != '"'                          ) in
       
    let string             = Bind ("S", Juxt [Bind ("Q", quote); Aster noquote; Arg "Q"]) in
    let stringBeforeLetter = Juxt [string; Before letter] in

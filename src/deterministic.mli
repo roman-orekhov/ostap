@@ -12,12 +12,13 @@ module type StreamChar =
 module ASCIIStreamChar :
   sig
     type t = char
-    val compare : 'a -> 'a -> int
+    val compare : char -> char -> int
     val values : char list
     val toInt : char -> int
     val ofInt : int -> char
     val toString : char -> string
     val max : int
+    val regexp : string -> char Regexp.t
   end
 
 module DetNFA :
@@ -28,12 +29,13 @@ module DetNFA :
         lookaheads : (t * int) list;
         args : (int * Regexp.Diagram.SS.t) Map.Make(Compare.String).t;
         symbols : (int * Regexp.Diagram.SS.t) array;
+        final : bool;
       }
       and t = {
         states : state array;
-        ok : int list;
       }
       val make : C.t Regexp.Diagram.t -> t
+      val toDiagram : bool -> t -> C.t Regexp.Diagram.t
       val minimize : C.t Regexp.Diagram.t -> t
       val printTable : t -> unit
       val toDOT : t -> string
