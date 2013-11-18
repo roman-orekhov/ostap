@@ -19,8 +19,7 @@ open Combinators
 open String
 open Printf
 open Str
-open Reason
-	
+        
 module Token =
   struct
 
@@ -37,7 +36,7 @@ let except str =
   let n = String.length str - 1 in
   let b = Buffer.create 64 in
   Buffer.add_string b "\(";
-  for i=0 to n do	  
+  for i=0 to n do          
     Buffer.add_string b "\(";
     for j=0 to i-1 do
       Buffer.add_string b (quote (String.sub str j 1))
@@ -66,11 +65,11 @@ module Skip =
       let pattern = regexp ((except start) ^ (quote stop)) in
       let l       = String.length start in
       (fun s p ->
-	if checkPrefix start s p 
-	then
-	  if string_match pattern s (p+l) then `Skipped (p+(String.length (matched_string s))+l)
-	  else `Failed (sprintf "unterminated comment ('%s' not detected)" stop)
-	else `Skipped p
+        if checkPrefix start s p 
+        then
+          if string_match pattern s (p+l) then `Skipped (p+(String.length (matched_string s))+l)
+          else `Failed (sprintf "unterminated comment ('%s' not detected)" stop)
+        else `Skipped p
       )
     
     let nestedComment start stop =      
@@ -78,85 +77,138 @@ module Skip =
       let m = String.length stop   in
       let d = regexp (sprintf "\\(%s\\)\\|\\(%s\\)" (quote start) (quote stop)) in
       (fun s p ->
-	let rec inner p =
-	  if checkPrefix start s p 
-	  then
-	    let rec jnner p c =
-	      try
-		let j       = search_forward d s p in
-		let nest, l = (try ignore (matched_group 1 s); true, n with Not_found -> false, m) in
-		let c       = if nest then c+1 else c-1 in
-		if c = 0 
-		then `Skipped (j+l)
-		else jnner (j+l) c
-	      with Not_found -> `Failed (sprintf "unterminated comment ('%s' not detected)" stop)
-	    in
-	    jnner (p+n) 1
-	  else `Skipped p
-	in
-	inner p
+        let rec inner p =
+          if checkPrefix start s p 
+          then
+            let rec jnner p c =
+              try
+                let j       = search_forward d s p in
+                let nest, l = (try ignore (matched_group 1 s); true, n with Not_found -> false, m) in
+                let c       = if nest then c+1 else c-1 in
+                if c = 0 
+                then `Skipped (j+l)
+                else jnner (j+l) c
+              with Not_found -> `Failed (sprintf "unterminated comment ('%s' not detected)" stop)
+            in
+            jnner (p+n) 1
+          else `Skipped p
+        in
+        inner p
       )
-	
+        
     let lineComment start =
       let e = regexp ".*$" in
       let n = String.length start in
       (fun s p ->
-	if checkPrefix start s p 
-	then
-	  if string_match e s (p+n)
-	  then `Skipped (p+n+(String.length (matched_string s)))
-	  else `Skipped (String.length s)
-	else `Skipped p
+        if checkPrefix start s p 
+        then
+          if string_match e s (p+n)
+          then `Skipped (p+n+(String.length (matched_string s)))
+          else `Skipped (String.length s)
+        else `Skipped p
       )
-	
+        
     let whitespaces symbols =
       let e = regexp (sprintf "[%s]*" (quote symbols)) in
       (fun s p ->
-	try 
-	  if string_match e s p 
-	  then `Skipped (p+(String.length (matched_string s)))
-	  else `Skipped p  
-	with Not_found -> `Skipped p
+        try 
+          if string_match e s p 
+          then `Skipped (p+(String.length (matched_string s)))
+          else `Skipped p  
+        with Not_found -> `Skipped p
       )
 
     let rec create skippers = 
       let f =
-	List.fold_left 
-	  (fun acc g ->
-	    (fun s p ->
-	      match acc s p with
-	      | `Skipped p -> g s p
-	      | x -> x
-	    )
-	  )
-	  (fun s p -> `Skipped p)
-	  skippers
+        List.fold_left 
+          (fun acc g ->
+            (fun s p ->
+              match acc s p with
+              | `Skipped p -> g s p
+              | x -> x
+            )
+          )
+          (fun s p -> `Skipped p)
+          skippers
       in
       (fun s p coord ->
-	let rec iterate s p =
-	  match f s p with
-	  | (`Skipped p') as x when p = p' -> x
-	  | `Skipped p' -> iterate s p'
-	  | x -> x
-	in
-	match iterate s p with
-	| `Skipped p' -> `Skipped (p', Msg.Coord.shift coord s p p')
-	| `Failed msg -> `Failed (Msg.make msg [||] (Msg.Locator.Point coord))
-      )	
+        let rec iterate s p =
+          match f s p with
+          | (`Skipped p') as x when p = p' -> x
+          | `Skipped p' -> iterate s p'
+          | x -> x
+        in
+        match iterate s p with
+        | `Skipped p' -> `Skipped (p', Msg.Coord.shift coord s p p')
+        | `Failed msg -> `Failed (Msg.make msg [||] (Msg.Locator.Point coord))
+      )        
 
+  end
+
+module Errors =
+   struct
+      type t =
+         | Deleted  of   char * int * Msg.Coord.t * strings
+         | Inserted of string * int * Msg.Coord.t * strings
+
+      module S = Set.Make(Compare.String)
+
+      let expected sort coord strings =
+         let s = List.fold_left (fun acc cur -> S.add cur acc) S.empty strings in
+         sprintf "at %s expected [%s]" (Msg.Coord.toString coord) (String.concat ", " (S.elements s))
+
+      let toExpected = function
+      | Deleted  (_, _, coord, strings)
+      | Inserted (_, _, coord, strings) -> expected true coord strings
+
+      let toAction = function
+      | Deleted  (c, _, coord, _) -> sprintf "at %s deleted  '%c'" (Msg.Coord.toString coord) c
+      | Inserted (s, _, coord, _) -> sprintf "at %s inserted \"%s\"" (Msg.Coord.toString coord) s
+
+      let toString = function
+      | Deleted  (c, _, coord, strings) -> sprintf "%s => deleted  '%c'" (expected false coord strings) c
+      | Inserted (s, _, coord, strings) -> sprintf "%s => inserted \"%s\"" (expected false coord strings) s
+
+      let correct s errors =
+         let buf = Buffer.create 1024 in
+         let rec inner i = function
+         | [] -> Buffer.add_substring buf s i (String.length s-i); Buffer.contents buf
+         | h::t -> match h with
+            | Deleted  (_, j, _, _) -> Buffer.add_substring buf s i (j-i); inner (j+1) t
+            | Inserted (ins, j, _, _) -> Buffer.add_substring buf s i (j-i); Buffer.add_string buf ins; inner j t
+         in inner 0 errors
+   end
+
+class type ['b] m =
+  object ('a)
+    method pos : int
+    method coord : Msg.Coord.t
+    method line : int
+    method col : int
+    method errors : Errors.t list
+    method prefix : int -> string
+    method pFuncCost : (int -> string option) * string * string -> [ `Exact of int | `Length ] -> ('a, Token.t, 'b) parsed
+    method get : string -> Str.regexp -> string -> ('a, Token.t, 'b) parsed
+    method regexp : string -> string -> string -> ('a, Token.t, 'b) parsed
+    method getEOF : ('a, Token.t, 'b) parsed
+    method loc : Msg.Locator.t
+    method look : string -> ('a, Token.t, 'b) parsed
+    method skip : int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t]
   end
 
 type aux = [`Skipped of int * Msg.Coord.t | `Failed of Msg.t | `Init]
 
 let defaultSkipper = fun (p : int) (c : Msg.Coord.t) -> (`Skipped (p, c) :> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t])
 
-class t s =   
-  object (self)
+class ['b] t s =   
+  object (self : 'b #m)
     val regexps = Hashtbl.create 256
     val p       = 0
     val coord   = (1, 1)
     val skipper = defaultSkipper
     val context : aux = `Init
+    val del_ok  = true
+    val errors  = []
   
     method skip = skipper
     method private changeSkip sk =
@@ -168,23 +220,11 @@ class t s =
       in {< skipper = sk; context = newContext >}
 
  
-    method private parsed x y c = Parsed (((x, c), y), None)
-    method private failed x c   = Failed (reason (Msg.make x [||] (Msg.Locator.Point c)))
-
     method pos   = p
     method coord = coord
-    method line  = fst coord
-    method col   = snd coord
-
-    method private proceed f =
-      match context with 
-      | `Failed msg -> Failed (reason msg)
-      | `Init ->
-	  (match self#skip p coord with
-	  | `Skipped (p, coord) -> f p coord
-	  | `Failed msg -> Failed (reason msg)
-	  )
-      | `Skipped (p, coord) -> f p coord
+    method line  = Msg.Coord.line coord
+    method col   = Msg.Coord.col coord
+    method errors= List.rev errors
 
     method prefix n =
       if p + n < String.length s 
@@ -198,39 +238,118 @@ class t s =
          regexp 
       )
 
-    method get name regexp = self#proceed 
-      (fun p coord ->
-        if string_match regexp s p
-        then 
-          let m = matched_string s in
-          let l = length m in
-          let p = p + l in
-          let c = Msg.Coord.shift coord m 0 l in
-          self#parsed m {< p = p;  coord = c; context = ((self#skip p c) :> aux) >} coord
-        else self#failed (sprintf "\"%s\" expected" name) coord
-      )
+   method pFuncCost (f, msg, min_def) cost =
+      let p, coord = match context with 
+         | `Failed msg -> p, coord
+         | `Init -> (match self#skip p coord with
+            | `Skipped (p, coord) -> p, coord
+            | `Failed msg -> p, coord
+         )
+         | `Skipped (p, coord) -> p, coord in
+      let l = String.length min_def in
+      let getCost = function
+         | `Exact cst -> cst
+         | `Length -> 5 * l in
+      let inner k =
+         match f p with
+         | Some m ->
+            if !Combinators.debug then printf "found %s while looking for %s\n" m msg;
+            let l = String.length m in
+            let p = p + l
+            and c = Msg.Coord.shift coord m 0 l in
+            Ostream.consL
+            (Step l)
+            (lazy (k (m, coord) {< p = p; coord = c; context = ((self#skip p c) :> aux); del_ok = true >}))
+(*
+                  good (d, rest) = let lst = LL.toList $ LL.take d tts
+                                       nextPos = advance pos lst
+                                   in if LL.null rest || (p $ LL.head rest)
+                                      then show_tokens ("Accepting token: " ++ (show lst) ++" as " ++ msg ++ "\n") 
+                                              (Step d       (k lst (skipper (Str rest  msgs                                        nextPos True))))
+                                           -- need skipper here since we've eaten something from stream
+                                      else let ins exp = (5, k lst (skipper (Str rest (msgs ++ [Inserted "wordbreak" nextPos exp]) nextPos False)))
+                                           in (Step d (Fail ["wordbreak"][ins]))
+*)
+         | None ->
+            if !Combinators.debug then printf "couldn't find %s\n" msg;
+            Ostream.one (Fail (lazy ([msg],
+               (let ins = (getCost cost, false, fun exp -> 
+                  let next = {< errors = (Errors.Inserted (min_def, p, coord, exp))::errors; del_ok = false >} in
+                  if !Combinators.debug then printf "Inserted %s\n%s\n" min_def (Errors.correct s next#errors);
+                  k (min_def, coord) next) in
+               if not del_ok || p = String.length s
+               then [ins]
+               else let del = (5, true, fun exp ->
+                  let np = p + 1 in
+                  let c = Msg.Coord.shift coord s p np in
+                  let next = {< p=np; coord=c; context=((self#skip np c) :> aux); del_ok = true; errors = (Errors.Deleted (s.[p], p, coord, exp))::errors >} in
+                  if !Combinators.debug then printf "Deleted %c\n%s\n" s.[p] (Errors.correct s next#errors);
+                  next#pFuncCost (f, msg, min_def) cost k )
+               in [ins;del])
+            )))
+            
+      in inner
+(*
+                  bad = let t = LL.head tts
+                            ins exp = (c cost, k min_def (Str tts (msgs ++ [Inserted (show min_def) pos exp]) pos False))
+                            del exp = (5, splitState  k 
+                                                (skipper (Str (LL.tail tts)
+                                                              (msgs ++ [Deleted  (show t) pos exp]) 
+                                                              (advance pos t)
+                                                              True)))
+                        in Fail [msg] (ins: if not del_ok || LL.null tts then [] else [del])
+*)
 
-    method look str = self#proceed 
-      (fun p coord ->
-         try 
-	   let l = String.length str in
-	   let m = String.sub s p l in
-	   let p = p + l in
-	   let c = Msg.Coord.shift coord m 0 (length m) in
-	   if str = m 
-	   then self#parsed m {< p = p; coord = c; context = ((self#skip p c) :> aux) >} coord
-	   else self#failed (sprintf "\"%s\" expected" str) coord
-         with Invalid_argument _ -> self#failed (sprintf "\"%s\" expected" str) coord
-      )
+    method get name regexp min =
+      self#pFuncCost 
+      ((fun p ->
+         if string_match regexp s p
+         then Some (matched_string s)
+         else None
+      ), name, min) `Length
 
-   method getEOF = self#proceed 
-     (fun p coord ->
-	if p = length s 
-	then self#parsed "<EOF>" {< p = p; coord = coord>} coord
-	else self#failed "<EOF> expected" coord
-     )
+    method look str =
+      self#pFuncCost 
+      ((fun p ->
+         if checkPrefix str s p
+         then Some str
+         else None
+      ), sprintf "\"%s\"" str, str) (`Exact 5)
+      (*`Length*)
+
+   method getEOF k =
+      let p, coord = match context with 
+         | `Failed msg -> p, coord
+         | `Init -> (match self#skip p coord with
+            | `Skipped (p, coord) -> p, coord
+            | `Failed msg -> p, coord
+         )
+         | `Skipped (p, coord) -> p, coord in
+      if p = length s
+      then begin
+         if !Combinators.debug then printf "found EOF while looking for EOF\n";
+         Ostream.consL
+         (Step 0)
+         (lazy (k ("EOF", coord) {< p = p; coord = coord; del_ok = false >}))
+      end else begin
+         if !Combinators.debug then printf "couldn't find EOF\n";
+         Ostream.one (Fail (lazy (["EOF"],
+               if not del_ok
+               then []
+               else [(5, true, fun exp ->
+                  let np = p + 1 in
+                  let c = Msg.Coord.shift coord s p np in
+                  let next = {< p=np; coord=c; context=((self#skip np c) :> aux); del_ok = true; errors = (Errors.Deleted (s.[p], p, coord, exp))::errors >} in
+                  if !Combinators.debug then printf "%s\n" (Errors.correct s next#errors);
+                  next#getEOF k )]
+            )))
+      end      
 
     method loc = Msg.Locator.Point coord
 
   end
     
+let lget name regexp min k s = s#get name regexp min k
+let llook        str     k s = s#look str k
+let lregexp name str min k s = s#regexp name str min k
+let leof                 k s = s#getEOF k

@@ -266,9 +266,9 @@ module Cache =
       for i=0 to String.length x - 1 
       do
           match x.[i] with 
-	    ' ' -> if !f then () else (Buffer.add_char b ' '; f := true)
-	  | '\t' | '\n' -> f := false
-	  | c -> Buffer.add_char b c; f := false	  
+            ' ' -> if !f then () else (Buffer.add_char b ' '; f := true)
+          | '\t' | '\n' -> f := false
+          | c -> Buffer.add_char b c; f := false          
       done;
       Buffer.contents b
 
@@ -277,23 +277,23 @@ module Cache =
     let rec cached x = 
       let x = compress x in
       let rec substitute acc s i j = 
-	let len = String.length s in
-	if j < i then 
-	  if i < len then substitute acc s (i+1) (len-1) else List.rev (`S s :: acc)
+        let len = String.length s in
+        if j < i then 
+          if i < len then substitute acc s (i+1) (len-1) else List.rev (`S s :: acc)
         else if i = len then List.rev (`S s :: acc)
              else 
-	       let d = String.sub s i (j-i+1) in 
-	       try 
-		 substitute 
-		   (`T (Hashtbl.find h d) :: (`S (String.sub s 0 i) :: acc))
-		   (String.sub s (j + 1) (len - j - 1))
-		   0
-		   (len - j - 2)		 
-	       with 
-		 Not_found -> substitute acc s i (j-1)	            
+               let d = String.sub s i (j-i+1) in 
+               try 
+                 substitute 
+                   (`T (Hashtbl.find h d) :: (`S (String.sub s 0 i) :: acc))
+                   (String.sub s (j + 1) (len - j - 1))
+                   0
+                   (len - j - 2)                 
+               with 
+                 Not_found -> substitute acc s i (j-1)                    
       in 
       match substitute [] x 0 (String.length x - 1) with 
-	[`S s] -> Args.wrap s
+        [`S s] -> Args.wrap s
       | list   -> Expr.custom list
 
   end
@@ -374,8 +374,9 @@ EXTEND
 
   expr: LEVEL "expr1" [
     [ "ostap"; "("; (p, tree)=o_alternatives; ")" ->
-      let body = <:expr< $p$ _ostap_stream >> in
+      let body = <:expr< $p$ _ostap_cont _ostap_stream >> in
       let pwel = [(<:patt< _ostap_stream >>, Ploc.VaVal None, body)] in
+      let pwel = [(<:patt< _ostap_cont >>, Ploc.VaVal None, <:expr< fun [$list:pwel$] >>)] in
       let f = <:expr< fun [$list:pwel$] >> in
       (match tree with Some tree -> Cache.cache (!printExpr f) tree | None -> ());
       f      
@@ -393,48 +394,48 @@ EXTEND
   o_rules: [
     [ rules=LIST1 o_rule SEP ";" ->      
       let (rules, defs) = List.split rules in
-      (List.map	(fun (name, rule) -> (<:patt< $lid:name$ >>, rule)) rules, defs)
+      (List.map        (fun (name, rule) -> (<:patt< $lid:name$ >>, rule)) rules, defs)
     ]
   ];
 
   o_rule: [
     [ name=LIDENT; args=OPT o_formal_parameters; ":"; (p, tree)=o_alternatives ->
       let args' = 
-	match args with 
-	  None   -> [<:patt< _ostap_stream >>]
-	| Some l -> l @ [<:patt< _ostap_stream >>]
+        match args with 
+          None   -> [<:patt< _ostap_cont >>; <:patt< _ostap_stream >>]
+        | Some l -> l @ [<:patt< _ostap_cont >>; <:patt< _ostap_stream >>]
       in
       let rule =
-	List.fold_right 
-	  (fun x f -> 
-	    let pwel = [(x, Ploc.VaVal None, f)] in
-	    <:expr< fun [$list:pwel$] >>
-	  ) 
-	  args'
-	  <:expr< $p$ _ostap_stream >>
+        List.fold_right 
+          (fun x f -> 
+            let pwel = [(x, Ploc.VaVal None, f)] in
+            <:expr< fun [$list:pwel$] >>
+          ) 
+          args'
+          <:expr< $p$ _ostap_cont _ostap_stream >>
       in      
       let p = match args with 
             None      -> []
           | Some args -> 
-	      let args =
-		List.filter 
-		  (fun p -> 
-		    let idents = get_defined_ident p in
-		    List.fold_left (fun acc ident -> acc || (Uses.has ident)) false idents
-		  ) 
-		  args
-	      in
-	      List.map !printPatt args	  
+              let args =
+                List.filter 
+                  (fun p -> 
+                    let idents = get_defined_ident p in
+                    List.fold_left (fun acc ident -> acc || (Uses.has ident)) false idents
+                  ) 
+                  args
+              in
+              List.map !printPatt args          
       in
       let tree =
          match tree with 
-	    None      -> Expr.string ""
-	  | Some tree -> tree	  
+            None      -> Expr.string ""
+          | Some tree -> tree          
       in
       let def = 
           match p with 
-	    []   -> Def.make  name tree
-	  | args -> Def.makeP name args tree	  
+            []   -> Def.make  name tree
+          | args -> Def.makeP name args tree          
       in
       Args.clear ();
       Uses.clear ();
@@ -454,105 +455,105 @@ EXTEND
   o_alternatives: [
     [ p=LIST1 o_alternativeItem SEP "|" -> 
         match p with 
-	  [p] -> p
+          [p] -> p
         |  _  -> 
-	    let (p, trees) = List.split p in
-	    let trees =
-	      List.map
-		(fun x -> match x with Some x -> x)
-		(List.filter (fun x -> x <> None) trees)
-	    in
-	    match
-	      List.fold_right 
-		(fun item expr -> 
-		  match expr with 
-		    None -> Some (item)
-		  | Some expr -> Some (<:expr< Ostap.Combinators.alt $item$ $expr$ >>)	          
-		) p None
-	    with 
-	      None   -> raise (Failure "internal error --- must not happen")
-	    | Some x -> (x, match trees with [] -> None | _ -> Some (Expr.alt trees))	    	
+            let (p, trees) = List.split p in
+            let trees =
+              List.map
+                (fun x -> match x with Some x -> x)
+                (List.filter (fun x -> x <> None) trees)
+            in
+            match
+              List.fold_right 
+                (fun item expr -> 
+                  match expr with 
+                    None -> Some (item)
+                  | Some expr -> Some (<:expr< Ostap.Combinators.alt $item$ $expr$ >>)                  
+                ) p None
+            with 
+              None   -> raise (Failure "internal error --- must not happen")
+            | Some x -> (x, match trees with [] -> None | _ -> Some (Expr.alt trees))                    
     ]
   ];
 
   o_alternativeItem: [
     [ g=OPT o_guard; p=LIST1 o_prefix; s=OPT o_semantic -> 
-	let (p, trees) = List.split p in
-	let trees = 
-	  List.map 
-	    (fun x -> match x with Some x -> x) 
-	    (List.filter (fun x -> x <> None) trees) 
-	in
-	let trees = 
-	  match trees with 
-	    [] -> None
-	  | _  -> Some (Expr.seq trees)
-	in
-	let (s, isSema) = 
-	  match s with 
-	    Some s -> (s, true)
-	  | None -> 
-	      let (tuple, _) =
-		List.fold_right 
-		  (fun (_, omit, _, _) ((acc, i) as x) -> 
-		    if omit then x else (<:expr< $lid:"_" ^ (string_of_int i)$>> :: acc, i+1)
-		  ) 
-		  p 
-		  ([], 0) 
-	      in
-	      match tuple with 
-		[]  -> (<:expr< () >>, true)
-	      | [x] -> (x, false)
-	      |  _  -> (<:expr< ($list:tuple$) >>, true)
-	in
+        let (p, trees) = List.split p in
+        let trees = 
+          List.map 
+            (fun x -> match x with Some x -> x) 
+            (List.filter (fun x -> x <> None) trees) 
+        in
+        let trees = 
+          match trees with 
+            [] -> None
+          | _  -> Some (Expr.seq trees)
+        in
+        let (s, isSema) = 
+          match s with 
+            Some s -> (s, true)
+          | None -> 
+              let (tuple, _) =
+                List.fold_right 
+                  (fun (_, omit, _, _) ((acc, i) as x) -> 
+                    if omit then x else (<:expr< $lid:"_" ^ (string_of_int i)$>> :: acc, i+1)
+                  ) 
+                  p 
+                  ([], 0) 
+              in
+              match tuple with 
+                []  -> (<:expr< () >>, true)
+              | [x] -> (x, false)
+              |  _  -> (<:expr< ($list:tuple$) >>, true)
+        in
         match List.fold_right
             (fun (flag, omit, binding, p) rightPart -> 
-	      let p =
-		match flag with 
-	          None -> p
-		| Some (f, r) -> 
-		    let pwel = 
-		      match binding with 
-			None   -> [(<:patt< _ >>, Ploc.VaVal None, f)] 
-		      | Some p -> [(<:patt< $p$ >>, Ploc.VaVal None, f)]
-		    in
-		    let pfun = <:expr< fun [$list:pwel$] >> in
-		    match r with 
-		      None   -> <:expr< Ostap.Combinators.guard $p$ $pfun$ None >>
-		    | Some r -> 
-			let pwel = 
-			  match binding with 
-			    None   -> [(<:patt< _ >>, Ploc.VaVal None, r)] 
-			  | Some p -> [(<:patt< $p$ >>, Ploc.VaVal None, r)]
-			in
-			let rfun = <:expr< fun [$list:pwel$] >> in
-			<:expr< Ostap.Combinators.guard $p$ $pfun$ (Some $rfun$) >>
-	      in
-	      let (n, right, combi, isMap) = 
-		match rightPart with 
-		  None -> (0, s, (fun x y -> <:expr< Ostap.Combinators.map $y$ $x$>>), true)
-		| Some (right, n) -> (n, right, (fun x y -> <:expr< Ostap.Combinators.seq $x$ $y$>>), false)
-	      in
-	      if not isSema && not omit && isMap && binding = None
-	      then Some (p, n+1)
-	      else 
-		let patt = match binding with None -> <:patt< _ >> | Some patt -> patt in 
-		let (patt, n) = if not omit then (<:patt< ($patt$ as $lid:"_" ^ (string_of_int n)$) >>, n+1) else (patt, n) in
-		let pwel      = [(patt, Ploc.VaVal None, right)] in
-		let sfun      = <:expr< fun [$list:pwel$] >> in
-		Some (combi p sfun, n)
+              let p =
+                match flag with 
+                  None -> p
+                | Some (f, r) -> 
+                    let pwel = 
+                      match binding with 
+                        None   -> [(<:patt< _ >>, Ploc.VaVal None, f)] 
+                      | Some p -> [(<:patt< $p$ >>, Ploc.VaVal None, f)]
+                    in
+                    let pfun = <:expr< fun [$list:pwel$] >> in
+                    match r with 
+                      None   -> <:expr< Ostap.Combinators.guard $p$ $pfun$ None >>
+                    | Some r -> 
+                        let pwel = 
+                          match binding with 
+                            None   -> [(<:patt< _ >>, Ploc.VaVal None, r)] 
+                          | Some p -> [(<:patt< $p$ >>, Ploc.VaVal None, r)]
+                        in
+                        let rfun = <:expr< fun [$list:pwel$] >> in
+                        <:expr< Ostap.Combinators.guard $p$ $pfun$ (Some $rfun$) >>
+              in
+              let (n, right, combi, isMap) = 
+                match rightPart with 
+                  None -> (0, s, (fun x y -> <:expr< Ostap.Combinators.map $y$ $x$>>), true)
+                | Some (right, n) -> (n, right, (fun x y -> <:expr< Ostap.Combinators.seq $x$ $y$>>), false)
+              in
+              if not isSema && not omit && isMap && binding = None
+              then Some (p, n+1)
+              else 
+                let patt = match binding with None -> <:patt< _ >> | Some patt -> patt in 
+                let (patt, n) = if not omit then (<:patt< ($patt$ as $lid:"_" ^ (string_of_int n)$) >>, n+1) else (patt, n) in
+                let pwel      = [(patt, Ploc.VaVal None, right)] in
+                let sfun      = <:expr< fun [$list:pwel$] >> in
+                Some (combi p sfun, n)
             ) p None
-	with 
-	  Some (expr, _) -> 
-	    (match g with 
-	      None   -> (expr, trees)
-	    | Some (g, None) ->
-		(<:expr< Ostap.Combinators.seq (Ostap.Combinators.guard Ostap.Combinators.empty (fun _ -> $g$) None) (fun _ -> $expr$) >>, trees)
+        with 
+          Some (expr, _) -> 
+            (match g with 
+              None   -> (expr, trees)
+            | Some (g, None) ->
+                (<:expr< Ostap.Combinators.seq (Ostap.Combinators.guard Ostap.Combinators.empty (fun _ -> $g$) None) (fun _ -> $expr$) >>, trees)
 
-	    | Some (g, Some r) ->
-		(<:expr< Ostap.Combinators.seq (Ostap.Combinators.guard Ostap.Combinators.empty (fun _ -> $g$) (Some (fun _ -> $r$))) (fun _ -> $expr$) >>, trees)
-	    )
-	  | None -> raise (Failure "internal error: empty list must not be eaten")	
+            | Some (g, Some r) ->
+                (<:expr< Ostap.Combinators.seq (Ostap.Combinators.guard Ostap.Combinators.empty (fun _ -> $g$) (Some (fun _ -> $r$))) (fun _ -> $expr$) >>, trees)
+            )
+          | None -> raise (Failure "internal error: empty list must not be eaten")        
     ] 
   ];
 
@@ -595,55 +596,60 @@ EXTEND
           match args with 
              None           -> (p, Some s)
            | Some (args, a) -> 
-	       let args = args @ [<:expr< _ostap_stream >>] in
-	       let body = List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args in
-	       let pwel = [(<:patt< _ostap_stream >>, Ploc.VaVal None, body)] in
-	       (<:expr< fun [$list:pwel$] >>, (Some (Expr.apply s a)))
+               let args = args @ [<:expr< _ostap_cont >>; <:expr< _ostap_stream >>] in
+               let body = List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args in
+               let pwel = [(<:patt< _ostap_stream >>, Ploc.VaVal None, body)] in
+               let pwel = [(<:patt< _ostap_cont >>, Ploc.VaVal None, <:expr< fun [$list:pwel$] >>)] in
+               (<:expr< fun [$list:pwel$] >>, (Some (Expr.apply s a)))
     ] |
     [ p=UIDENT ->  
             let p' = "get" ^ p in
-            let look = <:expr< _ostap_stream # $p'$ >> in
+            let look = <:expr< _ostap_stream # $p'$ _ostap_cont >> in
             let pwel = [
-	      (
-	       <:patt< _ostap_stream >>, 
-	       Ploc.VaVal None, 
-	       look
-	      )
-	    ] in
+              (
+               <:patt< _ostap_stream >>, 
+               Ploc.VaVal None, 
+               look
+              )
+            ] in
+            let pwel = [(<:patt< _ostap_cont >>, Ploc.VaVal None, <:expr< fun [$list:pwel$] >>)] in
             (<:expr< fun [$list:pwel$] >>, Some (Expr.term p))
     ] |
-    [ p=STRING -> 
-          let look = <:expr< _ostap_stream # look $str:p$ >> in
+    [ p=STRING-> 
+          let look = <:expr< _ostap_stream # look $str:p$ _ostap_cont >> in
           let pwel = [
-	    (
-	     <:patt<$lid:"_ostap_stream"$>>, 
-	     Ploc.VaVal None, 
-	     look 
-	    )
-	  ] in
+            (
+             <:patt<$lid:"_ostap_stream"$>>, 
+             Ploc.VaVal None, 
+             look 
+            )
+          ] in
+          let pwel = [(<:patt< _ostap_cont >>, Ploc.VaVal None, <:expr< fun [$list:pwel$] >>)] in
           (<:expr<fun [$list:pwel$]>>, Some (Expr.string p))
     ] |
     [ "$"; "("; p=expr; ")" ->
-          let look = <:expr< _ostap_stream # look ($p$) >> in
+          let look = <:expr< _ostap_stream # look ($p$) _ostap_cont >> in
           let pwel = [
-	    (
-	     <:patt<$lid:"_ostap_stream"$>>, 
-	     Ploc.VaVal None, 
-	     look 
-	    )
-	  ] in
+            (
+             <:patt<$lid:"_ostap_stream"$>>, 
+             Ploc.VaVal None, 
+             look 
+            )
+          ] in
+          let pwel = [(<:patt< _ostap_cont >>, Ploc.VaVal None, <:expr< fun [$list:pwel$] >>)] in
           (<:expr<fun [$list:pwel$]>>, Some (Expr.string (!printExpr p)))
     ] |
-    [ "@"; "("; p=expr; n=OPT o_regexp_name; ")" ->
+    [ "@"; "("; p=expr; "?"; min=expr; n=OPT o_regexp_name; ")" ->
           let name = match n with None -> p | Some p -> p in
-          let look = <:expr< _ostap_stream # regexp ($name$) ($p$) >> in
+          let look = <:expr< _ostap_stream # regexp ($name$) ($p$) ($min$) _ostap_cont >> in
           let pwel = [
-	    (
-	     <:patt<$lid:"_ostap_stream"$>>, 
-	     Ploc.VaVal None, 
-	     look 
-	    )
-	  ] in
+            (
+             <:patt<$lid:"_ostap_stream"$>>, 
+             Ploc.VaVal None, 
+             look 
+            )
+          ] in
+          let pwel = [(<:patt< _ostap_cont >>, Ploc.VaVal None, <:expr< fun [$list:pwel$] >>)] in
           (<:expr<fun [$list:pwel$]>>, Some (Expr.string (!printExpr p)))
     ] |
     [ "$" -> (<:expr< Ostap.Combinators.lift >>, None) ] |
@@ -682,27 +688,27 @@ EXTEND
 END;
 
 add_option "-tex"  (Arg.String 
-		      (fun s -> 
-		  	   let p = !printBNF in
+                      (fun s -> 
+                             let p = !printBNF in
 
-			   let ouch = open_out (s ^ ".tex") in
+                           let ouch = open_out (s ^ ".tex") in
 
-			   close_out ouch;
+                           close_out ouch;
 
                            printExpr := (fun e -> Eprinter.apply pr_expr Pprintf.empty_pc e);
-			   printPatt := (fun p -> Eprinter.apply pr_patt Pprintf.empty_pc p);
+                           printPatt := (fun p -> Eprinter.apply pr_patt Pprintf.empty_pc p);
 
-			   printBNF  := 
-			     (fun name bnf ->                     
+                           printBNF  := 
+                             (fun name bnf ->                     
                                   let ouch = 
-				    match name with 
-				      None      -> open_out_gen [Open_append; Open_text] 0o66 (s ^ ".tex")
-				    | Some name -> open_out (s ^ "." ^ name ^ ".tex") 
-				  in
-			          fprintf ouch "%s" bnf; 
-			          close_out ouch;
-			          p name bnf
-			     )
-		      )
-		   ) 
+                                    match name with 
+                                      None      -> open_out_gen [Open_append; Open_text] 0o66 (s ^ ".tex")
+                                    | Some name -> open_out (s ^ "." ^ name ^ ".tex") 
+                                  in
+                                  fprintf ouch "%s" bnf; 
+                                  close_out ouch;
+                                  p name bnf
+                             )
+                      )
+                   ) 
            "<name> - print TeX grammar documentation to given file";

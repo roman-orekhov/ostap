@@ -20,7 +20,7 @@
 (** {2 General description} *)
 
 (** Main type: lazy list of 'a-s *)
-type 'a t
+type 'a t = ('a * 'a t) Lazy.t
 
 (** {2 Constructors} *)
 
@@ -73,6 +73,10 @@ val fromArray : 'a array -> 'a t
 (** [cons x s] constructs stream of the head element [x] and residual stream [s]. *)
 val cons : 'a -> 'a t -> 'a t
 
+val consL : 'a -> 'a t Lazy.t -> 'a t
+
+val one : 'a -> 'a t
+
 (** {2 Accessors} *)
 
 (** [get s] get the current element of the stream and the rest of the stream; raises [End_of_file] on empty 
@@ -95,6 +99,7 @@ val last : 'a t -> 'a
 (** [concat x y] concatenates streams [x] and [y]. *)
 val concat : 'a t -> 'a t -> 'a t
 
+val concatL : 'a t -> 'a t Lazy.t -> 'a t
 (** {2 Generic functions} *)
 
 (** [map f s] maps function [f] to stream [s]. *)

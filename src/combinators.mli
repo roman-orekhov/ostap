@@ -23,128 +23,46 @@
     "a swindler", "a sly man" etc.
  *)
 
-(** {2 Main parsing types } *)
+type ('stream, 'token, 'result) cont  = 'token -> 'stream -> 'result steps
+and  ('stream, 'token, 'result) parse = ('stream, 'token, 'result) cont -> 'stream -> 'result steps
+and  ('stream, 'token, 'result) parsed = ('stream, 'token, 'result) cont -> 'result steps
+and  'a step =
+   | Step  of int
+   | Fail  of (strings * (int * bool * (strings -> 'a steps)) list) Lazy.t
+   | End_alt of int
+   | Result of 'a
+and  strings = string list
+and  'a steps = 'a step Ostream.t
 
-(** Type pattern for the result of parsing. Here ['a] --- type of {i parsed value}, ['b] --- type of
-    {i failure reason} (description of parse problem). Result is 
-
-    {ul {- either a parsed value coupled with optional reason designated to denote deferred errors}
-        {- or a failure with optional reason.}
-    }
-    
-    Deferred reasons are those which can be potentially signalled in the future. For example, 
-    parsing the string "A, B" with the rule ("A" "B")? has to return parsed value with deferred failure
-    reason "B expected".
- *)
-type ('a, 'b) tag = Parsed of 'a * 'b option | Failed of 'b option
-
-(** The type 
-
-    {C [type ('stream, 'parsed, 'error) result = ('parsed * 'stream, 'error) tag]}
-
-    denotes the result of parsing a stream with a parser. This result is either parsed value of type 
-    ['parsed] and the residual stream of type ['stream], or failure with reason of type ['error].
- *)
-type ('stream, 'parsed, 'error) result = ('parsed * 'stream, 'error) tag
-
-(** The type 
-
-    {C [type ('stream, 'parsed, 'error) parse  = 'stream -> ('stream, 'parsed, 'error) result]}
-
-    corresponds to a parser. Parser takes a stream of type ['stream] and returns result.
- *)
-type ('stream, 'parsed, 'error) parse  = 'stream -> ('stream, 'parsed, 'error) result
-
-(** {2 Simple predefined parsers} *)
-
-(** [empty] successfully consumes no items from the stream. *)
-val empty : ('a, unit, 'b) parse
-
-(** [fail r s] consumes no items from the stream [s] and always returns failure with reason [r]. *)
-val fail : 'b option -> ('a, unit, 'b) parse
-
-(** [lift s] returns [Parsed (s, s)] and so "lifts" the stream [s] as a successful parse result. *)
-val lift : ('a, 'a, 'b) parse
-
-(** {2 General parsing combinators} *)
-
-(** [map f p] applies [f] to the result of [p], if [p] succeeded, or fails otherwise. *)
-val map : ('b -> 'c) -> ('a, 'b, 'd) parse -> ('a, 'c, 'd) parse 
-
-(** Infix synonym for [map]. Note: the order of parameters is inverted. *)
-val (-->) : ('a, 'b, 'd) parse -> ('b -> 'c) -> ('a, 'c, 'd) parse
-
-(** [sink p] returns parser which replaces the residual stream with successfully 
-    parsed by [p] value; [sink] is a sort of "inversion" of [lift].
- *)
-val sink : ('a, 'a, 'c) parse -> ('a, 'a, 'c) parse
-
-(** Sequence combinator. [seq x y] constructs a parser to parse 
-    successively by [x] and [y]. Parsed by [x] value is passed to [y] as a context.
-    The reason value type has to supply a method [add] to add one reason value to
-    another to collect multiple reasons.
- *)
-val seq : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('b -> ('a, 'c,  'e) parse) -> ('a, 'c, 'e) parse
-
-(** Infix synonym for [seq]. *)
-val (|>)  : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('b -> ('a, 'c, 'e) parse) -> ('a, 'c, 'e) parse
- 
-(** Alternative combinator. [alt x y] returns parse function that parses that that 
-    either [x] or [y] parse. [alt x y] tries [y] even if [x] returned [Error].
-    The reason value type has to supply a method [add] to add one reason value to
-    another to collect multiple reasons.
- *)
-val alt : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'b, 'e) parse -> ('a, 'b, 'e) parse
-
-(** Infix synonym for [alt]. *)
-val (<|>) : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'b, 'e) parse -> ('a, 'b, 'e) parse
-
-(** Optional combinator. [opt x] returns parser that parses either [x] or nothing. *)
-val opt : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'b option, 'e) parse
-
-(** <?> is infix synonym for [opt]. *)
-val (<?>) : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'b option, 'e) parse
-
-(** [manyFold] is a generalization of Kleene closure combinator (zero-or-more iteration).
-    [manyFold f init p] parses the input stream with parser [p] zero-or-more times eagerly
-    and returns the folded value [f .. (f (f init r0) r1) .. rk] where [ri] is the result
-    of i-th parsing with [p]. The reason value type has to supply a method [add] to add one 
-    reason value to another to collect multiple reasons.
- *)
-val manyFold : ('c -> 'b -> 'c) -> 'c -> ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'c, 'e) parse
-
-(** [many p] is a shortcut for [(manyFold (fun acc x -> (fun l -> acc (x :: l))) (fun x -> x) p) --> (fun x -> x [])].
-    In short, it returns the list of successive parsings with [p].
- *)
-val many : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'b list, 'e) parse
-
-(** [someFold p] is similar to [manyFold p] with the exception that it performs one-or-more iteraton of [p]. *)
-val someFold : ('c -> 'b -> 'c) -> 'c -> ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'c, 'e) parse
-
-(** [some p]  is similar to [someFold p] with the exception that it performs one-or-more iteraton of [p]. *)
-val some : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'b list, 'e) parse
-
-(** Infix synonym for [many]. *)
-val (<*>) : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'b list, 'e) parse
-
-(** Infix synonym for [some]. *)
-val (<+>) : ('a, 'b, <add: 'e -> 'e; ..> as 'e) parse -> ('a, 'b list, 'e) parse
-
-(** Guarded parser combinator. [guard p predicate r] checks successfully parsed by [p] value 
-    against [predicate] and turns it into [Error r] if this check failed.
- *)    
-val guard : ('a, 'b, 'c) parse -> ('b -> bool) -> ('b -> 'c) option -> ('a, 'b, 'c) parse
-
-(** Commenting combinator: adds a readable comment to a reason.
-    The reason value type has to supply a method [comment] to add string comment to the existing 
-    reason value.
-  *)
-val comment : ('a, 'b, <comment: string -> 'c; ..> as 'c) parse -> string -> ('a, 'b, 'c) parse
-
-(** Alternates list of parsers (equivalent to [List.fold_left alt (fail None)]). *)
-val altl : ('a, 'b, <add: 'c -> 'c; ..>  as 'c) parse list -> ('a, 'b, 'c) parse
-
-(** [unwrap r parsed failed] unwraps parse result [r] by applying either [parsed] function to
-    parsed value or [failed] function to optional reason value.
- *)
-val unwrap : ('stream, 'parsed, 'error) result -> ('parsed -> 'a) -> ('error option -> 'a) -> 'a
+val return   : 'token -> ('stream, 'token, 'result) parse
+val empty    : ('stream, unit, 'result) parse
+val fail     : string option -> ('stream, 'token, 'result) parse
+val lift     : ('stream, 'stream, 'result) parse
+val sink     : ('stream, 'stream, 'result) parse -> ('stream, 'stream, 'result) parse
+val map      : ('a -> 'b) -> ('stream, 'a, 'result) parse -> ('stream, 'b, 'result) parse
+val (-->)    : ('stream, 'a, 'result) parse -> ('a -> 'b) -> ('stream, 'b, 'result) parse
+(*
+val seq      : ('stream, 'a -> 'b, 'result) parse -> ('stream, 'a, 'result) parse -> ('stream, 'b, 'result) parse
+val (|>)     : ('stream, 'a -> 'b, 'result) parse -> ('stream, 'a, 'result) parse -> ('stream, 'b, 'result) parse
+*)
+val seq      : ('stream, 'a, 'result) parse -> ('a -> ('stream, 'b, 'result) parse) -> ('stream, 'b, 'result) parse
+val (|>)     : ('stream, 'a, 'result) parse -> ('a -> ('stream, 'b, 'result) parse) -> ('stream, 'b, 'result) parse
+val alt      : ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) parse
+val both     : ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) parse
+val (<|>)    : ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) parse
+val (<-|>)   : ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) parse
+val prio     : ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) parse
+val opt      : ('stream, 'token, 'result) parse -> ('stream, 'token option, 'result) parse
+val (<?>)    : ('stream, 'token, 'result) parse -> ('stream, 'token option, 'result) parse
+val manyFold : ('a -> 'b -> 'a) -> 'a -> ('stream, 'b, 'result) parse -> ('stream, 'a, 'result) parse
+val many     : ('stream, 'a, 'result) parse -> ('stream, 'a list, 'result) parse
+val (<*>)    : ('stream, 'a, 'result) parse -> ('stream, 'a list, 'result) parse
+val someFold : ('a -> 'b -> 'a) -> 'a -> ('stream, 'b, 'result) parse -> ('stream, 'a, 'result) parse
+val some     : ('stream, 'a, 'result) parse -> ('stream, 'a list, 'result) parse
+val (<+>)    : ('stream, 'a, 'result) parse -> ('stream, 'a list, 'result) parse
+val guard    : ('stream, 'token, 'result) parse -> ('token -> bool) -> ('token -> string) option -> ('stream, 'token, 'result) parse
+val comment  : ('stream, 'token, 'result) parse -> string -> ('stream, 'token, 'result) parse
+val altl     : ('stream, 'token, 'result) parse list -> ('stream, 'token, 'result) parse
+val parse    : ('stream, 'token, 'token * 'stream) parse -> 'stream -> 'token * 'stream
+val debug    : bool ref
+val lookahead: int ref

@@ -19,23 +19,27 @@ open Lazy
 
 type 'a t = ('a * 'a t) Lazy.t
 
-let rec fromFunction  f      = lazy_from_fun (fun _ -> f (), fromFunction f)
-let rec fromChannel   f inch = lazy_from_fun (fun _ -> f inch, fromChannel f inch)
-let rec fromIterator  x f    = lazy_from_fun (fun _ -> let y, x' = f x in y, fromIterator x' f)
-let rec fromGenerator x n i  = lazy_from_fun (fun _ -> i x, fromGenerator (n x) n i)
-let rec fromList      l      = fromIterator  l (function [] -> raise End_of_file, [] | hd::tl -> hd, tl)
-let rec fromArray     a      = let n = Array.length a in fromGenerator 0 (fun i -> i+1) (fun i -> if i < n then a.(i) else raise End_of_file)
-let     fromFile             = fromChannel input_char
-let     fromString    s      = let n = String.length s in fromGenerator 0 (fun i -> i+1) (fun i -> if i < n then s.[i] else raise End_of_file)
-let     cons          x s    = lazy_from_val (x, s)
-
 let complete f x = try f () with End_of_file -> x
 
 let get   s = force s
 let endOf s = complete (fun _ -> ignore (get s); false) true 
 let hd    s = fst (get s)
 let tl    s = snd (get s)
-let rec concat x y = lazy_from_fun (fun _ -> try let x, xl = get x in x, concat xl y with End_of_file -> get y)
+
+let rec fromFunction  f      = lazy_from_fun (fun _ -> f (), fromFunction f)
+let rec fromChannel   f inch = lazy_from_fun (fun _ -> f inch, fromChannel f inch)
+let rec fromIterator  x f    = lazy_from_fun (fun _ -> let y, x' = f x in y, fromIterator x' f)
+let rec fromGenerator x n i  = lazy_from_fun (fun _ -> i x, fromGenerator (n x) n i)
+let     fromList      l      = fromIterator  l (function [] -> raise End_of_file, [] | hd::tl -> hd, tl)
+let     fromFile             = fromChannel input_char
+let     fromArray     a      = let n =  Array.length a in fromGenerator 0 (fun i -> i+1) (fun i -> if i < n then a.(i) else raise End_of_file)
+let     fromString    s      = let n = String.length s in fromGenerator 0 (fun i -> i+1) (fun i -> if i < n then s.[i] else raise End_of_file)
+let     cons          x s    = lazy_from_val (x, s)
+let     consL         x s    = cons x (lazy_from_fun (fun _ -> get (force s)))
+let     one           x      = fromList [x]
+
+let rec concat  x y = lazy_from_fun (fun _ -> try let x, xl = get x in x, concat  xl y with End_of_file -> get y)
+let rec concatL x y = lazy_from_fun (fun _ -> try let x, xl = get x in x, concatL xl y with End_of_file -> get (force y))
 
 let rec map    f s = lazy_from_fun (fun _ -> let x, y = get s in f x, map f y)
 let rec filter f s = lazy_from_fun (fun _ -> let (x, y) as z = get s in if f x then get (filter f y) else z)

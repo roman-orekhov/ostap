@@ -161,10 +161,22 @@ module Skip :
 
   end
 
+module Errors :
+   sig
+      type t =
+         | Deleted  of   char * int * Msg.Coord.t * Combinators.strings
+         | Inserted of string * int * Msg.Coord.t * Combinators.strings
+         
+      val toExpected : t -> string
+      val toAction : t -> string
+      val toString : t -> string
+      val correct : string -> t list -> string
+   end
+
 (** Matcher pattern to inherit from to obtain the stream implementation. 
     [matcher s] creates an object that helps to match regular expressions against string [s]
 *)
-class t : string ->
+class ['b] t : string ->
   object ('a)
 
     (** Gets current position in string. *)
@@ -178,26 +190,30 @@ class t : string ->
 
     (** Gets current column. *)
     method col : int
+    
+    method errors : Errors.t list
 
     (** Gets prefix of current string symbols. *)
     method prefix : int -> string
 
+    method pFuncCost : (int -> string option) * string * string -> [ `Exact of int | `Length ] -> ('a, Token.t, 'b) Combinators.parsed
+
     (** [get name expr] is a parser which parses regular expression [expr] at the current
         position. [name] is a name for diagnostic purposes.
     *)
-    method get : string -> Str.regexp -> ('a, Token.t, Reason.t) Combinators.result
+    method get : string -> Str.regexp -> string -> ('a, Token.t, 'b) Combinators.parsed
 
     (** [regexp name str] is a shorthand for [get name (Str.regexp str)]. *)
-    method regexp : string -> string -> ('a, Token.t, Reason.t) Combinators.result
+    method regexp : string -> string -> string -> ('a, Token.t, 'b) Combinators.parsed
 
     (** [getEOF] detects the end of stream. *)
-    method getEOF : ('a, Token.t, Reason.t) Combinators.result
+    method getEOF : ('a, Token.t, 'b) Combinators.parsed
 
     (** [loc] gets the current location in the stream. *)
     method loc : Msg.Locator.t
 
     (** [look str] looks at the current stream for string [str]. *)
-    method look : string -> ('a, Token.t, Reason.t) Combinators.result
+    method look : string -> ('a, Token.t, 'b) Combinators.parsed
 
     (** Method to skip meaningless symbols (e.g. whitespaces); returns
         position and coordinates of first meaningful symbol. [skip] is implicitly
@@ -210,3 +226,14 @@ class t : string ->
     *)
 
   end
+
+(*
+val lget : string -> Str.regexp -> (< get : string -> Str.regexp -> ('a, Token.t, 'b) Combinators.parsed; .. > as 'a, Token.t, 'b) Combinators.parse
+val llook : string -> (< look : string -> ('a, Token.t, 'b) Combinators.parsed; .. > as 'a, Token.t, 'b) Combinators.parse
+val lregexp : string -> string -> (< regexp : string -> ('a, Token.t, 'b) Combinators.parsed; .. > as 'a, Token.t, 'b) Combinators.parse
+val leof : (< getEOF : string -> ('a, Token.t, 'b) Combinators.parsed; .. > as 'a, Token.t, 'b) Combinators.parse
+*)
+val lget : 'a -> 'b -> 'c -> 'd -> < get : 'a -> 'b -> 'c -> 'd -> 'e; .. > -> 'e
+val llook : 'a -> 'b -> < look : 'a -> 'b -> 'c; .. > -> 'c
+val lregexp : 'a -> 'b -> 'c -> 'd -> < regexp : 'a -> 'b -> 'c -> 'd -> 'e; .. > -> 'e
+val leof : 'a -> < getEOF : 'a -> 'b; .. > -> 'b
