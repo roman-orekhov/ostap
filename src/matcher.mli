@@ -170,6 +170,7 @@ module Errors :
       val toExpected : t -> string
       val toAction : t -> string
       val toString : t -> string
+      val filter : int -> int -> t list -> (bool * t) list
       val correct : string -> t list -> string
    end
 

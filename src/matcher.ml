@@ -153,9 +153,15 @@ module Errors =
 
       module S = Set.Make(Compare.String)
 
+      let getCoord = function
+      | Deleted  (_, _, coord, _)
+      | Inserted (_, _, coord, _) -> coord
+
       let expected sort coord strings =
-         let s = List.fold_left (fun acc cur -> S.add cur acc) S.empty strings in
-         sprintf "at %s expected [%s]" (Msg.Coord.toString coord) (String.concat ", " (S.elements s))
+         let l = if sort
+            then S.elements (List.fold_left (fun acc cur -> S.add cur acc) S.empty strings)
+            else strings in
+         sprintf "at %s expected [%s]" (Msg.Coord.toString coord) (String.concat ", " l)
 
       let toExpected = function
       | Deleted  (_, _, coord, strings)
@@ -168,6 +174,28 @@ module Errors =
       let toString = function
       | Deleted  (c, _, coord, strings) -> sprintf "%s => deleted  '%c'" (expected false coord strings) c
       | Inserted (s, _, coord, strings) -> sprintf "%s => inserted \"%s\"" (expected false coord strings) s
+
+      let filter maxInRow correctRows errors =
+         let byRow, last, _, _, lastNum =
+         List.fold_left (fun (res, acc, prevRow, prevCol, num) cur ->
+            let row, col = getCoord cur in
+            if row != prevRow
+            then ((num,acc)::res, [cur], row, col, 1)
+            else let acc = if num+1 > maxInRow then [List.hd acc] else acc@[cur] in
+               (res, acc, row, col, num+1)
+         ) ([], [], 0, 0, 0) errors in
+         (* first in byRow will be (0, []), remove it *)
+         let _::byRow = List.rev ((lastNum,last)::byRow) in
+         let res, last, _, _, _ = 
+         List.fold_left (fun (res, firstErrors, firstRow, prevRow, num) (inRow, errs) ->
+            let row, _ = getCoord (List.hd errs) in
+            let rows = row - firstRow + 1 in
+            if rows < num + inRow && row - prevRow <= correctRows (* too much errors in one row - distant rows are considered a part of those errors - prohibit this *)
+            then (res, [true, snd (List.hd firstErrors)], firstRow, row, num+inRow)
+            else (List.rev_append firstErrors res, List.map (fun e -> inRow > maxInRow, e) errs, row, row, inRow)
+         )
+         ([], [], 0, 0, 0) byRow
+         in List.rev_append res last
 
       let correct s errors =
          let buf = Buffer.create 1024 in
