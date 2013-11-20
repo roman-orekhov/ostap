@@ -11,7 +11,7 @@ CMO := $(SORTED:.ml=.cmo)
 # OCaml parser call with flags
 AM_P5FLAGS := -pp "$(CAMLP5O) $(PARSER_INCLUDES) pa_checked.cmo pa_log.cmo $(LOG)"
 AM_BFLAGS += -w x -rectypes
-AM_OFLAGS += -w x -rectypes -for-pack Ostap -cclib '-stack 67108864'
+AM_OFLAGS += -w x -rectypes -for-pack Ostap -cclib '-link -Wl,--stack,67108864'
 # bigger stack size: -cclib '-stack 33554432' or  -cclib '-link -Wl,--stack,16777216'
 
 # overwrite some variables
