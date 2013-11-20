@@ -136,7 +136,7 @@ let rec best_prio end_id a b =
    | End_alt n, _        -> if !debug then printf "%sleft enda#%d\n" str n; if end_id = n then resa else Ostream.consL sa (lazy (best_prio end_id resa b))
    | _        , Fail f   -> dbg f "right failed"; a
    | Fail f   , _        -> dbg f "left failed"; b
-(*   ÁÅÇ EOF ÇÄÅÑÜ ÏÀÄÀÅÒ Â TEST013 ÑÌ. ÑÂÅÑÒÐÓ*)
+(*   SHOULD THE PARSER HAVE NO EOF - USED TO HANG HERE, SEE TEST013 AND SWIERSTRA *)
    | _        , Result _ -> if !debug then printf "%sstep/result\n" str; Ostream.consL sa (lazy (best_prio end_id resa b))
    | Step n   , Step m   -> if !debug then printf "%sboth stepped\n%d %d\n" str n m; 
       if n = m then      Ostream.consL (Step n) (lazy (best_prio end_id resa resb)                              )
@@ -187,13 +187,7 @@ let someFold f init p = p |> (fun h -> manyFold f (f init h) p)
 let some p = (someFold (fun acc x -> fun l -> acc (x::l)) (fun x -> x) p) --> (fun t -> t [])
 
 let (<+>) = some
-(*
-ÍÅËÜÇß ÎÒÄÀÂÀÒÜ STEP ÒÓÒ, ÈËÈ ÌÎÆÍÎ, ÍÎ ÒÎÃÄÀ ALT ÍÀÄÎ ÏÅÐÅÄÅËÀÒÜ ÒÀÊ, ×ÒÎÁÛ ËÅÂÀß ÑÐÀÁÀÒÛÂÀËÀ ÍÀ ÏÐÀÂÈËÜÍÛÉ ÏÎËÍÛÉ ÂÕÎÄ
-ÍÅËÜÇß ÇÀÏÈÕÀÒÜ Â ÌÀÒ×ÅÐ, Ò.Ê. ÏÐÅÄÈÊÀÒ Ä.Á. ÍÀ ËÞÁÎÌ ÒÈÏÅ, À ÍÅ ÍÀ ÒÎÊÅÍÅ ÒÎËÜÊÎ
-Ì.Á. ÏÓÑÒÜ R ÈÇÌÅÍßÅÒ ÐÅÇÓËÜÒÀÒ ÒÀÊ, ×ÒÎÁÛ ÎÍ ÓÄÎÂËÅÒÂÎÐßË F, È ÏÎÄÑÒÀÂËßÒÜ ÅÃÎ Â K ÏÎÒÎÌ
-EVAL Ñ ÏÓÑÒÛÌ K, ÑÎÕÐÀÍÈÒÜ ÂÅÑÜ ÏÓÒÜ ÈÇ STEPS È ÅÑËÈ ÐÅÇÓËÜÒÀÒ ÓÄÎÂË F ÂÑÒÀÂÈÒÜ Â ÊÎÍÖÅ ÏÓÒÈ K P_RESULT S
-ÅÑËÈ ÆÅ Â ÑÅÐÅÄÈÍÅ ÎØÈÁÊÀ???
-*)
+
 let lastSteps = Ostream.fromGenerator 0 (fun i -> i+1) (fun i -> if i <= !lookahead then Step 0 else raise End_of_file)
 
 let finish p s = p (fun p_result rest -> Ostream.concat lastSteps (Ostream.one (Result (p_result, rest)))) s

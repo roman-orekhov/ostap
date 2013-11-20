@@ -169,11 +169,11 @@ module Errors =
 
       let toAction = function
       | Deleted  (c, _, coord, _) -> sprintf "at %s deleted  '%c'" (Msg.Coord.toString coord) c
-      | Inserted (s, _, coord, _) -> sprintf "at %s inserted \"%s\"" (Msg.Coord.toString coord) s
+      | Inserted (s, _, coord, _) -> sprintf "at %s inserted %s" (Msg.Coord.toString coord) s
 
       let toString = function
       | Deleted  (c, _, coord, strings) -> sprintf "%s => deleted  '%c'" (expected false coord strings) c
-      | Inserted (s, _, coord, strings) -> sprintf "%s => inserted \"%s\"" (expected false coord strings) s
+      | Inserted (s, _, coord, strings) -> sprintf "%s => inserted %s" (expected false coord strings) s
 
       let filter maxInRow correctRows errors =
          let byRow, last, _, _, lastNum =
@@ -288,21 +288,11 @@ class ['b] t s =
             Ostream.consL
             (Step l)
             (lazy (k (m, coord) {< p = p; coord = c; context = ((self#skip p c) :> aux); del_ok = true >}))
-(*
-                  good (d, rest) = let lst = LL.toList $ LL.take d tts
-                                       nextPos = advance pos lst
-                                   in if LL.null rest || (p $ LL.head rest)
-                                      then show_tokens ("Accepting token: " ++ (show lst) ++" as " ++ msg ++ "\n") 
-                                              (Step d       (k lst (skipper (Str rest  msgs                                        nextPos True))))
-                                           -- need skipper here since we've eaten something from stream
-                                      else let ins exp = (5, k lst (skipper (Str rest (msgs ++ [Inserted "wordbreak" nextPos exp]) nextPos False)))
-                                           in (Step d (Fail ["wordbreak"][ins]))
-*)
          | None ->
             if !Combinators.debug then printf "couldn't find %s\n" msg;
             Ostream.one (Fail (lazy ([msg],
                (let ins = (getCost cost, false, fun exp -> 
-                  let next = {< errors = (Errors.Inserted (min_def, p, coord, exp))::errors; del_ok = false >} in
+                  let next = {< errors = (Errors.Inserted (msg, p, coord, exp))::errors; del_ok = false >} in
                   if !Combinators.debug then printf "Inserted %s\n%s\n" min_def (Errors.correct s next#errors);
                   k (min_def, coord) next) in
                if not del_ok || p = String.length s
@@ -317,16 +307,6 @@ class ['b] t s =
             )))
             
       in inner
-(*
-                  bad = let t = LL.head tts
-                            ins exp = (c cost, k min_def (Str tts (msgs ++ [Inserted (show min_def) pos exp]) pos False))
-                            del exp = (5, splitState  k 
-                                                (skipper (Str (LL.tail tts)
-                                                              (msgs ++ [Deleted  (show t) pos exp]) 
-                                                              (advance pos t)
-                                                              True)))
-                        in Fail [msg] (ins: if not del_ok || LL.null tts then [] else [del])
-*)
 
     method get name regexp min =
       self#pFuncCost 
@@ -334,7 +314,7 @@ class ['b] t s =
          if string_match regexp s p
          then Some (matched_string s)
          else None
-      ), name, min) `Length
+      ), sprintf "<%s>" name, min) `Length
 
     method look str =
       self#pFuncCost 
