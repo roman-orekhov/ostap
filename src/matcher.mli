@@ -167,9 +167,8 @@ module Errors :
          | Deleted  of   char * int * Msg.Coord.t * Combinators.strings
          | Inserted of string * int * Msg.Coord.t * Combinators.strings
          
-      val toExpected : t -> string
-      val toAction : t -> string
-      val toString : t -> string
+      val toMsg : bool -> t -> Msg.t
+      val toMsgFull : t -> Msg.t
       val filter : int -> int -> t list -> (bool * t) list
       val correct : string -> t list -> string
    end

@@ -156,24 +156,24 @@ module Errors =
       let getCoord = function
       | Deleted  (_, _, coord, _)
       | Inserted (_, _, coord, _) -> coord
-
-      let expected sort coord strings =
+      
+      let expected sort strings =
          let l = if sort
             then S.elements (List.fold_left (fun acc cur -> S.add cur acc) S.empty strings)
             else strings in
-         sprintf "at %s expected [%s]" (Msg.Coord.toString coord) (String.concat ", " l)
+         sprintf "expected [%s]" (String.concat ", " l)
 
-      let toExpected = function
-      | Deleted  (_, _, coord, strings)
-      | Inserted (_, _, coord, strings) -> expected true coord strings
+      let toExpected sort = function
+      | Deleted  (_, _, _, strings)
+      | Inserted (_, _, _, strings) -> expected sort strings
 
       let toAction = function
-      | Deleted  (c, _, coord, _) -> sprintf "at %s deleted  '%c'" (Msg.Coord.toString coord) c
-      | Inserted (s, _, coord, _) -> sprintf "at %s inserted %s" (Msg.Coord.toString coord) s
+      | Deleted  (c, _, _, _) -> sprintf "deleted  '%c'" c
+      | Inserted (s, _, _, _) -> sprintf "inserted %s" s
 
-      let toString = function
-      | Deleted  (c, _, coord, strings) -> sprintf "%s => deleted  '%c'" (expected false coord strings) c
-      | Inserted (s, _, coord, strings) -> sprintf "%s => inserted %s" (expected false coord strings) s
+      let toMsg withAction e = Msg.make (if withAction then toAction e else toExpected true e) [||] (Msg.Locator.Point (getCoord e))
+
+      let toMsgFull e = Msg.make (sprintf "%s => %s" (toExpected false e) (toAction e)) [||] (Msg.Locator.Point (getCoord e))
 
       let filter maxInRow correctRows errors =
          let byRow, last, _, _, lastNum =
