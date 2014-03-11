@@ -196,7 +196,8 @@ let guard p f r k s =
    p (fun p_result s ->
       if f p_result
       then (if !debug then printf "guard success\n"; k p_result s)
-      else (if !debug then printf "guard failure\n"; Ostream.one (Fail (lazy ((match r with None -> [] | Some r -> [r p_result]), [(5, false, fun exp -> k p_result s)]))))
+      else (if !debug then printf "guard failure\n"; Ostream.one (Fail (lazy ((match r with None -> [] | Some r -> [r p_result]), []))))
+      (* (5, false, fun exp -> k p_result s) *)
    ) s
 (*
    let rec eval acc s =

@@ -216,8 +216,8 @@ class type ['b] m =
     method errors : Errors.t list
     method prefix : int -> string
     method pFuncCost : (int -> string option) * string * string -> [ `Exact of int | `Length ] -> ('a, Token.t, 'b) parsed
-    method get : string -> Str.regexp -> string -> ('a, Token.t, 'b) parsed
-    method regexp : string -> string -> string -> ('a, Token.t, 'b) parsed
+    method get : ?except:(string -> bool) -> string -> Str.regexp -> string -> ('a, Token.t, 'b) parsed
+    method regexp : ?except:(string -> bool) -> string -> string -> string -> ('a, Token.t, 'b) parsed
     method getEOF : ('a, Token.t, 'b) parsed
     method loc : Msg.Locator.t
     method look : string -> ('a, Token.t, 'b) parsed
@@ -259,7 +259,7 @@ class ['b] t s =
       then String.sub s p n
       else String.sub s p (String.length s - p)
 
-    method regexp name str = self#get name 
+    method regexp ?except name str = self#get ?except name 
       (try Hashtbl.find regexps str with Not_found ->
          let regexp = Str.regexp str in
          Hashtbl.add regexps str regexp;
@@ -281,7 +281,7 @@ class ['b] t s =
       let inner k =
          match f p with
          | Some m ->
-            if !Combinators.debug then printf "found %s while looking for %s\n" m msg;
+            if !Combinators.debug then printf "found \"%s\" while looking for %s\n" m msg;
             let l = String.length m in
             let p = p + l
             and c = Msg.Coord.shift coord m 0 l in
@@ -293,7 +293,7 @@ class ['b] t s =
             Ostream.one (Fail (lazy ([msg],
                (let ins = (getCost cost, false, fun exp -> 
                   let next = {< errors = (Errors.Inserted (msg, p, coord, exp))::errors; del_ok = false >} in
-                  if !Combinators.debug then printf "Inserted %s\n%s\n" min_def (Errors.correct s next#errors);
+                  if !Combinators.debug then printf "Inserted \"%s\"\n%s\n" min_def (Errors.correct s next#errors);
                   k (min_def, coord) next) in
                if not del_ok || p = String.length s
                then [ins]
@@ -301,20 +301,25 @@ class ['b] t s =
                   let np = p + 1 in
                   let c = Msg.Coord.shift coord s p np in
                   let next = {< p=np; coord=c; context=((self#skip np c) :> aux); del_ok = true; errors = (Errors.Deleted (s.[p], p, coord, exp))::errors >} in
-                  if !Combinators.debug then printf "Deleted %c\n%s\n" s.[p] (Errors.correct s next#errors);
+                  if !Combinators.debug then printf "Deleted \"%c\"\n%s\n" s.[p] (Errors.correct s next#errors);
                   next#pFuncCost (f, msg, min_def) cost k )
                in [ins;del])
             )))
             
       in inner
 
-    method get name regexp min =
+    method get ?except name regexp min =
       self#pFuncCost 
       ((fun p ->
          if string_match regexp s p
-         then Some (matched_string s)
+         then
+            let res = matched_string s in
+            match except with
+            | Some f -> if f res then None else Some res
+            | None -> Some res
          else None
-      ), sprintf "<%s>" name, min) `Length
+      ), sprintf "<%s>" name, min) (`Exact 5)
+      (*`Length*)
 
     method look str =
       self#pFuncCost 

@@ -507,6 +507,7 @@ EXTEND
               |  _  -> (<:expr< ($list:tuple$) >>, true)
         in
         match List.fold_right
+            (* predicate, "-", binding, parser *)
             (fun (flag, omit, binding, p) rightPart -> 
               let p =
                 match flag with 
@@ -639,9 +640,11 @@ EXTEND
           let pwel = [(<:patt< _ostap_cont >>, Ploc.VaVal None, <:expr< fun [$list:pwel$] >>)] in
           (<:expr<fun [$list:pwel$]>>, Some (Expr.string (!printExpr p)))
     ] |
-    [ "@"; "("; p=expr; "?"; min=expr; n=OPT o_regexp_name; ")" ->
+    [ "@"; "("; p=expr; except=OPT o_except; "?"; min=expr; n=OPT o_regexp_name; ")" ->
           let name = match n with None -> p | Some p -> p in
-          let look = <:expr< _ostap_stream # regexp ($name$) ($p$) ($min$) _ostap_cont >> in
+          let look = match except with
+            | None -> <:expr< _ostap_stream # regexp ?except:None ($name$) ($p$) ($min$) _ostap_cont >>
+            | Some e -> <:expr< _ostap_stream # regexp ?except:(Some $e$) ($name$) ($p$) ($min$) _ostap_cont >> in
           let pwel = [
             (
              <:patt<$lid:"_ostap_stream"$>>, 
@@ -656,6 +659,7 @@ EXTEND
     [ "("; (p, s)=o_alternatives; ")" -> (p, bindOption s (fun s -> Expr.group s)) ]   
   ];
 
+  o_except: [[ "?!"; e=expr -> e]];
   o_regexp_name: [[ ":"; e=expr -> e ]];
 
   o_reference: [

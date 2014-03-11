@@ -201,10 +201,10 @@ class ['b] t : string ->
     (** [get name expr] is a parser which parses regular expression [expr] at the current
         position. [name] is a name for diagnostic purposes.
     *)
-    method get : string -> Str.regexp -> string -> ('a, Token.t, 'b) Combinators.parsed
+    method get : ?except:(string -> bool) -> string -> Str.regexp -> string -> ('a, Token.t, 'b) Combinators.parsed
 
     (** [regexp name str] is a shorthand for [get name (Str.regexp str)]. *)
-    method regexp : string -> string -> string -> ('a, Token.t, 'b) Combinators.parsed
+    method regexp : ?except:(string -> bool) -> string -> string -> string -> ('a, Token.t, 'b) Combinators.parsed
 
     (** [getEOF] detects the end of stream. *)
     method getEOF : ('a, Token.t, 'b) Combinators.parsed
