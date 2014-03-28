@@ -85,6 +85,7 @@ camlp4/Makefile
 camlp4/regression/Makefile
 camlp5/Makefile
 camlp5/regression/Makefile
+camlparser/Makefile
 util/Makefile
 regression/Makefile
 sample/Makefile
