@@ -162,8 +162,7 @@ ostap (
      | -toplevel_directive -SEMISEMI
      | -EOF;
    top_structure:
-       -structure_item
-     | -structure_item -top_structure;
+       -structure_item+;
    use_file:
        -use_file_tail
      | -seq_expr -use_file_tail;
@@ -179,23 +178,24 @@ ostap (
 (* Module expressions *)
 
    module_expr:
-       (
+       -(
        -mod_longident
      | -STRUCT -structure -END
      | -FUNCTOR -LPAREN -UIDENT -COLON -module_type -RPAREN -MINUSGREATER -module_expr
      | -LPAREN -module_expr -COLON -module_type -RPAREN
      | -LPAREN -module_expr -RPAREN
      | -LPAREN -VAL -expr -COLON -package_type -RPAREN
-       ) -(-LPAREN -module_expr -RPAREN)*;
+       )
+       -(-LPAREN -module_expr -RPAREN)*;
    structure:
        -structure_tail
      | -seq_expr -structure_tail;
    structure_tail:
-       empty
-     | -SEMISEMI
-     | -SEMISEMI -seq_expr -structure_tail
+       -SEMISEMI -seq_expr -structure_tail
      | -SEMISEMI -structure_item -structure_tail
-     | -structure_item -structure_tail;
+     | -SEMISEMI
+     | -structure_item -structure_tail
+     | -empty;
    structure_item:
        -LET -rec_flag -let_bindings
      | -EXTERNAL -val_ident -COLON -core_type -EQUAL -primitive_declaration
@@ -221,19 +221,17 @@ ostap (
 (* Module types *)
 
    module_type:
-       (
+       -(
        -mty_longident
      | -SIG -signature -END
      | -FUNCTOR -LPAREN -UIDENT -COLON -module_type -RPAREN -MINUSGREATER -module_type
          (*%prec below_WITH*)
      | -MODULE -TYPE -OF -module_expr
      | -LPAREN -module_type -RPAREN
-       ) -(-WITH -with_constraints)*;
+       )
+       -(-WITH -with_constraints)*;
    signature:
-       (
-       -signature_item
-     | -signature_item -SEMISEMI
-       )*;
+       -(-signature_item -SEMISEMI?)*;
    signature_item:
        -VAL -val_ident -COLON -core_type
      | -EXTERNAL -val_ident -COLON -core_type -EQUAL -primitive_declaration
@@ -241,8 +239,7 @@ ostap (
      | -EXCEPTION -UIDENT -constructor_arguments
      | -MODULE -UIDENT -module_declaration
      | -MODULE -REC -module_rec_declarations
-     | -MODULE -TYPE -ident
-     | -MODULE -TYPE -ident -EQUAL -module_type
+     | -MODULE -TYPE -ident -(-EQUAL -module_type)?
      | -OPEN -mod_longident
      | -INCLUDE -module_type
      | -CLASS -class_descriptions
@@ -267,15 +264,12 @@ ostap (
      | -COLON -class_type -EQUAL -class_expr
      | -labeled_simple_pattern -class_fun_binding;
    class_type_parameters:
-       empty
-     | -LBRACKET -type_parameter_list -RBRACKET;
+       -(-LBRACKET -type_parameter_list -RBRACKET)?;
    class_fun_def:
-       -labeled_simple_pattern -MINUSGREATER -class_expr
-     | -labeled_simple_pattern -class_fun_def;
+       -labeled_simple_pattern+ -MINUSGREATER -class_expr;
    class_expr:
-       -class_simple_expr
+       -class_simple_expr -simple_labeled_expr_list?
      | -FUN -class_fun_def
-     | -class_simple_expr -simple_labeled_expr_list
      | -LET -rec_flag -let_bindings -IN -class_expr;
    class_simple_expr:
        -LBRACKET -core_type_comma_list -RBRACKET -class_longident
@@ -288,9 +282,9 @@ ostap (
    class_self_pattern:
        -LPAREN -pattern -RPAREN
      | -LPAREN -pattern -COLON -core_type -RPAREN
-     | empty;
+     | -empty;
    class_fields:
-       (
+       -(
        -INHERIT -override_flag -class_expr -parent_binder
      | -VAL -virtual_value
      | -VAL -value
@@ -300,17 +294,16 @@ ostap (
      | -INITIALIZER -seq_expr
        )*;
    parent_binder:
-       -AS -LIDENT
-     | empty;
+       -(-AS -LIDENT)?;
    virtual_value:
-       -override_flag -MUTABLE -VIRTUAL -label -COLON -core_type
+       -MUTABLE -VIRTUAL -label -COLON -core_type
      | -VIRTUAL -mutable_flag -label -COLON -core_type;
    value:
        -override_flag -mutable_flag -label -EQUAL -seq_expr
      | -override_flag -mutable_flag -label -type_constraint -EQUAL -seq_expr;
    virtual_method:
-       -METHOD -override_flag -PRIVATE -VIRTUAL -label -COLON -poly_type
-     | -METHOD -override_flag -VIRTUAL -private_flag -label -COLON -poly_type;
+       -METHOD -PRIVATE -VIRTUAL -label -COLON -poly_type
+     | -METHOD -VIRTUAL -private_flag -label -COLON -poly_type;
    concrete_method :
        -METHOD -override_flag -private_flag -label -strict_binding
      | -METHOD -override_flag -private_flag -label -COLON -poly_type -EQUAL -seq_expr;
@@ -320,7 +313,6 @@ ostap (
    class_type:
        -class_signature
      | -QUESTION -LIDENT -COLON -simple_core_type_or_tuple -MINUSGREATER -class_type
-     | -OPTLABEL -simple_core_type_or_tuple -MINUSGREATER -class_type
      | -LIDENT -COLON -simple_core_type_or_tuple -MINUSGREATER -class_type
      | -simple_core_type_or_tuple -MINUSGREATER -class_type;
    class_signature:
@@ -330,10 +322,9 @@ ostap (
    class_sig_body:
        -class_self_type -class_sig_fields;
    class_self_type:
-       -LPAREN -core_type -RPAREN
-     | empty;
+       -(-LPAREN -core_type -RPAREN)?;
    class_sig_fields:
-       (
+       -(
        -INHERIT -class_signature
      | -VAL -value_type
      | -virtual_method_type
@@ -363,37 +354,36 @@ ostap (
 (* Core expressions *)
 
    seq_expr:
-       -expr        (*%prec below_SEMI*)
-     | -expr -SEMI
-     | -expr -SEMI -seq_expr;
+(*
+       -expr -SEMI -seq_expr
+     | -expr -SEMI?;
+*)
+       -expr -(-SEMI -expr)* -SEMI?;
    labeled_simple_pattern:
        -QUESTION -LPAREN -label_let_pattern -opt_default -RPAREN
-     | -QUESTION -label_var
      | -OPTLABEL -LPAREN -let_pattern -opt_default -RPAREN
      | -OPTLABEL -pattern_var
+     | -QUESTION -label_var
      | -TILDE -LPAREN -label_let_pattern -RPAREN
-     | -TILDE -label_var
      | -LABEL -simple_pattern
+     | -TILDE -label_var
      | -simple_pattern;
    pattern_var:
        -LIDENT
-     | -UNDERSCORE;
+(*
+     | -UNDERSCORE
+*);
    opt_default:
-       empty
-     | -EQUAL -seq_expr;
+       -(-EQUAL -seq_expr)?;
    label_let_pattern:
-       -label_var
-     | -label_var -COLON -core_type;
+       -label_var -(-COLON -core_type)?;
    label_var:
        -LIDENT;
    let_pattern:
-       -pattern
-     | -pattern -COLON -core_type;
+       -pattern -(-COLON -core_type)?;
    expr:
-       (
-       -simple_expr (* %prec below_SHARP *)
-     | -simple_expr -simple_labeled_expr_list
-     | -LET -rec_flag -let_bindings -IN -seq_expr
+       -(
+       -LET -rec_flag -let_bindings -IN -seq_expr
      | -LET -MODULE -UIDENT -module_binding -IN -seq_expr
      | -LET -OPEN -mod_longident -IN -seq_expr
      | -FUNCTION -opt_bar -match_cases
@@ -403,8 +393,7 @@ ostap (
      | -TRY -seq_expr -WITH -opt_bar -match_cases
      | -constr_longident -simple_expr (* %prec below_SHARP *)
      | -name_tag -simple_expr (* %prec below_SHARP *)
-     | -IF -seq_expr -THEN -expr -ELSE -expr
-     | -IF -seq_expr -THEN -expr
+     | -IF -seq_expr -THEN -expr -(-ELSE -expr)?
      | -WHILE -seq_expr -DO -seq_expr -DONE
      | -FOR -val_ident -EQUAL -seq_expr -direction_flag -seq_expr -DO -seq_expr -DONE
      | -LPAREN -COLONCOLON -RPAREN -LPAREN -expr -COMMA -expr -RPAREN
@@ -415,55 +404,55 @@ ostap (
      | -simple_expr -DOT -LBRACKET -seq_expr -RBRACKET -LESSMINUS -expr
      | -simple_expr -DOT -LBRACE -expr -RBRACE -LESSMINUS -expr
      | -label -LESSMINUS -expr
+     | -simple_expr -simple_labeled_expr_list?
      | -ASSERT -simple_expr (* %prec below_SHARP *)
      | -LAZY -simple_expr (* %prec below_SHARP *)
      | -OBJECT -class_structure -END
        )
        -(
-       -COLONCOLON -expr
-     | -INFIXOP0 -expr
-     | -INFIXOP1 -expr
-     | -INFIXOP2 -expr
-     | -INFIXOP3 -expr
-     | -INFIXOP4 -expr
-     | -PLUS -expr
-     | -PLUSDOT -expr
-     | -MINUS -expr
-     | -MINUSDOT -expr
-     | -STAR -expr
+       -COLONEQUAL -expr
+     | -OR -expr
+     | -BARBAR -expr
+     | -AMPERAMPER -expr
+     | -AMPERSAND -expr
      | -EQUAL -expr
      | -LESS -expr
      | -GREATER -expr
-     | -OR -expr
-     | -BARBAR -expr
-     | -AMPERSAND -expr
-     | -AMPERAMPER -expr
-     | -COLONEQUAL -expr
+     | -INFIXOP0 -expr
+     | -INFIXOP1 -expr
+     | -COLONCOLON -expr
+     | -PLUSDOT -expr
+     | -PLUS -expr
+     | -MINUSDOT -expr
+     | -MINUS -expr
+     | -INFIXOP2 -expr
+     | -STAR -expr
+     | -INFIXOP3 -expr
+     | -INFIXOP4 -expr
        )*
        -(-COMMA -expr)*;
    simple_expr:
-       (
+       -(
        -val_longident
      | -constant
      | -constr_longident (* %prec prec_constant_constructor *)
      | -name_tag (* %prec prec_constant_constructor *)
      | -LPAREN -seq_expr -RPAREN
-     | -BEGIN -seq_expr -END
-     | -BEGIN -END
+     | -BEGIN -seq_expr? -END
      | -LPAREN -seq_expr -type_constraint -RPAREN
      | -mod_longident -DOT -LPAREN -seq_expr -RPAREN
      | -LBRACE -record_expr -RBRACE
      | -LBRACKETBAR -expr_semi_list -opt_semi -BARRBRACKET
      | -LBRACKETBAR -BARRBRACKET
      | -LBRACKET -expr_semi_list -opt_semi -RBRACKET
-     | -PREFIXOP -simple_expr
      | -BANG -simple_expr
+     | -PREFIXOP -simple_expr
      | -NEW -class_longident
      | -LBRACELESS -field_expr_list -opt_semi -GREATERRBRACE
      | -LBRACELESS -GREATERRBRACE
      | -LPAREN -MODULE -module_expr -COLON -package_type -RPAREN
        )
-       (
+       -(
        -DOT -label_longident
      | -DOT -LPAREN -seq_expr -RPAREN
      | -DOT -LBRACKET -seq_expr -RBRACKET
@@ -478,8 +467,8 @@ ostap (
    label_expr:
        -LABEL -simple_expr (* %prec below_SHARP *)
      | -TILDE -label_ident
-     | -QUESTION -label_ident
-     | -OPTLABEL -simple_expr (* %prec below_SHARP *);
+     | -OPTLABEL -simple_expr (* %prec below_SHARP *)
+     | -QUESTION -label_ident;
    label_ident:
        -LIDENT;
    let_bindings:
@@ -510,31 +499,22 @@ ostap (
        -simple_expr -WITH -lbl_expr_list -opt_semi
      | -lbl_expr_list -opt_semi;
    lbl_expr_list:
-       (
-       -label_longident -EQUAL -expr
-     | -label_longident
-       )
-       (
-       -SEMI -label_longident -EQUAL -expr
-     | -SEMI -label_longident
-       )*;
+       -label_longident -(-EQUAL -expr)? -(-SEMI -label_longident -(-EQUAL -expr)?)*;
    field_expr_list:
        -label -EQUAL -expr -(-SEMI -label -EQUAL -expr)*;
    expr_semi_list:
        -expr -(-SEMI -expr)*;
    type_constraint:
-       -COLON -core_type
-     | -COLON -core_type -COLONGREATER -core_type
-     | -COLONGREATER -core_type
-   ;
+       -COLON -core_type -(-COLONGREATER -core_type)?
+     | -COLONGREATER -core_type;
 
 (* Patterns *)
 
    pattern:
        (
-       -simple_pattern
-     | -constr_longident -pattern (* %prec prec_constr_appl *)
+       -constr_longident -pattern (* %prec prec_constr_appl *)
      | -name_tag -pattern (* %prec prec_constr_appl *)
+     | -simple_pattern
      | -LPAREN -COLONCOLON -RPAREN -LPAREN -pattern -COMMA -pattern -RPAREN
      | -LAZY -simple_pattern
        )
@@ -547,7 +527,9 @@ ostap (
    ;
    simple_pattern:
        -val_ident (* %prec below_EQUAL *)
+(*
      | -UNDERSCORE
+*)
      | -signed_constant
      | -CHAR -DOTDOT -CHAR
      | -constr_longident
@@ -565,23 +547,14 @@ ostap (
    pattern_semi_list:
        -pattern -(-SEMI -pattern)*;
    lbl_pattern_list:
-       (
-       -label_longident -EQUAL -pattern
-     | -label_longident
-       )
-       (
-       -SEMI -label_longident -EQUAL -pattern
-     | -SEMI -label_longident
-       )*;
+       -label_longident -(-EQUAL -pattern)? -(-SEMI -label_longident -(-EQUAL -pattern)?)*;
    record_pattern_end:
-       -opt_semi
-     | -SEMI -UNDERSCORE -opt_semi;
+       -(-SEMI -UNDERSCORE)? -opt_semi;
 
 (* Primitive declarations *)
 
    primitive_declaration:
-       -STRING
-     | -STRING -primitive_declaration;
+       -STRING+;
 
 (* Type declarations *)
 
@@ -591,28 +564,27 @@ ostap (
    type_declaration:
        -type_parameters -LIDENT -type_kind -constraints;
    constraints:
-       -constraints -CONSTRAINT -constrain
-     | empty;
+       -(-CONSTRAINT -constrain)*;
    type_kind:
-       empty
-     | -EQUAL -core_type
+       -EQUAL -core_type
      | -EQUAL -PRIVATE -core_type
      | -EQUAL -constructor_declarations
      | -EQUAL -PRIVATE -constructor_declarations
      | -EQUAL -private_flag -BAR -constructor_declarations
      | -EQUAL -private_flag -LBRACE -label_declarations -opt_semi -RBRACE
      | -EQUAL -core_type -EQUAL -private_flag -opt_bar -constructor_declarations
-     | -EQUAL -core_type -EQUAL -private_flag -LBRACE -label_declarations -opt_semi -RBRACE;
+     | -EQUAL -core_type -EQUAL -private_flag -LBRACE -label_declarations -opt_semi -RBRACE
+     | -empty;
    type_parameters:
-       empty
-     | -type_parameter
-     | -LPAREN -type_parameter_list -RPAREN;
+       -type_parameter
+     | -LPAREN -type_parameter_list -RPAREN
+     | -empty;
    type_parameter:
        -type_variance -QUOTE -ident;
    type_variance:
-       empty
-     | -PLUS
-     | -MINUS;
+       -PLUS
+     | -MINUS
+     | -empty;
    type_parameter_list:
        -type_parameter -(-COMMA -type_parameter)*;
    constructor_declarations:
@@ -620,8 +592,7 @@ ostap (
    constructor_declaration:
        -constr_ident -constructor_arguments;
    constructor_arguments:
-       empty
-     | -OF -core_type_list;
+       -(-OF -core_type_list)?;
    label_declarations:
        -label_declaration -(-SEMI -label_declaration)*;
    label_declaration:
@@ -653,23 +624,24 @@ ostap (
 (* Core types *)
 
    core_type:
-       -core_type2
-     | -core_type2 -AS -QUOTE -ident;
+       -core_type2 -(-AS -QUOTE -ident)?;
    core_type2:
-       (
-       -simple_core_type_or_tuple
-     | -QUESTION -LIDENT -COLON -core_type2 -MINUSGREATER -core_type2
-     | -OPTLABEL -core_type2 -MINUSGREATER -core_type2
+       -(
+       -QUESTION -LIDENT -COLON -core_type2 -MINUSGREATER -core_type2
      | -LIDENT -COLON -core_type2 -MINUSGREATER -core_type2
-       ) -(-MINUSGREATER -core_type2)*;
+     | -simple_core_type_or_tuple
+       )
+       -(-MINUSGREATER -core_type2)*;
 
    simple_core_type:
        -simple_core_type2  (* %prec below_SHARP *)
-     | -LPAREN -core_type_comma_list -RPAREN (* %prec below_SHARP *);
+     | -LPAREN -core_type -RPAREN (* %prec below_SHARP *);
    simple_core_type2:
-       (
+       -(
        -QUOTE -ident
+(*
      | -UNDERSCORE
+*)
      | -type_longident
      | -LPAREN -core_type_comma_list -RPAREN -type_longident
      | -LESS -meth_list -GREATER
@@ -688,40 +660,34 @@ ostap (
      | -LBRACKETLESS -opt_bar -row_field_list -GREATER -name_tag_list -RBRACKET
      | -LPAREN -MODULE -package_type -RPAREN
        )
-       (
+       -(
        -type_longident
      | -SHARP -class_longident -opt_present
        )*;
    package_type:
-       -mty_longident
-     | -mty_longident -WITH -package_type_cstrs;
+       -mty_longident -(-WITH -package_type_cstrs)?;
 
    package_type_cstr:
        -TYPE -LIDENT -EQUAL -core_type;
    package_type_cstrs:
-       -package_type_cstr
-     | -package_type_cstr -AND -package_type_cstrs;
+       -package_type_cstr -(-AND -package_type_cstr)*;
    row_field_list:
        -row_field -(-BAR -row_field)*;
    row_field:
        -tag_field
      | -simple_core_type2;
    tag_field:
-       -name_tag -OF -opt_ampersand -amper_type_list
-     | -name_tag;
+       -name_tag -(-OF -opt_ampersand -amper_type_list)?;
    opt_ampersand:
-       -AMPERSAND
-     | empty;
+       -AMPERSAND?;
    amper_type_list:
        -core_type -(-AMPERSAND -core_type)*;
    opt_present:
-       -LBRACKETGREATER -name_tag_list -RBRACKET
-     | empty;
+       -(-LBRACKETGREATER -name_tag_list -RBRACKET)?;
    name_tag_list:
        -name_tag+;
    simple_core_type_or_tuple:
-       -simple_core_type
-     | -simple_core_type -STAR -core_type_list;
+       -simple_core_type -(-STAR -core_type_list)?;
    core_type_comma_list:
        -core_type -(-COMMA -core_type)*;
    core_type_list:
@@ -738,25 +704,25 @@ ostap (
 (* Constants *)
 
    constant:
-       -INT
-     | -CHAR
+       -CHAR
      | -STRING
      | -FLOAT
      | -INT32
      | -INT64
-     | -NATIVEINT;
+     | -NATIVEINT
+     | -INT;
    signed_constant:
        -constant
-     | -MINUS -INT
      | -MINUS -FLOAT
      | -MINUS -INT32
      | -MINUS -INT64
      | -MINUS -NATIVEINT
-     | -PLUS -INT
+     | -MINUS -INT
      | -PLUS -FLOAT
      | -PLUS -INT32
      | -PLUS -INT64
-     | -PLUS -NATIVEINT;
+     | -PLUS -NATIVEINT
+     | -PLUS -INT;
 
 (* Identifiers and long identifiers *)
 
@@ -767,26 +733,26 @@ ostap (
        -LIDENT
      | -LPAREN -operator -RPAREN;
    operator:
-       -PREFIXOP
-     | -INFIXOP0
-     | -INFIXOP1
-     | -INFIXOP2
-     | -INFIXOP3
-     | -INFIXOP4
-     | -BANG
-     | -PLUS
-     | -PLUSDOT
-     | -MINUS
-     | -MINUSDOT
-     | -STAR
+       -COLONEQUAL
+     | -OR
+     | -BARBAR
+     | -AMPERAMPER
+     | -AMPERSAND
      | -EQUAL
      | -LESS
      | -GREATER
-     | -OR
-     | -BARBAR
-     | -AMPERSAND
-     | -AMPERAMPER
-     | -COLONEQUAL;
+     | -BANG
+     | -PREFIXOP
+     | -INFIXOP0
+     | -INFIXOP1
+     | -PLUSDOT
+     | -PLUS
+     | -MINUSDOT
+     | -MINUS
+     | -INFIXOP2
+     | -STAR
+     | -INFIXOP3
+     | -INFIXOP4;
    constr_ident:
        -UIDENT
    (*  | -LBRACKET -RBRACKET *)
@@ -820,8 +786,7 @@ ostap (
      | -LPAREN -mod_ext_longident -RPAREN
        )*;
    mty_longident:
-       -ident
-     | -mod_ext_longident -DOT -ident;
+       -(-mod_ext_longident -DOT)? -ident;
    clty_longident:
        -LIDENT
      | -mod_ext_longident -DOT -LIDENT;
@@ -832,45 +797,38 @@ ostap (
 (* Toplevel directives *)
 
    toplevel_directive:
-       -SHARP -ident
-     | -SHARP -ident -STRING
+       -SHARP -ident -STRING
      | -SHARP -ident -INT
      | -SHARP -ident -val_longident
      | -SHARP -ident -FALSE
-     | -SHARP -ident -TRUE;
+     | -SHARP -ident -TRUE
+     | -SHARP -ident;
 
 (* Miscellaneous *)
 
    name_tag:
        -BACKQUOTE -ident;
    rec_flag:
-       empty
-     | -REC;
+       -REC?;
    direction_flag:
        -TO
      | -DOWNTO;
    private_flag:
-       empty
-     | -PRIVATE;
+       -PRIVATE?;
    mutable_flag:
-       empty
-     | -MUTABLE;
+       -MUTABLE?;
    virtual_flag:
-       empty
-     | -VIRTUAL;
+       -VIRTUAL?;
    override_flag:
-       empty
-     | -BANG;
+       -BANG?;
    opt_bar:
-       empty
-     | -BAR;
+       -BAR?;
    opt_semi:
-       empty
-     | -SEMI;
+       -SEMI?;
    subtractive:
-       -MINUS
-     | -MINUSDOT;
+       -MINUSDOT
+     | -MINUS;
    additive:
-       -PLUS
-     | -PLUSDOT
+       -PLUSDOT
+     | -PLUS
 )

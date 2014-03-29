@@ -1,12 +1,15 @@
 
 # type in sources here
-SOURCES = lexer.ml parser.ml
+SOURCES = lexer.ml parser.ml test.ml
 MLI = lexer.mli parser.mli
 
 include $(top_srcdir)/m4/Makefile.am.vars
 
 # CMO - all compiled objects
 CMO := $(SORTED:.ml=.cmo)
+CMX := $(SORTED:.ml=.cmx)
+
+
 
 # OCaml parser call with flags
 AM_P5FLAGS := -pp "$(CAMLP5O) $(top_srcdir)/camlp5/pa_ostap.cmo $(PARSER_INCLUDES) pa_log.cmo $(LOG)"
@@ -20,7 +23,7 @@ CAMLPXLIB = $(CAMLP5LIB)
 MODULE_INCLUDES += -I ../src -I ../util
 CMOPK =
 CMXPK =
-TARGET = $(MLI) $(CMI) $(CMO)
+TARGET = $(MLI) $(CMI) $(CMO) $(CMX)
 
 include $(top_srcdir)/m4/Makefile.am.targets
 
