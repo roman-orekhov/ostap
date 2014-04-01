@@ -41,125 +41,41 @@
 open Ostap
 open Combinators
 
-type ('a, 'b) tlexeme = ('a, Matcher.Token.t, 'b) cont -> 'b steps
 type ('a, 'b) stream =
-   < getAMPERAMPER : ('a, 'b) tlexeme;
-     getAMPERSAND : ('a, 'b) tlexeme;
-     getAND : ('a, 'b) tlexeme;
-     getAS : ('a, 'b) tlexeme;
-     getASSERT : ('a, 'b) tlexeme;
-     getBACKQUOTE : ('a, 'b) tlexeme;
-     getBANG : ('a, 'b) tlexeme;
-     getBAR : ('a, 'b) tlexeme;
-     getBARBAR : ('a, 'b) tlexeme;
-     getBARRBRACKET : ('a, 'b) tlexeme;
-     getBEGIN : ('a, 'b) tlexeme;
-     getCHAR : ('a, 'b) tlexeme;
-     getCLASS : ('a, 'b) tlexeme;
-     getCOLON : ('a, 'b) tlexeme;
-     getCOLONCOLON : ('a, 'b) tlexeme;
-     getCOLONEQUAL : ('a, 'b) tlexeme;
-     getCOLONGREATER : ('a, 'b) tlexeme;
-     getCOMMA : ('a, 'b) tlexeme;
-     getCONSTRAINT : ('a, 'b) tlexeme;
-     getDO : ('a, 'b) tlexeme;
-     getDONE : ('a, 'b) tlexeme;
-     getDOT : ('a, 'b) tlexeme;
-     getDOTDOT : ('a, 'b) tlexeme;
-     getDOWNTO : ('a, 'b) tlexeme;
-     getELSE : ('a, 'b) tlexeme;
-     getEND : ('a, 'b) tlexeme;
-     getEOF : ('a, 'b) tlexeme;
-     getEQUAL : ('a, 'b) tlexeme;
-     getEXCEPTION : ('a, 'b) tlexeme;
-     getEXTERNAL : ('a, 'b) tlexeme;
-     getFALSE : ('a, 'b) tlexeme;
-     getFLOAT : ('a, 'b) tlexeme;
-     getFOR : ('a, 'b) tlexeme;
-     getFUN : ('a, 'b) tlexeme;
-     getFUNCTION : ('a, 'b) tlexeme;
-     getFUNCTOR : ('a, 'b) tlexeme;
-     getGREATER : ('a, 'b) tlexeme;
-     getGREATERRBRACE : ('a, 'b) tlexeme;
-     getIF : ('a, 'b) tlexeme;
-     getIN : ('a, 'b) tlexeme;
-     getINCLUDE : ('a, 'b) tlexeme;
-     getINFIXOP0 : ('a, 'b) tlexeme;
-     getINFIXOP1 : ('a, 'b) tlexeme;
-     getINFIXOP2 : ('a, 'b) tlexeme;
-     getINFIXOP3 : ('a, 'b) tlexeme;
-     getINFIXOP4 : ('a, 'b) tlexeme;
-     getINHERIT : ('a, 'b) tlexeme;
-     getINITIALIZER : ('a, 'b) tlexeme;
-     getINT : ('a, 'b) tlexeme;
-     getINT32 : ('a, 'b) tlexeme;
-     getINT64 : ('a, 'b) tlexeme;
-     getLABEL : ('a, 'b) tlexeme;
-     getLAZY : ('a, 'b) tlexeme;
-     getLBRACE : ('a, 'b) tlexeme;
-     getLBRACELESS : ('a, 'b) tlexeme;
-     getLBRACKET : ('a, 'b) tlexeme;
-     getLBRACKETBAR : ('a, 'b) tlexeme;
-     getLBRACKETGREATER : ('a, 'b) tlexeme;
-     getLBRACKETLESS : ('a, 'b) tlexeme;
-     getLESS : ('a, 'b) tlexeme;
-     getLESSMINUS : ('a, 'b) tlexeme;
-     getLET : ('a, 'b) tlexeme;
-     getLIDENT : ('a, 'b) tlexeme;
-     getLPAREN : ('a, 'b) tlexeme;
-     getMATCH : ('a, 'b) tlexeme;
-     getMETHOD : ('a, 'b) tlexeme;
-     getMINUS : ('a, 'b) tlexeme;
-     getMINUSDOT : ('a, 'b) tlexeme;
-     getMINUSGREATER : ('a, 'b) tlexeme;
-     getMODULE : ('a, 'b) tlexeme;
-     getMUTABLE : ('a, 'b) tlexeme;
-     getNATIVEINT : ('a, 'b) tlexeme;
-     getNEW : ('a, 'b) tlexeme;
-     getOBJECT : ('a, 'b) tlexeme;
-     getOF : ('a, 'b) tlexeme;
-     getOPEN : ('a, 'b) tlexeme;
-     getOPTLABEL : ('a, 'b) tlexeme;
-     getOR : ('a, 'b) tlexeme;
-     getPLUS : ('a, 'b) tlexeme;
-     getPLUSDOT : ('a, 'b) tlexeme;
-     getPREFIXOP : ('a, 'b) tlexeme;
-     getPRIVATE : ('a, 'b) tlexeme;
-     getQUESTION : ('a, 'b) tlexeme;
-     getQUOTE : ('a, 'b) tlexeme;
-     getRBRACE : ('a, 'b) tlexeme;
-     getRBRACKET : ('a, 'b) tlexeme;
-     getREC : ('a, 'b) tlexeme;
-     getRPAREN : ('a, 'b) tlexeme;
-     getSEMI : ('a, 'b) tlexeme;
-     getSEMISEMI : ('a, 'b) tlexeme;
-     getSHARP : ('a, 'b) tlexeme;
-     getSIG : ('a, 'b) tlexeme;
-     getSTAR : ('a, 'b) tlexeme;
-     getSTRING : ('a, 'b) tlexeme;
-     getSTRUCT : ('a, 'b) tlexeme;
-     getTHEN : ('a, 'b) tlexeme;
-     getTILDE : ('a, 'b) tlexeme;
-     getTO : ('a, 'b) tlexeme;
-     getTRUE : ('a, 'b) tlexeme;
-     getTRY : ('a, 'b) tlexeme;
-     getTYPE : ('a, 'b) tlexeme;
-     getUIDENT : ('a, 'b) tlexeme;
-     getUNDERSCORE : ('a, 'b) tlexeme;
-     getVAL : ('a, 'b) tlexeme;
-     getVIRTUAL : ('a, 'b) tlexeme;
-     getWHEN : ('a, 'b) tlexeme;
-     getWHILE : ('a, 'b) tlexeme;
-     getWITH : ('a, 'b) tlexeme;
+   < getCHAR : ('a, Matcher.Token.t, 'b) parsed;
+     getEOF : ('a, Matcher.Token.t, 'b) parsed;
+     getFLOAT : ('a, Matcher.Token.t, 'b) parsed;
+     getINFIXOP0 : ('a, Matcher.Token.t, 'b) parsed;
+     getINFIXOP1 : ('a, Matcher.Token.t, 'b) parsed;
+     getINFIXOP2 : ('a, Matcher.Token.t, 'b) parsed;
+     getINFIXOP3 : ('a, Matcher.Token.t, 'b) parsed;
+     getINFIXOP4 : ('a, Matcher.Token.t, 'b) parsed;
+     getINT : ('a, Matcher.Token.t, 'b) parsed;
+     getINT32 : ('a, Matcher.Token.t, 'b) parsed;
+     getINT64 : ('a, Matcher.Token.t, 'b) parsed;
+     getLABEL : ('a, Matcher.Token.t, 'b) parsed;
+     getLIDENT : ('a, Matcher.Token.t, 'b) parsed;
+     getNATIVEINT : ('a, Matcher.Token.t, 'b) parsed;
+     getOPTLABEL : ('a, Matcher.Token.t, 'b) parsed;
+     getPREFIXOP : ('a, Matcher.Token.t, 'b) parsed;
+     getSTRING : ('a, Matcher.Token.t, 'b) parsed;
+     getUIDENT : ('a, Matcher.Token.t, 'b) parsed;
+     look : string -> ('a, Matcher.Token.t, 'b) parsed;
+     regexp :
+      ?except:(string -> bool) ->
+      string ->
+      string ->
+      string -> ('a, Matcher.Token.t, 'b) parsed
      .. > as 'a
 
 ostap (
+   kw[w]: -(@( w^"\\b" ? w^" " : "keyword "^w));
    implementation: -structure -EOF;
    interface: -signature -EOF;
    toplevel_phrase:
-       -top_structure -SEMISEMI
-     | -seq_expr -SEMISEMI
-     | -toplevel_directive -SEMISEMI
+       -top_structure -";;"
+     | -seq_expr -";;"
+     | -toplevel_directive -";;"
      | -EOF;
    top_structure:
        -structure_item+;
@@ -168,10 +84,10 @@ ostap (
      | -seq_expr -use_file_tail;
    use_file_tail:
        -EOF
-     | -SEMISEMI -EOF
-     | -SEMISEMI -seq_expr -use_file_tail
-     | -SEMISEMI -structure_item -use_file_tail
-     | -SEMISEMI -toplevel_directive -use_file_tail
+     | -";;" (-EOF
+            | -seq_expr -use_file_tail
+            | -structure_item -use_file_tail
+            | -toplevel_directive -use_file_tail)
      | -structure_item -use_file_tail
      | -toplevel_directive -use_file_tail;
 
@@ -180,284 +96,272 @@ ostap (
    module_expr:
        -(
        -mod_longident
-     | -STRUCT -structure -END
-     | -FUNCTOR -LPAREN -UIDENT -COLON -module_type -RPAREN -MINUSGREATER -module_expr
-     | -LPAREN -module_expr -COLON -module_type -RPAREN
-     | -LPAREN -module_expr -RPAREN
-     | -LPAREN -VAL -expr -COLON -package_type -RPAREN
+     | -kw["struct"] -structure -kw["end"]
+     | -kw["functor"] -"(" -UIDENT -":" -module_type -")" -"->" -module_expr
+     | -"(" (-module_expr (-":" -module_type -")" | -")")
+           | -kw["val"] -expr -":" -package_type -")")
        )
-       -(-LPAREN -module_expr -RPAREN)*;
+       -(-"(" -module_expr -")")*;
    structure:
        -structure_tail
      | -seq_expr -structure_tail;
    structure_tail:
-       -SEMISEMI -seq_expr -structure_tail
-     | -SEMISEMI -structure_item -structure_tail
-     | -SEMISEMI
+       -";;"
+         -(-seq_expr -structure_tail
+        | -structure_item -structure_tail)?
      | -structure_item -structure_tail
      | -empty;
    structure_item:
-       -LET -rec_flag -let_bindings
-     | -EXTERNAL -val_ident -COLON -core_type -EQUAL -primitive_declaration
-     | -TYPE -type_declarations
-     | -EXCEPTION -UIDENT -constructor_arguments
-     | -EXCEPTION -UIDENT -EQUAL -constr_longident
-     | -MODULE -UIDENT -module_binding
-     | -MODULE -REC -module_rec_bindings
-     | -MODULE -TYPE -ident -EQUAL -module_type
-     | -OPEN -mod_longident
-     | -CLASS -class_declarations
-     | -CLASS -TYPE -class_type_declarations
-     | -INCLUDE -module_expr;
+       -kw["let"] -rec_flag -let_bindings
+     | -kw["external"] -val_ident -":" -core_type -"=" -primitive_declaration
+     | -kw["type"] -type_declarations
+     | -kw["exception"] -UIDENT (-constructor_arguments | -"=" -constr_longident)
+     | -kw["module"]  (-UIDENT -module_binding
+                     | -kw["rec"] -module_rec_bindings
+                     | -kw["type"] -ident -"=" -module_type)
+     | -kw["open"] -mod_longident
+     | -kw["class"]   (-class_declarations
+                     | -kw["type"] -class_type_declarations)
+     | -kw["include"] -module_expr;
    module_binding:
-       -EQUAL -module_expr
-     | -COLON -module_type -EQUAL -module_expr
-     | -LPAREN -UIDENT -COLON -module_type -RPAREN -module_binding;
+       -"=" -module_expr
+     | -":" -module_type -"=" -module_expr
+     | -"(" -UIDENT -":" -module_type -")" -module_binding;
    module_rec_bindings:
-       -module_rec_binding -(-AND -module_rec_binding)*;
+       -module_rec_binding -(-kw["and"] -module_rec_binding)*;
    module_rec_binding:
-       -UIDENT -COLON -module_type -EQUAL -module_expr;
+       -UIDENT -":" -module_type -"=" -module_expr;
 
 (* Module types *)
 
    module_type:
        -(
        -mty_longident
-     | -SIG -signature -END
-     | -FUNCTOR -LPAREN -UIDENT -COLON -module_type -RPAREN -MINUSGREATER -module_type
+     | -kw["sig"] -signature -kw["end"]
+     | -kw["functor"] -"(" -UIDENT -":" -module_type -")" -"->" -module_type
          (*%prec below_WITH*)
-     | -MODULE -TYPE -OF -module_expr
-     | -LPAREN -module_type -RPAREN
+     | -kw["module"] -kw["type"] -kw["of"] -module_expr
+     | -"(" -module_type -")"
        )
-       -(-WITH -with_constraints)*;
+       -(-kw["with"] -with_constraints)*;
    signature:
-       -(-signature_item -SEMISEMI?)*;
+       -(-signature_item -";;"?)*;
    signature_item:
-       -VAL -val_ident -COLON -core_type
-     | -EXTERNAL -val_ident -COLON -core_type -EQUAL -primitive_declaration
-     | -TYPE -type_declarations
-     | -EXCEPTION -UIDENT -constructor_arguments
-     | -MODULE -UIDENT -module_declaration
-     | -MODULE -REC -module_rec_declarations
-     | -MODULE -TYPE -ident -(-EQUAL -module_type)?
-     | -OPEN -mod_longident
-     | -INCLUDE -module_type
-     | -CLASS -class_descriptions
-     | -CLASS -TYPE -class_type_declarations;
+       -kw["val"] -val_ident -":" -core_type
+     | -kw["external"] -val_ident -":" -core_type -"=" -primitive_declaration
+     | -kw["type"] -type_declarations
+     | -kw["exception"] -UIDENT -constructor_arguments
+     | -kw["module"] (-UIDENT -module_declaration
+                    | -kw["rec"] -module_rec_declarations
+                    | -kw["type"] -ident -(-"=" -module_type)?)
+     | -kw["open"] -mod_longident
+     | -kw["include"] -module_type
+     | -kw["class"] (-class_descriptions | -kw["type"] -class_type_declarations);
 
    module_declaration:
-       -COLON -module_type
-     | -LPAREN -UIDENT -COLON -module_type -RPAREN -module_declaration;
+       -":" -module_type
+     | -"(" -UIDENT -":" -module_type -")" -module_declaration;
    module_rec_declarations:
-       -module_rec_declaration -(-AND -module_rec_declaration)*;
+       -module_rec_declaration -(-kw["and"] -module_rec_declaration)*;
    module_rec_declaration:
-       -UIDENT -COLON -module_type;
+       -UIDENT -":" -module_type;
 
 (* Class expressions *)
 
    class_declarations:
-       -class_declaration -(-AND -class_declaration)*;
+       -class_declaration -(-kw["and"] -class_declaration)*;
    class_declaration:
        -virtual_flag -class_type_parameters -LIDENT -class_fun_binding;
    class_fun_binding:
-       -EQUAL -class_expr
-     | -COLON -class_type -EQUAL -class_expr
+       -"=" -class_expr
+     | -":" -class_type -"=" -class_expr
      | -labeled_simple_pattern -class_fun_binding;
    class_type_parameters:
-       -(-LBRACKET -type_parameter_list -RBRACKET)?;
+       -(-"[" -type_parameter_list -"]")?;
    class_fun_def:
-       -labeled_simple_pattern+ -MINUSGREATER -class_expr;
+       -labeled_simple_pattern+ -"->" -class_expr;
    class_expr:
        -class_simple_expr -simple_labeled_expr_list?
-     | -FUN -class_fun_def
-     | -LET -rec_flag -let_bindings -IN -class_expr;
+     | -kw["fun"] -class_fun_def
+     | -kw["let"] -rec_flag -let_bindings -kw["in"] -class_expr;
    class_simple_expr:
-       -LBRACKET -core_type_comma_list -RBRACKET -class_longident
+       -"[" -core_type_comma_list -"]" -class_longident
      | -class_longident
-     | -OBJECT -class_structure -END
-     | -LPAREN -class_expr -COLON -class_type -RPAREN
-     | -LPAREN -class_expr -RPAREN;
+     | -kw["object"] -class_structure -kw["end"]
+     | -"(" -class_expr (-":" -class_type -")" | -")");
    class_structure:
        -class_self_pattern -class_fields;
    class_self_pattern:
-       -LPAREN -pattern -RPAREN
-     | -LPAREN -pattern -COLON -core_type -RPAREN
+       -"(" -pattern (-")" | -core_type -")")
      | -empty;
    class_fields:
        -(
-       -INHERIT -override_flag -class_expr -parent_binder
-     | -VAL -virtual_value
-     | -VAL -value
+       -kw["inherit"] -override_flag -class_expr -parent_binder
+     | -kw["val"] (-virtual_value | -value)
      | -virtual_method
      | -concrete_method
-     | -CONSTRAINT -constrain
-     | -INITIALIZER -seq_expr
+     | -kw["constraint"] -constrain
+     | -kw["initializer"] -seq_expr
        )*;
    parent_binder:
-       -(-AS -LIDENT)?;
+       -(-kw["as"] -LIDENT)?;
    virtual_value:
-       -MUTABLE -VIRTUAL -label -COLON -core_type
-     | -VIRTUAL -mutable_flag -label -COLON -core_type;
+       -kw["mutable"] -kw["virtual"] -label -":" -core_type
+     | -kw["virtual"] -mutable_flag -label -":" -core_type;
    value:
-       -override_flag -mutable_flag -label -EQUAL -seq_expr
-     | -override_flag -mutable_flag -label -type_constraint -EQUAL -seq_expr;
+       -override_flag -mutable_flag -label (-"=" -seq_expr | -type_constraint -"=" -seq_expr);
    virtual_method:
-       -METHOD -PRIVATE -VIRTUAL -label -COLON -poly_type
-     | -METHOD -VIRTUAL -private_flag -label -COLON -poly_type;
+       -kw["method"] (-kw["private"] -kw["virtual"] -label -":" -poly_type
+                    | -kw["virtual"] -private_flag -label -":" -poly_type);
    concrete_method :
-       -METHOD -override_flag -private_flag -label -strict_binding
-     | -METHOD -override_flag -private_flag -label -COLON -poly_type -EQUAL -seq_expr;
+       -kw["method"] -override_flag -private_flag -label (-strict_binding | -":" -poly_type -"=" -seq_expr);
 
 (* Class types *)
 
    class_type:
        -class_signature
-     | -QUESTION -LIDENT -COLON -simple_core_type_or_tuple -MINUSGREATER -class_type
-     | -LIDENT -COLON -simple_core_type_or_tuple -MINUSGREATER -class_type
-     | -simple_core_type_or_tuple -MINUSGREATER -class_type;
+     | -"?" -LIDENT -":" -simple_core_type_or_tuple -"->" -class_type
+     | -LIDENT -":" -simple_core_type_or_tuple -"->" -class_type
+     | -simple_core_type_or_tuple -"->" -class_type;
    class_signature:
-       -LBRACKET -core_type_comma_list -RBRACKET -clty_longident
+       -"[" -core_type_comma_list -"]" -clty_longident
      | -clty_longident
-     | -OBJECT -class_sig_body -END;
+     | -kw["object"] -class_sig_body -kw["end"];
    class_sig_body:
        -class_self_type -class_sig_fields;
    class_self_type:
-       -(-LPAREN -core_type -RPAREN)?;
+       -(-"(" -core_type -")")?;
    class_sig_fields:
        -(
-       -INHERIT -class_signature
-     | -VAL -value_type
+       -kw["inherit"] -class_signature
+     | -kw["val"] -value_type
      | -virtual_method_type
      | -method_type
-     | -CONSTRAINT -constrain
+     | -kw["constraint"] -constrain
        )*;
    value_type:
-       -VIRTUAL -mutable_flag -label -COLON -core_type
-     | -MUTABLE -virtual_flag -label -COLON -core_type
-     | -label -COLON -core_type;
+       -kw["virtual"] -mutable_flag -label -":" -core_type
+     | -kw["mutable"] -virtual_flag -label -":" -core_type
+     | -label -":" -core_type;
    method_type:
-       -METHOD -private_flag -label -COLON -poly_type;
+       -kw["method"] -private_flag -label -":" -poly_type;
    virtual_method_type:
-       -METHOD -PRIVATE -VIRTUAL -label -COLON -poly_type
-     | -METHOD -VIRTUAL -private_flag -label -COLON -poly_type;
+       -kw["method"] (-kw["private"] -kw["virtual"] -label -":" -poly_type
+                    | -kw["virtual"] -private_flag -label -":" -poly_type);
    constrain:
-       -core_type -EQUAL -core_type;
+       -core_type -"=" -core_type;
    class_descriptions:
-       -class_description -(-AND -class_description)*;
+       -class_description -(-kw["and"] -class_description)*;
    class_description:
-       -virtual_flag -class_type_parameters -LIDENT -COLON -class_type;
+       -virtual_flag -class_type_parameters -LIDENT -":" -class_type;
    class_type_declarations:
-       -class_type_declaration -(-AND -class_type_declaration)*;
+       -class_type_declaration -(-kw["and"] -class_type_declaration)*;
    class_type_declaration:
-       -virtual_flag -class_type_parameters -LIDENT -EQUAL -class_signature;
+       -virtual_flag -class_type_parameters -LIDENT -"=" -class_signature;
 
 (* Core expressions *)
 
    seq_expr:
 (*
-       -expr -SEMI -seq_expr
-     | -expr -SEMI?;
+       -expr -";" -seq_expr
+     | -expr -";"?;
 *)
-       -expr -(-SEMI -expr)* -SEMI?;
+       -expr -(-";" -expr)* -";"?;
    labeled_simple_pattern:
-       -QUESTION -LPAREN -label_let_pattern -opt_default -RPAREN
-     | -OPTLABEL -LPAREN -let_pattern -opt_default -RPAREN
-     | -OPTLABEL -pattern_var
-     | -QUESTION -label_var
-     | -TILDE -LPAREN -label_let_pattern -RPAREN
+       -"?" -"(" -label_let_pattern -opt_default -")"
+     | -OPTLABEL (-"(" -let_pattern -opt_default -")" | -pattern_var)
+     | -"?" -label_var
+     | -"~" -"(" -label_let_pattern -")"
      | -LABEL -simple_pattern
-     | -TILDE -label_var
+     | -"~" -label_var
      | -simple_pattern;
    pattern_var:
        -LIDENT
 (*
-     | -UNDERSCORE
+     | -kw["_"]
 *);
    opt_default:
-       -(-EQUAL -seq_expr)?;
+       -(-"=" -seq_expr)?;
    label_let_pattern:
-       -label_var -(-COLON -core_type)?;
+       -label_var -(-":" -core_type)?;
    label_var:
        -LIDENT;
    let_pattern:
-       -pattern -(-COLON -core_type)?;
+       -pattern -(-":" -core_type)?;
    expr:
        -(
-       -LET -rec_flag -let_bindings -IN -seq_expr
-     | -LET -MODULE -UIDENT -module_binding -IN -seq_expr
-     | -LET -OPEN -mod_longident -IN -seq_expr
-     | -FUNCTION -opt_bar -match_cases
-     | -FUN -labeled_simple_pattern -fun_def
-     | -FUN -LPAREN -TYPE -LIDENT -RPAREN -fun_def
-     | -MATCH -seq_expr -WITH -opt_bar -match_cases
-     | -TRY -seq_expr -WITH -opt_bar -match_cases
+       -kw["let"] (-rec_flag -let_bindings -kw["in"] -seq_expr
+                 | -kw["module"] -UIDENT -module_binding -kw["in"] -seq_expr
+                 | -kw["open"] -mod_longident -kw["in"] -seq_expr)
+     | -kw["function"] -opt_bar -match_cases
+     | -kw["fun"] (-labeled_simple_pattern -fun_def
+                 | -"(" -kw["type"] -LIDENT -")" -fun_def)
+     | -kw["match"] -seq_expr -kw["with"] -opt_bar -match_cases
+     | -kw["try"] -seq_expr -kw["with"] -opt_bar -match_cases
      | -constr_longident -simple_expr (* %prec below_SHARP *)
      | -name_tag -simple_expr (* %prec below_SHARP *)
-     | -IF -seq_expr -THEN -expr -(-ELSE -expr)?
-     | -WHILE -seq_expr -DO -seq_expr -DONE
-     | -FOR -val_ident -EQUAL -seq_expr -direction_flag -seq_expr -DO -seq_expr -DONE
-     | -LPAREN -COLONCOLON -RPAREN -LPAREN -expr -COMMA -expr -RPAREN
+     | -kw["if"] -seq_expr -kw["then"] -expr -(-kw["else"] -expr)?
+     | -kw["while"] -seq_expr -kw["do"] -seq_expr -kw["done"]
+     | -kw["for"] -val_ident -"=" -seq_expr -direction_flag -seq_expr -kw["do"] -seq_expr -kw["done"]
+     | -"(" -"::" -")" -"(" -expr -"," -expr -")"
      | -subtractive -expr (* %prec prec_unary_minus *)
      | -additive -expr (* %prec prec_unary_plus *)
-     | -simple_expr -DOT -label_longident -LESSMINUS -expr
-     | -simple_expr -DOT -LPAREN -seq_expr -RPAREN -LESSMINUS -expr
-     | -simple_expr -DOT -LBRACKET -seq_expr -RBRACKET -LESSMINUS -expr
-     | -simple_expr -DOT -LBRACE -expr -RBRACE -LESSMINUS -expr
-     | -label -LESSMINUS -expr
+     | -simple_expr -"." (-label_longident -"<-" -expr
+                        | -"(" -seq_expr -")" -"<-" -expr
+                        | -"[" -seq_expr -"]" -"<-" -expr
+                        | -"{" -expr -"}" -"<-" -expr)
+     | -label -"<-" -expr
      | -simple_expr -simple_labeled_expr_list?
-     | -ASSERT -simple_expr (* %prec below_SHARP *)
-     | -LAZY -simple_expr (* %prec below_SHARP *)
-     | -OBJECT -class_structure -END
+     | -kw["assert"] -simple_expr (* %prec below_SHARP *)
+     | -kw["lazy"] -simple_expr (* %prec below_SHARP *)
+     | -kw["object"] -class_structure -kw["end"]
        )
        -(
-       -COLONEQUAL -expr
-     | -OR -expr
-     | -BARBAR -expr
-     | -AMPERAMPER -expr
-     | -AMPERSAND -expr
-     | -EQUAL -expr
-     | -LESS -expr
-     | -GREATER -expr
+       -":=" -expr
+     | -kw["or"] -expr
      | -INFIXOP0 -expr
+     | -"||" -expr
+     | -"&&" -expr
+     | -"&" -expr
+     | -"=" -expr
+     | -"<" -expr
+     | -">" -expr
      | -INFIXOP1 -expr
-     | -COLONCOLON -expr
-     | -PLUSDOT -expr
-     | -PLUS -expr
-     | -MINUSDOT -expr
-     | -MINUS -expr
+     | -"::" -expr
      | -INFIXOP2 -expr
-     | -STAR -expr
+     | -"+." -expr
+     | -"+" -expr
+     | -"-." -expr
+     | -"-" -expr
      | -INFIXOP3 -expr
      | -INFIXOP4 -expr
+     | -"*" -expr
        )*
-       -(-COMMA -expr)*;
+       -(-"," -expr)*;
    simple_expr:
        -(
        -val_longident
      | -constant
      | -constr_longident (* %prec prec_constant_constructor *)
      | -name_tag (* %prec prec_constant_constructor *)
-     | -LPAREN -seq_expr -RPAREN
-     | -BEGIN -seq_expr? -END
-     | -LPAREN -seq_expr -type_constraint -RPAREN
-     | -mod_longident -DOT -LPAREN -seq_expr -RPAREN
-     | -LBRACE -record_expr -RBRACE
-     | -LBRACKETBAR -expr_semi_list -opt_semi -BARRBRACKET
-     | -LBRACKETBAR -BARRBRACKET
-     | -LBRACKET -expr_semi_list -opt_semi -RBRACKET
-     | -BANG -simple_expr
+     | -"(" -seq_expr (-")" | -type_constraint -")")
+     | -kw["begin"] -seq_expr? -kw["end"]
+     | -mod_longident -"." -"(" -seq_expr -")"
+     | -"{" -record_expr -"}"
+     | -"[|" (-expr_semi_list -opt_semi -"|]" | -"|]")
+     | -"[" -expr_semi_list -opt_semi -"]"
+     | -"!" -simple_expr
      | -PREFIXOP -simple_expr
-     | -NEW -class_longident
-     | -LBRACELESS -field_expr_list -opt_semi -GREATERRBRACE
-     | -LBRACELESS -GREATERRBRACE
-     | -LPAREN -MODULE -module_expr -COLON -package_type -RPAREN
+     | -kw["new"] -class_longident
+     | -"{<" (-field_expr_list -opt_semi -">}" | -">}")
+     | -"(" -kw["module"] -module_expr -":" -package_type -")"
        )
        -(
-       -DOT -label_longident
-     | -DOT -LPAREN -seq_expr -RPAREN
-     | -DOT -LBRACKET -seq_expr -RBRACKET
-     | -DOT -LBRACE -expr -RBRACE
-     | -SHARP -label
+       -"." (-label_longident
+           | -"(" -seq_expr -")"
+           | -"[" -seq_expr -"]"
+           | -"{" -expr -"}")
+     | -"#" -label
        )*;
    simple_labeled_expr_list:
        -labeled_simple_expr+;
@@ -466,47 +370,47 @@ ostap (
      | -label_expr;
    label_expr:
        -LABEL -simple_expr (* %prec below_SHARP *)
-     | -TILDE -label_ident
+     | -"~" -label_ident
      | -OPTLABEL -simple_expr (* %prec below_SHARP *)
-     | -QUESTION -label_ident;
+     | -"?" -label_ident;
    label_ident:
        -LIDENT;
    let_bindings:
-       -let_binding -(-AND -let_binding)*;
+       -let_binding -(-kw["and"] -let_binding)*;
    let_binding:
-       -val_ident -fun_binding
-     | -val_ident -COLON -typevar_list -DOT -core_type -EQUAL -seq_expr
-     | -pattern -EQUAL -seq_expr;
+       -val_ident (-fun_binding
+                 | -":" -typevar_list -"." -core_type -"=" -seq_expr)
+     | -pattern -"=" -seq_expr;
    fun_binding:
        -strict_binding
-     | -type_constraint -EQUAL -seq_expr;
+     | -type_constraint -"=" -seq_expr;
    strict_binding:
-       -EQUAL -seq_expr
+       -"=" -seq_expr
      | -labeled_simple_pattern -fun_binding
-     | -LPAREN -TYPE -LIDENT -RPAREN -fun_binding;
+     | -"(" -kw["type"] -LIDENT -")" -fun_binding;
    match_cases:
-       -pattern -match_action -(-BAR -pattern -match_action)*;
+       -pattern -match_action -(-"|" -pattern -match_action)*;
    fun_def:
        -match_action
      | -labeled_simple_pattern -fun_def
-     | -LPAREN -TYPE -LIDENT -RPAREN -fun_def;
+     | -"(" -kw["type"] -LIDENT -")" -fun_def;
    match_action:
-       -MINUSGREATER -seq_expr
-     | -WHEN -seq_expr -MINUSGREATER -seq_expr;
+       -"->" -seq_expr
+     | -kw["when"] -seq_expr -"->" -seq_expr;
    expr_comma_list:
-       -expr -COMMA -expr -(-COMMA -expr)*;
+       -expr -"," -expr -(-"," -expr)*;
    record_expr:
-       -simple_expr -WITH -lbl_expr_list -opt_semi
+       -simple_expr -kw["with"] -lbl_expr_list -opt_semi
      | -lbl_expr_list -opt_semi;
    lbl_expr_list:
-       -label_longident -(-EQUAL -expr)? -(-SEMI -label_longident -(-EQUAL -expr)?)*;
+       -label_longident -(-"=" -expr)? -(-";" -label_longident -(-"=" -expr)?)*;
    field_expr_list:
-       -label -EQUAL -expr -(-SEMI -label -EQUAL -expr)*;
+       -label -"=" -expr -(-";" -label -"=" -expr)*;
    expr_semi_list:
-       -expr -(-SEMI -expr)*;
+       -expr -(-";" -expr)*;
    type_constraint:
-       -COLON -core_type -(-COLONGREATER -core_type)?
-     | -COLONGREATER -core_type;
+       -":" -core_type -(-":>" -core_type)?
+     | -":>" -core_type;
 
 (* Patterns *)
 
@@ -515,41 +419,39 @@ ostap (
        -constr_longident -pattern (* %prec prec_constr_appl *)
      | -name_tag -pattern (* %prec prec_constr_appl *)
      | -simple_pattern
-     | -LPAREN -COLONCOLON -RPAREN -LPAREN -pattern -COMMA -pattern -RPAREN
-     | -LAZY -simple_pattern
+     | -"(" -"::" -")" -"(" -pattern -"," -pattern -")"
+     | -kw["lazy"] -simple_pattern
        )
        -(
-       -AS -val_ident
-     | -COLONCOLON -pattern
-     | -BAR -pattern
+       -kw["as"] -val_ident
+     | -"::" -pattern
+     | -"|" -pattern
        )*
-       -(-COMMA -pattern)*
+       -(-"," -pattern)*
    ;
    simple_pattern:
        -val_ident (* %prec below_EQUAL *)
 (*
-     | -UNDERSCORE
+     | -kw["_"]
 *)
+     | -CHAR -".." -CHAR
      | -signed_constant
-     | -CHAR -DOTDOT -CHAR
      | -constr_longident
      | -name_tag
-     | -SHARP -type_longident
-     | -LBRACE -lbl_pattern_list -record_pattern_end -RBRACE
-     | -LBRACKET -pattern_semi_list -opt_semi -RBRACKET
-     | -LBRACKETBAR -pattern_semi_list -opt_semi -BARRBRACKET
-     | -LBRACKETBAR -BARRBRACKET
-     | -LPAREN -pattern -RPAREN
-     | -LPAREN -pattern -COLON -core_type -RPAREN;
+     | -"#" -type_longident
+     | -"{" -lbl_pattern_list -record_pattern_end -"}"
+     | -"[" -pattern_semi_list -opt_semi -"]"
+     | -"[|" (-pattern_semi_list -opt_semi -"|]" | -"|]")
+     | -"(" -pattern (-")" | -":" -core_type -")");
 
    pattern_comma_list:
-       -pattern -COMMA -pattern -(-COMMA -pattern)*;
+       -pattern -"," -pattern -(-"," -pattern)*;
    pattern_semi_list:
-       -pattern -(-SEMI -pattern)*;
+       -pattern -(-";" -pattern)*;
    lbl_pattern_list:
-       -label_longident -(-EQUAL -pattern)? -(-SEMI -label_longident -(-EQUAL -pattern)?)*;
+       -label_longident -(-"=" -pattern)? -(-";" -label_longident -(-"=" -pattern)?)*;
    record_pattern_end:
-       -(-SEMI -UNDERSCORE)? -opt_semi;
+       -(-";" -kw["_"])? -opt_semi;
 
 (* Primitive declarations *)
 
@@ -559,145 +461,138 @@ ostap (
 (* Type declarations *)
 
    type_declarations:
-       -type_declaration -(-AND -type_declaration)*;
+       -type_declaration -(-kw["and"] -type_declaration)*;
 
    type_declaration:
        -type_parameters -LIDENT -type_kind -constraints;
    constraints:
-       -(-CONSTRAINT -constrain)*;
+       -(-kw["constraint"] -constrain)*;
    type_kind:
-       -EQUAL -core_type
-     | -EQUAL -PRIVATE -core_type
-     | -EQUAL -constructor_declarations
-     | -EQUAL -PRIVATE -constructor_declarations
-     | -EQUAL -private_flag -BAR -constructor_declarations
-     | -EQUAL -private_flag -LBRACE -label_declarations -opt_semi -RBRACE
-     | -EQUAL -core_type -EQUAL -private_flag -opt_bar -constructor_declarations
-     | -EQUAL -core_type -EQUAL -private_flag -LBRACE -label_declarations -opt_semi -RBRACE
+       -"=" (-core_type
+           | -constructor_declarations
+           | -kw["private"] (-core_type | -constructor_declarations)
+           | -private_flag (-"|" -constructor_declarations
+                          | -"{" -label_declarations -opt_semi -"}")
+           | -core_type -"=" -private_flag (-opt_bar -constructor_declarations
+                                          | -"{" -label_declarations -opt_semi -"}"))
      | -empty;
    type_parameters:
        -type_parameter
-     | -LPAREN -type_parameter_list -RPAREN
+     | -"(" -type_parameter_list -")"
      | -empty;
    type_parameter:
-       -type_variance -QUOTE -ident;
+       -type_variance -"'" -ident;
    type_variance:
-       -PLUS
-     | -MINUS
+       -"+"
+     | -"-"
      | -empty;
    type_parameter_list:
-       -type_parameter -(-COMMA -type_parameter)*;
+       -type_parameter -(-"," -type_parameter)*;
    constructor_declarations:
-       -constructor_declaration -(-BAR -constructor_declaration)*;
+       -constructor_declaration -(-"|" -constructor_declaration)*;
    constructor_declaration:
        -constr_ident -constructor_arguments;
    constructor_arguments:
-       -(-OF -core_type_list)?;
+       -(-kw["of"] -core_type_list)?;
    label_declarations:
-       -label_declaration -(-SEMI -label_declaration)*;
+       -label_declaration -(-";" -label_declaration)*;
    label_declaration:
-       -mutable_flag -label -COLON -poly_type;
+       -mutable_flag -label -":" -poly_type;
 
 (* "with" constraints (additional type equations over signature components) *)
 
    with_constraints:
-       -with_constraint -(-AND -with_constraint)*;
+       -with_constraint -(-kw["and"] -with_constraint)*;
    with_constraint:
-       -TYPE -type_parameters -label_longident -with_type_binder -core_type -constraints
+       -kw["type"] -type_parameters -label_longident (-with_type_binder -core_type -constraints
        (* used label_longident instead of type_longident to disallow
           functor applications in type path *)
-     | -TYPE -type_parameters -label_longident -COLONEQUAL -core_type
-     | -MODULE -mod_longident -EQUAL -mod_ext_longident
-     | -MODULE -mod_longident -COLONEQUAL -mod_ext_longident;
+                                                    | -":=" -core_type)
+     | -kw["module"] -mod_longident (-"=" -mod_ext_longident | -":=" -mod_ext_longident);
    with_type_binder:
-       -EQUAL
-     | -EQUAL -PRIVATE;
+       -"=" -kw["private"]?;
 
 (* Polymorphic types *)
 
    typevar_list:
-       -(-QUOTE -ident)+;
+       -(-"'" -ident)+;
    poly_type:
        -core_type
-     | -typevar_list -DOT -core_type;
+     | -typevar_list -"." -core_type;
 
 (* Core types *)
 
    core_type:
-       -core_type2 -(-AS -QUOTE -ident)?;
+       -core_type2 -(-kw["as"] -"'" -ident)?;
    core_type2:
        -(
-       -QUESTION -LIDENT -COLON -core_type2 -MINUSGREATER -core_type2
-     | -LIDENT -COLON -core_type2 -MINUSGREATER -core_type2
+       -"?" -LIDENT -":" -core_type2 -"->" -core_type2
+     | -LIDENT -":" -core_type2 -"->" -core_type2
      | -simple_core_type_or_tuple
        )
-       -(-MINUSGREATER -core_type2)*;
+       -(-"->" -core_type2)*;
 
    simple_core_type:
        -simple_core_type2  (* %prec below_SHARP *)
-     | -LPAREN -core_type -RPAREN (* %prec below_SHARP *);
+     | -"(" -core_type -")" (* %prec below_SHARP *);
    simple_core_type2:
        -(
-       -QUOTE -ident
+       -"'" -ident
 (*
-     | -UNDERSCORE
+     | -kw["_"]
 *)
      | -type_longident
-     | -LPAREN -core_type_comma_list -RPAREN -type_longident
-     | -LESS -meth_list -GREATER
-     | -LESS -GREATER
-     | -SHARP -class_longident -opt_present
-     | -LPAREN -core_type_comma_list -RPAREN -SHARP -class_longident -opt_present
-     | -LBRACKET -tag_field -RBRACKET
+     | -"(" -core_type_comma_list -")" -type_longident
+     | -"<" (-meth_list -">" | -">")
+     | -"#" -class_longident -opt_present
+     | -"(" -core_type_comma_list -")" -"#" -class_longident -opt_present
+     | -"[" (-tag_field -"]"
    (* PR#3835: this is not LR(1), would need lookahead=2
-     | -LBRACKET -simple_core_type2 -RBRACKET
+     | -"[" -simple_core_type2 -"]"
    *)
-     | -LBRACKET -BAR -row_field_list -RBRACKET
-     | -LBRACKET -row_field -BAR -row_field_list -RBRACKET
-     | -LBRACKETGREATER -opt_bar -row_field_list -RBRACKET
-     | -LBRACKETGREATER -RBRACKET
-     | -LBRACKETLESS -opt_bar -row_field_list -RBRACKET
-     | -LBRACKETLESS -opt_bar -row_field_list -GREATER -name_tag_list -RBRACKET
-     | -LPAREN -MODULE -package_type -RPAREN
+           | -"|" -row_field_list -"]"
+           | -row_field -"|" -row_field_list -"]")
+     | -"[>" (-opt_bar -row_field_list -"]" | -"]")
+     | -"[<" -opt_bar -row_field_list (-"]" | -">" -name_tag_list -"]")
+     | -"(" -kw["module"] -package_type -")"
        )
        -(
        -type_longident
-     | -SHARP -class_longident -opt_present
+     | -"#" -class_longident -opt_present
        )*;
    package_type:
-       -mty_longident -(-WITH -package_type_cstrs)?;
+       -mty_longident -(-kw["with"] -package_type_cstrs)?;
 
    package_type_cstr:
-       -TYPE -LIDENT -EQUAL -core_type;
+       -kw["type"] -LIDENT -"=" -core_type;
    package_type_cstrs:
-       -package_type_cstr -(-AND -package_type_cstr)*;
+       -package_type_cstr -(-kw["and"] -package_type_cstr)*;
    row_field_list:
-       -row_field -(-BAR -row_field)*;
+       -row_field -(-"|" -row_field)*;
    row_field:
        -tag_field
      | -simple_core_type2;
    tag_field:
-       -name_tag -(-OF -opt_ampersand -amper_type_list)?;
+       -name_tag -(-kw["of"] -opt_ampersand -amper_type_list)?;
    opt_ampersand:
-       -AMPERSAND?;
+       -"&"?;
    amper_type_list:
-       -core_type -(-AMPERSAND -core_type)*;
+       -core_type -(-"&" -core_type)*;
    opt_present:
-       -(-LBRACKETGREATER -name_tag_list -RBRACKET)?;
+       -(-"[>" -name_tag_list -"]")?;
    name_tag_list:
        -name_tag+;
    simple_core_type_or_tuple:
-       -simple_core_type -(-STAR -core_type_list)?;
+       -simple_core_type -(-"*" -core_type_list)?;
    core_type_comma_list:
-       -core_type -(-COMMA -core_type)*;
+       -core_type -(-"," -core_type)*;
    core_type_list:
-       -simple_core_type -(-STAR -simple_core_type)*;
+       -simple_core_type -(-"*" -simple_core_type)*;
    meth_list:
-       -field -SEMI -meth_list
-     | -field -opt_semi
-     | -DOTDOT;
+       -field (-";" -meth_list | -opt_semi)
+     | -"..";
    field:
-       -label -COLON -poly_type;
+       -label -":" -poly_type;
    label:
        -LIDENT;
 
@@ -713,16 +608,16 @@ ostap (
      | -INT;
    signed_constant:
        -constant
-     | -MINUS -FLOAT
-     | -MINUS -INT32
-     | -MINUS -INT64
-     | -MINUS -NATIVEINT
-     | -MINUS -INT
-     | -PLUS -FLOAT
-     | -PLUS -INT32
-     | -PLUS -INT64
-     | -PLUS -NATIVEINT
-     | -PLUS -INT;
+     | -"-" (-FLOAT
+           | -INT32
+           | -INT64
+           | -NATIVEINT
+           | -INT)
+     | -"+" (-FLOAT
+           | -INT32
+           | -INT64
+           | -NATIVEINT
+           | -INT);
 
 (* Identifiers and long identifiers *)
 
@@ -731,104 +626,103 @@ ostap (
      | -LIDENT;
    val_ident:
        -LIDENT
-     | -LPAREN -operator -RPAREN;
+     | -"(" -operator -")";
    operator:
-       -COLONEQUAL
-     | -OR
-     | -BARBAR
-     | -AMPERAMPER
-     | -AMPERSAND
-     | -EQUAL
-     | -LESS
-     | -GREATER
-     | -BANG
+       -":="
+     | -kw["or"]
      | -PREFIXOP
      | -INFIXOP0
+     | -"||"
+     | -"&&"
+     | -"&"
+     | -"="
+     | -"<"
+     | -">"
+     | -"!"
      | -INFIXOP1
-     | -PLUSDOT
-     | -PLUS
-     | -MINUSDOT
-     | -MINUS
      | -INFIXOP2
-     | -STAR
+     | -"+."
+     | -"+"
+     | -"-."
+     | -"-"
      | -INFIXOP3
+     | -"*"
      | -INFIXOP4;
    constr_ident:
        -UIDENT
-   (*  | -LBRACKET -RBRACKET *)
-     | -LPAREN -RPAREN
-     | -COLONCOLON
-   (*  | -LPAREN -COLONCOLON -RPAREN *)
-     | -FALSE
-     | -TRUE;
+   (*  | -"[" -"]" *)
+     | -"(" -")"
+     | -"::"
+   (*  | -"(" -"::" -")" *)
+     | -kw["false"]
+     | -kw["true"];
    
    val_longident:
        -val_ident
-     | -mod_longident -DOT -val_ident;
+     | -mod_longident -"." -val_ident;
    constr_longident:
        -mod_longident       (* %prec below_DOT *)
-     | -LBRACKET -RBRACKET
-     | -LPAREN -RPAREN
-     | -FALSE
-     | -TRUE;
+     | -"[" -"]"
+     | -"(" -")"
+     | -kw["false"]
+     | -kw["true"];
    label_longident:
        -LIDENT
-     | -mod_longident -DOT -LIDENT;
+     | -mod_longident -"." -LIDENT;
    type_longident:
        -LIDENT
-     | -mod_ext_longident -DOT -LIDENT;
+     | -mod_ext_longident -"." -LIDENT;
    mod_longident:
-       -UIDENT -(-DOT -UIDENT)*;
+       -UIDENT -(-"." -UIDENT)*;
    mod_ext_longident:
        -UIDENT
        (
-       -DOT -UIDENT
-     | -LPAREN -mod_ext_longident -RPAREN
+       -"." -UIDENT
+     | -"(" -mod_ext_longident -")"
        )*;
    mty_longident:
-       -(-mod_ext_longident -DOT)? -ident;
+       -(-mod_ext_longident -".")? -ident;
    clty_longident:
        -LIDENT
-     | -mod_ext_longident -DOT -LIDENT;
+     | -mod_ext_longident -"." -LIDENT;
    class_longident:
        -LIDENT
-     | -mod_longident -DOT -LIDENT;
+     | -mod_longident -"." -LIDENT;
 
 (* Toplevel directives *)
 
    toplevel_directive:
-       -SHARP -ident -STRING
-     | -SHARP -ident -INT
-     | -SHARP -ident -val_longident
-     | -SHARP -ident -FALSE
-     | -SHARP -ident -TRUE
-     | -SHARP -ident;
+       -"#" -ident -(-STRING
+                  | -INT
+                  | -val_longident
+                  | -kw["false"]
+                  | -kw["true"])?;
 
 (* Miscellaneous *)
 
    name_tag:
-       -BACKQUOTE -ident;
+       -"`" -ident;
    rec_flag:
-       -REC?;
+       -kw["rec"]?;
    direction_flag:
-       -TO
-     | -DOWNTO;
+       -kw["to"]
+     | -kw["downto"];
    private_flag:
-       -PRIVATE?;
+       -kw["private"]?;
    mutable_flag:
-       -MUTABLE?;
+       -kw["mutable"]?;
    virtual_flag:
-       -VIRTUAL?;
+       -kw["virtual"]?;
    override_flag:
-       -BANG?;
+       -"!"?;
    opt_bar:
-       -BAR?;
+       -"|"?;
    opt_semi:
-       -SEMI?;
+       -";"?;
    subtractive:
-       -MINUSDOT
-     | -MINUS;
+       -"-."
+     | -"-";
    additive:
-       -PLUSDOT
-     | -PLUS
+       -"+."
+     | -"+"
 )

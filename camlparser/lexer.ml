@@ -85,6 +85,37 @@ module Keywords =
 
   end
 
+module Symbols =
+  struct
+
+    module S = Set.Make (String)
+
+    let k = 
+      Array.fold_left 
+        (fun s n -> S.add n s) 
+        S.empty 
+        [|
+        "!=";
+        "+.";
+        "+";
+        "-.";
+        "-";
+        "->";
+        "<-";
+        "*";
+        "|";
+        "||";
+        "&";
+        "&&";
+        "=";
+        "<";
+        ">"
+        |]
+
+    let check name = S.mem name k
+
+  end
+
 class ['b] lexer s =
    let skip_line_directive =
       let e = Str.regexp "#[ \t]*[0-9]+[ \t]*\(\"[^\r\n\"]*\"\)?[^\r\n]*" in
@@ -137,11 +168,11 @@ class ['b] lexer s =
 
       method skip = skip s
 
-      method getPREFIXOP = self#get "prefixop"     prefixop      "!!"
-      method getINFIXOP0 = self#get "infixop0"     infixop0      "!="
+      method getPREFIXOP = self#get "prefixop"     prefixop      "!!"  ?except:(Some (=) "!=")
+      method getINFIXOP0 = self#get "infixop0"     infixop0      "!="  ?except:(Some Symbols.check)
       method getINFIXOP1 = self#get "infixop1"     infixop1      "@"
-      method getINFIXOP2 = self#get "infixop2"     infixop2      "+"
-      method getINFIXOP3 = self#get "infixop3"     infixop3      "mod"
+      method getINFIXOP2 = self#get "infixop2"     infixop2      "+"   ?except:(Some Symbols.check)
+      method getINFIXOP3 = self#get "infixop3"     infixop3      "mod" ?except:(Some Symbols.check)
       method getINFIXOP4 = self#get "infixop4"     infixop4      "lsl"
       method getLIDENT   = self#get "lident"       lident        "a"   ?except:(Some Keywords.check)
       method getUIDENT   = self#get "uident"       uident        "A"
@@ -154,102 +185,5 @@ class ['b] lexer s =
       method getINT      = self#get "int_literal"  int_literal   "0"   ?except:(Some check_int      )
       method getCHAR     = self#get "char_literal" char_literal  "'a'"
       method getSTRING   = self#get "string"       string        "\"\""
-
-      method getAND = self#get "keyword and" (Str.regexp "and\\b") "and "
-      method getAS = self#get "keyword as" (Str.regexp "as\\b") "as "
-      method getASSERT = self#get "keyword assert" (Str.regexp "assert\\b") "assert "
-      method getBEGIN = self#get "keyword begin" (Str.regexp "begin\\b") "begin "
-      method getCLASS = self#get "keyword class" (Str.regexp "class\\b") "class "
-      method getCONSTRAINT = self#get "keyword constraint" (Str.regexp "constraint\\b") "constraint "
-      method getDO = self#get "keyword do" (Str.regexp "do\\b") "do "
-      method getDONE = self#get "keyword done" (Str.regexp "done\\b") "done "
-      method getDOWNTO = self#get "keyword downto" (Str.regexp "downto\\b") "downto "
-      method getELSE = self#get "keyword else" (Str.regexp "else\\b") "else "
-      method getEND = self#get "keyword end" (Str.regexp "end\\b") "end "
-      method getEXCEPTION = self#get "keyword exception" (Str.regexp "exception\\b") "exception "
-      method getEXTERNAL = self#get "keyword external" (Str.regexp "external\\b") "external "
-      method getFALSE = self#get "keyword false" (Str.regexp "false\\b") "false "
-      method getFOR = self#get "keyword for" (Str.regexp "for\\b") "for "
-      method getFUN = self#get "keyword fun" (Str.regexp "fun\\b") "fun "
-      method getFUNCTION = self#get "keyword function" (Str.regexp "function\\b") "function "
-      method getFUNCTOR = self#get "keyword functor" (Str.regexp "functor\\b") "functor "
-      method getIF = self#get "keyword if" (Str.regexp "if\\b") "if "
-      method getIN = self#get "keyword in" (Str.regexp "in\\b") "in "
-      method getINCLUDE = self#get "keyword include" (Str.regexp "include\\b") "include "
-      method getINHERIT = self#get "keyword inherit" (Str.regexp "inherit\\b") "inherit "
-      method getINITIALIZER = self#get "keyword initializer" (Str.regexp "initializer\\b") "initializer "
-      method getLAZY = self#get "keyword lazy" (Str.regexp "lazy\\b") "lazy "
-      method getLET = self#get "keyword let" (Str.regexp "let\\b") "let "
-      method getMATCH = self#get "keyword match" (Str.regexp "match\\b") "match "
-      method getMETHOD = self#get "keyword method" (Str.regexp "method\\b") "method "
-      method getMODULE = self#get "keyword module" (Str.regexp "module\\b") "module "
-      method getMUTABLE = self#get "keyword mutable" (Str.regexp "mutable\\b") "mutable "
-      method getNEW = self#get "keyword new" (Str.regexp "new\\b") "new "
-      method getOBJECT = self#get "keyword object" (Str.regexp "object\\b") "object "
-      method getOF = self#get "keyword of" (Str.regexp "of\\b") "of "
-      method getOPEN = self#get "keyword open" (Str.regexp "open\\b") "open "
-      method getOR = self#get "keyword or" (Str.regexp "or\\b") "or "
-(*    method getPARSER = self#get "keyword parser" (Str.regexp "parser\\b") "parser " *)
-      method getPRIVATE = self#get "keyword private" (Str.regexp "private\\b") "private "
-      method getREC = self#get "keyword rec" (Str.regexp "rec\\b") "rec "
-      method getSIG = self#get "keyword sig" (Str.regexp "sig\\b") "sig "
-      method getSTRUCT = self#get "keyword struct" (Str.regexp "struct\\b") "struct "
-      method getTHEN = self#get "keyword then" (Str.regexp "then\\b") "then "
-      method getTO = self#get "keyword to" (Str.regexp "to\\b") "to "
-      method getTRUE = self#get "keyword true" (Str.regexp "true\\b") "true "
-      method getTRY = self#get "keyword try" (Str.regexp "try\\b") "try "
-      method getTYPE = self#get "keyword type" (Str.regexp "type\\b") "type "
-      method getVAL = self#get "keyword val" (Str.regexp "val\\b") "val "
-      method getVIRTUAL = self#get "keyword virtual" (Str.regexp "virtual\\b") "virtual "
-      method getWHEN = self#get "keyword when" (Str.regexp "when\\b") "when "
-      method getWHILE = self#get "keyword while" (Str.regexp "while\\b") "while "
-      method getWITH = self#get "keyword with" (Str.regexp "with\\b") "with "
-
-
-      method getUNDERSCORE = self#get "underscore" (Str.regexp "_\\b") "_ "
-      method getTILDE = self#look "~"
-      method getQUESTION = self#look "?"
-      method getQUESTIONQUESTION = self#look "??"
-      method getSHARP = self#look "#"
-      method getAMPERSAND = self#look "&"
-      method getAMPERAMPER = self#look "&&"
-      method getBACKQUOTE = self#look "`"
-      method getQUOTE = self#look "'"
-      method getLPAREN = self#look "("
-      method getRPAREN = self#look ")"
-      method getSTAR = self#look "*"
-      method getCOMMA = self#look ","
-      method getMINUSGREATER = self#look "->"
-      method getDOT = self#look "."
-      method getDOTDOT = self#look ".."
-      method getCOLON = self#look ":"
-      method getCOLONCOLON = self#look "::"
-      method getCOLONEQUAL = self#look ":="
-      method getCOLONGREATER = self#look ":>"
-      method getSEMI = self#look ";"
-      method getSEMISEMI = self#look ";;"
-      method getLESS = self#look "<"
-      method getLESSMINUS = self#look "<-"
-      method getEQUAL = self#look "="
-      method getLBRACKET = self#look "["
-      method getLBRACKETBAR = self#look "[|"
-      method getLBRACKETLESS = self#look "[<"
-      method getLBRACKETGREATER = self#look "[>"
-      method getRBRACKET = self#look "]"
-      method getLBRACE = self#look "{"
-      method getLBRACELESS = self#look "{<"
-      method getBAR = self#look "|"
-      method getBARBAR = self#look "||"
-      method getBARRBRACKET = self#look "|]"
-      method getGREATER = self#look ">"
-      method getGREATERRBRACKET = self#look ">]"
-      method getRBRACE = self#look "}"
-      method getGREATERRBRACE = self#look ">}"
-      method getBANG = self#look "!"
-
-      method getPLUS = self#look "+"
-      method getPLUSDOT = self#look "+."
-      method getMINUS = self#look "-"
-      method getMINUSDOT = self#look "-."
 
    end
