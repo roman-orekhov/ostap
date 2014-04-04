@@ -524,13 +524,11 @@ ostap (
 
    core_type:
        -core_type2 -(-kw["as"] -"'" -ident)?;
+   atleast[n][p]: {n>0} => e:p l:atleast[n-1][p] {e::l} | {n=0} => p*;
    core_type2:
-       -(
-       -"?" -LIDENT -":" -core_type2 -"->" -core_type2
-     | -LIDENT -":" -core_type2 -"->" -core_type2
-     | -simple_core_type_or_tuple
-       )
-       -(-"->" -core_type2)*;
+       -n:(l:(-"?" -LIDENT -":" | -LIDENT -":")* {List.length l})
+       -simple_core_type_or_tuple
+       -atleast[n][ostap(-"->" -core_type2)];
 
    simple_core_type:
        -simple_core_type2  (* %prec below_SHARP *)
