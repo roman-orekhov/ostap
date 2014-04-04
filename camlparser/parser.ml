@@ -681,7 +681,8 @@ ostap (
      | -"(" -mod_ext_longident -")"
        )*;
    mty_longident:
-       -(-mod_ext_longident -".")? -ident;
+       -LIDENT
+     | -mod_ext_longident -(-"." -LIDENT)?;
    clty_longident:
        -LIDENT
      | -mod_ext_longident -"." -LIDENT;

@@ -95,7 +95,6 @@ module Symbols =
         (fun s n -> S.add n s) 
         S.empty 
         [|
-        "!=";
         "+.";
         "+";
         "-.";
