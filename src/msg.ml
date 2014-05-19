@@ -211,27 +211,32 @@ and FileLoc :
          let reloc = shift s pos loc p reloc in
          succ, Some fil, reloc
 
+      let line_regexp = Str.regexp "\r?\n#line \"\([^\"]*\)\" (\([0-9]+\):\([0-9]+\))\r?\n"
+
       let stripLines s =
-         let r = Str.regexp "\r?\n#line \"\([^\"]*\)\" (\([0-9]+\):\([0-9]+\))\r?\n" in
-         let makeInt i s = int_of_string (Str.matched_group i s) in
-         let rec inner pos loc m s acc =
+         let makeInt i = int_of_string (Str.matched_group i s) in
+         (* pos, loc - position & location in resulting string,
+            from - position in input string (after the last line directive) *)
+         let rec inner from pos loc m acc =
             try
                if !debug then printf "loc was: %s\n" (Coord.toString loc);
-               let first = Str.search_forward r s 0 in
-               let reloc = (Str.matched_group 1 s, (makeInt 2 s, makeInt 3 s)) in
-               let loc = if first > 0 then Coord.shift loc s 0 first else loc in
-               let current = try MC.find loc m with Not_found -> [] in
-               let last = Str.match_end () in
-               let newpos = pos + first in
+               let first = Str.search_forward line_regexp s from in
+               let len = first - from in
+               let newpos = pos + len
+               and loc = if first > from then Coord.shift loc s from first else loc
+               and reloc = (Str.matched_group 1 s, (makeInt 2, makeInt 3))
+               and current = try MC.find loc m with Not_found -> []
+               and last = Str.match_end () in
+               Buffer.add_substring acc s from len;
                if !debug then begin
                   printf "loc is: %s\n" (Coord.toString loc);
                   printf "'";
-                  for i = 0 to min 20 (String.length s - 1) do printf "%c" s.[i] done;
+                  for i = 0 to min 20 (String.length s - 1 - from) do printf "%c" s.[i+from] done;
                   printf "'\n";
                end;
-               inner newpos loc (MC.add loc ((newpos, reloc)::current) m) (Str.string_after s last) (acc ^ (Str.string_before s first))
-            with Not_found -> m, acc ^ s
-         in inner 0 (1, 1) MC.empty s ""
+               inner last newpos loc (MC.add loc ((newpos, reloc)::current) m) acc
+            with Not_found -> Buffer.add_substring acc s from (String.length s-from); m, Buffer.contents acc
+         in inner 0 0 (1, 1) MC.empty (Buffer.create 1024)
 
       let addFirst m = MC.add (0, 0) [0, ("", (0, 0))] m
 

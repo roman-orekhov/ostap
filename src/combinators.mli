@@ -53,6 +53,7 @@ val (<|>)    : ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) pa
 val (<-|>)   : ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) parse
 val prio     : ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) parse
 val opt      : ('stream, 'token, 'result) parse -> ('stream, 'token option, 'result) parse
+val opt_default : 'token -> ('stream, 'token, 'result) parse -> ('stream, 'token, 'result) parse
 val (<?>)    : ('stream, 'token, 'result) parse -> ('stream, 'token option, 'result) parse
 val manyFold : ('a -> 'b -> 'a) -> 'a -> ('stream, 'b, 'result) parse -> ('stream, 'a, 'result) parse
 val many     : ('stream, 'a, 'result) parse -> ('stream, 'a list, 'result) parse
