@@ -57,10 +57,10 @@ let rec toString e =
   | `Name  s           -> s
 
 let rec parse s = 
-  expr     
+  expr (fun x -> x)     
     [|
-      right, [(ostap ("&&")), (fun x y -> `Op `And (x, y)); (ostap ("||")), (fun x y -> `Op `Or (x, y))];
-      right, [
+      `Righta, [(ostap ("&&")), (fun x y -> `Op `And (x, y)); (ostap ("||")), (fun x y -> `Op `Or (x, y))];
+      `Righta, [
       (ostap ("==")), (fun x y -> `Op `Eq  (x, y)); 
       (ostap ("!=")), (fun x y -> `Op `Neq (x, y)); 
       (ostap (">")) , (fun x y -> `Op `Gt  (x, y)); 
@@ -68,8 +68,8 @@ let rec parse s =
       (ostap ("<")) , (fun x y -> `Op `Lt  (x, y)); 
       (ostap ("<=")), (fun x y -> `Op `Le  (x, y))
     ];
-      left , [(ostap ("+")), (fun x y -> `Op `Add (x, y)); (ostap ("-")), (fun x y -> `Op `Sub (x, y))]; 
-      left , [(ostap ("*")), (fun x y -> `Op `Mul (x, y)); (ostap ("/")), (fun x y -> `Op `Div (x, y)); (ostap ("%")), (fun x y -> `Op `Mod (x, y))]
+      `Lefta, [(ostap ("+")), (fun x y -> `Op `Add (x, y)); (ostap ("-")), (fun x y -> `Op `Sub (x, y))]; 
+      `Lefta, [(ostap ("*")), (fun x y -> `Op `Mul (x, y)); (ostap ("/")), (fun x y -> `Op `Div (x, y)); (ostap ("%")), (fun x y -> `Op `Mod (x, y))]
     |]    
     primary 
     s

@@ -18,11 +18,11 @@ doc:
 	$(OCAMLDOC) $(MODULE_INCLUDES) -short-functors -rectypes -dump "$$dump1" \
 	    -I $(top_srcdir)/src $(top_srcdir)/src/*.mli  && \
 	$(OCAMLDOC) -I +camlp5 $(MODULE_INCLUDES) $(P5FLAGS) -short-functors -rectypes -dump "$$dump2" \
-	    -pp "$(CAMLP5O) $(PARSER_INCLUDES) pr_o.cmo" \
+	    -pp "$(CAMLP5O) $(PARSER_INCLUDES) " \
 	    -I $(top_srcdir)/src -I $(top_srcdir)/camlp5 \
 	    $(top_srcdir)/camlp5/*.ml && \
 	$(OCAMLDOC) $(MODULE_INCLUDES) $(P5FLAGS) -short-functors -rectypes -dump "$$dump3" \
-	    -pp "$(CAMLP5O) ../camlp5/pa_ostap.cmo pr_o.cmo" \
+	    -pp "$(CAMLP5O) ../camlp5/pa_ostap.cmo " \
 	    -I $(top_srcdir)/src -I $(top_srcdir)/camlp5 \
 	    $(top_srcdir)/util/*.mli && \
 	$(OCAMLDOC) -short-functors -load "$$dump1" -load "$$dump2" -load "$$dump3" -d html -html && \
