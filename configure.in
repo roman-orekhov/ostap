@@ -62,6 +62,8 @@ dnl check for compiler module
 dnl usage:
 dnl library name, modules to open,
 dnl 1st dir <space> 2nd dir <space> etc., library homepage.
+AC_CHECK_OCAML_LIBRARY(bytes, Bytes)
+AC_CHECK_OCAML_LIBRARY(re, Re_str) 
 AC_CHECK_OCAML_LIBRARY(typeutil, View, ../typeutil/src, http://oops.tepkom.ru/projects/typeutil) dnl GET: svn co svn://oops.tepkom.ru/svn/typeutil/trunk
 dnl more module checks
 AC_CHECK_OCAML_LIBRARY(str, Str)

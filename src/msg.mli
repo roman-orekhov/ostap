@@ -51,7 +51,7 @@ module Coord :
 module MC : Map.S with type key = Coord.t
 
 (** Various ways to denote the location in the source text. *)
-module rec Locator :
+module Locator :
   sig
 
     (** Locator type. *)
@@ -66,7 +66,7 @@ module rec Locator :
 
     val least  : t -> Coord.t
     val most   : t -> Coord.t
-    val updateToString : FileLoc.r -> string -> unit
+    (*val updateToString : FileLoc.r -> string -> unit*)
 
     (** String conversion. *)
     val toString : t -> string
@@ -75,13 +75,14 @@ module rec Locator :
     val compare : t -> t -> int
 
   end
-and FileLoc :
+
+module FileLoc :
   sig
 
     type t = string * Locator.t
     type r = (int * (string * Coord.t)) list MC.t
 
-    val no           : t
+    val no           : unit -> t
     val filename     : string ref
     val debug        : bool ref
     val interval     : <loc: Locator.t; ..> -> <loc: Locator.t; ..> -> t

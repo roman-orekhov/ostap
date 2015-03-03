@@ -67,7 +67,7 @@
      open Matcher 
 	
      class lexer s = v}
-         let ident = Str.regexp "[a-zA-Z_]\([a-zA-Z_0-9]\)*"] in 
+         let ident = Re_str.regexp "[a-zA-Z_]\([a-zA-Z_0-9]\)*"] in 
          let skip  = Skip.create [Skip.whitespaces " \t\n\r"] in 
          object (self) 
             inherit Matcher.t s 
@@ -185,9 +185,9 @@ class t : string ->
     (** [get name expr] is a parser which parses regular expression [expr] at the current
         position. [name] is a name for diagnostic purposes.
     *)
-    method get : string -> Str.regexp -> ('a, Token.t, Reason.t) Combinators.result
+    method get : string -> Re_str.regexp -> ('a, Token.t, Reason.t) Combinators.result
 
-    (** [regexp name str] is a shorthand for [get name (Str.regexp str)]. *)
+    (** [regexp name str] is a shorthand for [get name (Re_str.regexp str)]. *)
     method regexp : string -> string -> ('a, Token.t, Reason.t) Combinators.result
 
     (** [getEOF] detects the end of stream. *)
