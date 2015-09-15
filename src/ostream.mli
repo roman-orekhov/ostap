@@ -70,6 +70,9 @@ val fromList : 'a list -> 'a t
 (** [fromArray a] converts array [a] into stream. *)
 val fromArray : 'a array -> 'a t
 
+(** [nil] is the empty stream. *)
+val nil : 'a t
+
 (** [cons x s] constructs stream of the head element [x] and residual stream [s]. *)
 val cons : 'a -> 'a t -> 'a t
 
