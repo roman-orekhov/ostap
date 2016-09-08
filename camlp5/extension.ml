@@ -643,7 +643,7 @@ EXTEND
     [ "@"; "("; p=expr; except=OPT o_except; "?"; min=expr; n=OPT o_regexp_name; ")" ->
           let name = match n with None -> p | Some p -> p in
           let look = match except with
-            | None -> <:expr< _ostap_stream # regexp ?except:None ($name$) ($p$) ($min$) _ostap_cont >>
+            | None -> <:expr< _ostap_stream # regexp ?except:(None) ($name$) ($p$) ($min$) _ostap_cont >>
             | Some e -> <:expr< _ostap_stream # regexp ?except:(Some $e$) ($name$) ($p$) ($min$) _ostap_cont >> in
           let pwel = [
             (

@@ -12,7 +12,7 @@ CMX := $(SORTED:.ml=.cmx)
 
 
 # OCaml parser call with flags
-AM_P5FLAGS := -pp "$(CAMLP5O) $(top_srcdir)/camlp5/pa_ostap.cmo $(PARSER_INCLUDES) pa_log.cmo $(LOG)"
+AM_P5FLAGS := -pp "$(CAMLP5O) $(top_srcdir)/camlp5/pa_ostap.cmo $(PARSER_INCLUDES) pr_o.cmo pa_log.cmo $(LOG)"
 AM_BFLAGS += -w x -rectypes
 AM_OFLAGS += -w x -rectypes -cclib '-link -Wl,--stack,67108864'
 # bigger stack size: -cclib '-stack 33554432' or  -cclib '-link -Wl,--stack,16777216'
