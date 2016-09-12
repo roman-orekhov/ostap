@@ -43,7 +43,9 @@ META: $(top_srcdir)/VERSION
 	date=`LC_TIME=C date`; \
 	echo "version = \"$$revision\"" > $@; \
 	echo "description = \"$(DESCRIPTION)\"" >> $@; \
-	echo "requires = \"\"" >> $@
+	echo "requires = \"\"" >> $@; \
+	echo "archive(byte) = \"$(PACKAGE).cmo\"" >> $@; \
+	echo "archive(native) = \"$(PACKAGE).cmx\"" >> $@ 
 
 install-data-am: $(TARGET)
 if HAVE_OCAMLFIND
