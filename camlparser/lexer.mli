@@ -2,6 +2,7 @@ open Ostap
 
 class ['a] lexer :
   string ->
+  string ->
   object ('b)
     method col : int
     method coord : Msg.Coord.t
@@ -44,8 +45,9 @@ class ['a] lexer :
       string ->
       string ->
       string -> ('b, Matcher.Token.t, 'a) Combinators.parsed
+    method reloc : Msg.Coord.t -> Msg.Locator.t
     method skip :
       int ->
       Msg.Coord.t ->
-      [ `Failed of Msg.t | `Skipped of int * Msg.Coord.t ]
+      [ `Failed of string | `Skipped of int * Msg.Coord.t ]
   end

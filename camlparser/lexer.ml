@@ -115,7 +115,7 @@ module Symbols =
 
   end
 
-class ['b] lexer s =
+class ['b] lexer n s =
    let skip_line_directive =
       let e = Str.regexp "#[ \t]*[0-9]+[ \t]*\(\"[^\r\n\"]*\"\)?[^\r\n]*" in
       (fun s p ->
@@ -163,11 +163,11 @@ class ['b] lexer s =
    
    object (self)
 
-      inherit ['b] Matcher.t s
+      inherit ['b] Matcher.t ~name:n s
 
       method skip = skip s
 
-      method getPREFIXOP = self#get "prefixop"     prefixop      "!!"  ?except:(Some (=) "!=")
+      method getPREFIXOP = self#get "prefixop"     prefixop      "!!"  ?except:(Some ((=) "!="))
       method getINFIXOP0 = self#get "infixop0"     infixop0      "!="  ?except:(Some Symbols.check)
       method getINFIXOP1 = self#get "infixop1"     infixop1      "@"
       method getINFIXOP2 = self#get "infixop2"     infixop2      "+"   ?except:(Some Symbols.check)

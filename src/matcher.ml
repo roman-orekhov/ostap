@@ -23,12 +23,12 @@ open Str
 module Token =
   struct
 
-    type t = string * Msg.Coord.t
+    type t = string * Msg.Locator.t
 
-    let toString (t, c) = sprintf "%s at %s" t (Msg.Coord.toString c)
+    let toString (t, l) = sprintf "%s at %s" t (Msg.Locator.toString l)
 
-    let loc (t, c) = Msg.Locator.Interval (c, Msg.Coord.shift c t 0 (length t)) (* ((fst c), (snd c)+(length t)-1) *)
-    let repr       = fst
+    let loc  = snd
+    let repr = fst
 
   end
 
@@ -140,8 +140,8 @@ module Skip =
         in
         match iterate s p with
         | `Skipped p' -> `Skipped (p', Msg.Coord.shift coord s p p')
-        | `Failed msg -> `Failed (Msg.make msg [||] (Msg.Locator.Point coord))
-      )        
+        | `Failed msg -> `Failed msg
+      )
 
   end
 
@@ -171,9 +171,9 @@ module Errors =
       | Deleted  (c, _, _, _) -> sprintf "deleted  '%c'" c
       | Inserted (s, _, _, _) -> sprintf "inserted %s" s
 
-      let toMsg withAction e = Msg.make (if withAction then toAction e else toExpected true e) [||] (Msg.Locator.Point (getCoord e))
+      let toMsg withAction toLocator e = Msg.make (if withAction then toAction e else toExpected true e) [||] (toLocator (getCoord e))
 
-      let toMsgFull e = Msg.make (sprintf "%s => %s" (toExpected false e) (toAction e)) [||] (Msg.Locator.Point (getCoord e))
+      let toMsgFull toLocator e = Msg.make (sprintf "%s %s => %s" (Msg.Coord.toString @@ getCoord e) (toExpected false e) (toAction e)) [||] (toLocator (getCoord e))
 
       let filter maxInRow correctRows errors =
          let byRow, last, _, _, lastNum =
@@ -220,15 +220,17 @@ class type ['b] m =
     method regexp : ?except:(string -> bool) -> string -> string -> string -> ('a, Token.t, 'b) parsed
     method getEOF : ('a, Token.t, 'b) parsed
     method loc : Msg.Locator.t
+    method reloc : Msg.Coord.t -> Msg.Locator.t
     method look : string -> ('a, Token.t, 'b) parsed
-    method skip : int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t]
+    method skip : int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of string]
   end
 
-type aux = [`Skipped of int * Msg.Coord.t | `Failed of Msg.t | `Init]
+type aux = [`Skipped of int * Msg.Coord.t | `Failed of string | `Init]
 
-let defaultSkipper = fun (p : int) (c : Msg.Coord.t) -> (`Skipped (p, c) :> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t])
+let defaultSkipper = fun (p : int) (c : Msg.Coord.t) -> (`Skipped (p, c) :> [`Skipped of int * Msg.Coord.t | `Failed of string])
 
-class ['b] t s =   
+class ['b] t ?name:(n = "") ?relocs:(r = Relocs.MC.empty) s =   
+  let locate r c = try Relocs.getSuccReloc s r c with _ -> r, (n, c) in
   object (self : 'b #m)
     val regexps = Hashtbl.create 256
     val p       = 0
@@ -238,6 +240,7 @@ class ['b] t s =
     val del_ok  = true
     val errors  = []
   
+    method reloc coord = Msg.Locator.Point (snd @@ locate r coord)
     method skip = skipper
     method private changeSkip sk =
       let newContext =
@@ -285,16 +288,18 @@ class ['b] t s =
             let l = String.length m in
             let p = p + l
             and c = Msg.Coord.shift coord m 0 l in
+            let succ, x = locate r coord in
+            let _, y = locate succ c in
             Ostream.consL
             (Step l)
-            (lazy (k (m, coord) {< p = p; coord = c; context = ((self#skip p c) :> aux); del_ok = true >}))
+            (lazy (k (m, Msg.Locator.Interval (x, y)) {< p = p; coord = c; context = ((self#skip p c) :> aux); del_ok = true >}))
          | None ->
             if !Combinators.debug then printf "couldn't find %s\n" msg;
             Ostream.one (Fail (lazy ([msg],
                (let ins = (getCost cost, false, fun exp -> 
                   let next = {< errors = (Errors.Inserted (msg, p, coord, exp))::errors; del_ok = false >} in
                   if !Combinators.debug then printf "Inserted \"%s\"\n%s\n" min_def (Errors.correct s next#errors);
-                  k (min_def, coord) next) in
+                  k (min_def, self#reloc coord) next) in
                if not del_ok || p = String.length s
                then [ins]
                else let del = (5, true, fun exp ->
@@ -343,7 +348,7 @@ class ['b] t s =
          if !Combinators.debug then printf "found EOF while looking for EOF\n";
          Ostream.consL
          (Step 0)
-         (lazy (k ("EOF", coord) {< p = p; coord = coord; del_ok = false >}))
+         (lazy (k ("EOF", self#reloc coord) {< p = p; coord = coord; del_ok = false >}))
       end else begin
          if !Combinators.debug then printf "couldn't find EOF\n";
          Ostream.one (Fail (lazy (["EOF"],
@@ -358,7 +363,7 @@ class ['b] t s =
             )))
       end      
 
-    method loc = Msg.Locator.Point coord
+    method loc = self#reloc coord
 
   end
     

@@ -1,7 +1,7 @@
 
 # type in sources here
-SOURCES = pretty.ml prioReorderer.ml bNF3.ml ostream.ml combinators.ml msg.ml trap.ml reason.ml aSCII.ml regexp.ml deterministic.ml matcher.ml
-MLI = pretty.mli prioReorderer.mli bNF3.mli ostream.mli combinators.mli msg.mli trap.mli reason.mli aSCII.mli regexp.mli deterministic.mli matcher.mli
+SOURCES = pretty.ml prioReorderer.ml bNF3.ml ostream.ml combinators.ml msg.ml relocs.ml trap.ml reason.ml aSCII.ml regexp.ml deterministic.ml matcher.ml
+MLI = pretty.mli prioReorderer.mli bNF3.mli ostream.mli combinators.mli msg.mli relocs.mli trap.mli reason.mli aSCII.mli regexp.mli deterministic.mli matcher.mli
 
 include $(top_srcdir)/m4/Makefile.am.vars
 

@@ -103,7 +103,7 @@ module Token :
   sig
  
     (** Type of the token. *)
-    type t = string * Msg.Coord.t
+    type t = string * Msg.Locator.t
 
     (** String visualizer. *)
     val toString : t -> string
@@ -124,7 +124,7 @@ val except : string -> string
 (** [checkPrefix prefix s p] returns true iff [s] at the position [p] starts with [prefix]. *)
 val checkPrefix : string -> string -> int -> bool
 
-val defaultSkipper : int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t]
+val defaultSkipper : int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of string]
 
 (** Module to provide various skipping functions. *)
 module Skip :
@@ -157,7 +157,7 @@ module Skip :
         [create [nestedComment "(*" "*)"; whitespaces " \n\t\r"]]).
 	Returned skipper function shifts current position coordinates as well
     *)
-    val create : t list -> (string -> int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t])
+    val create : t list -> (string -> int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of string])
 
   end
 
@@ -167,8 +167,8 @@ module Errors :
          | Deleted  of   char * int * Msg.Coord.t * Combinators.strings
          | Inserted of string * int * Msg.Coord.t * Combinators.strings
          
-      val toMsg : bool -> t -> Msg.t
-      val toMsgFull : t -> Msg.t
+      val toMsg : bool -> (Msg.Coord.t -> Msg.Locator.t) -> t -> Msg.t
+      val toMsgFull : (Msg.Coord.t -> Msg.Locator.t) -> t -> Msg.t
       val filter : int -> int -> t list -> (bool * t) list
       val correct : string -> t list -> string
    end
@@ -176,7 +176,7 @@ module Errors :
 (** Matcher pattern to inherit from to obtain the stream implementation. 
     [matcher s] creates an object that helps to match regular expressions against string [s]
 *)
-class ['b] t : string ->
+class ['b] t : ?name:string -> ?relocs:Relocs.r -> string ->
   object ('a)
 
     (** Gets current position in string. *)
@@ -209,8 +209,11 @@ class ['b] t : string ->
     (** [getEOF] detects the end of stream. *)
     method getEOF : ('a, Token.t, 'b) Combinators.parsed
 
-    (** [loc] gets the current location in the stream. *)
+    (** [loc] gets the current file based location. *)
     method loc : Msg.Locator.t
+
+    (** [reloc] relocates stream coord to original file based location. *)
+    method reloc : Msg.Coord.t -> Msg.Locator.t
 
     (** [look str] looks at the current stream for string [str]. *)
     method look : string -> ('a, Token.t, 'b) Combinators.parsed
@@ -219,10 +222,10 @@ class ['b] t : string ->
         position and coordinates of first meaningful symbol. [skip] is implicitly
         called prior to all of the above methods except for the [getLAST].
     *)
-    method skip : int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t]
+    method skip : int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of string]
     
     (*
-    method changeSkip : (int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t]) -> 'a
+    method changeSkip : (int -> Msg.Coord.t -> [`Skipped of int * Msg.Coord.t | `Failed of string]) -> 'a
     *)
 
   end

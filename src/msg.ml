@@ -42,214 +42,71 @@ module Coord =
 
    end
 
-module MC = Map.Make(Coord)
+let rec listLast = function
+   | [x] -> x
+   | _::t -> listLast t
 
-module rec Locator :
-   sig
+module Locator =
+  struct
 
-     type t =
-         No
-       | Point    of Coord.t
-       | Interval of Coord.t * Coord.t
-       | Set      of t list
+    type t = No | Point of (string * Coord.t) | Interval of (string * Coord.t) * (string * Coord.t) | Set of t list
 
-     val makeInterval : t -> t -> t
-     val least  : t -> Coord.t
-     val most   : t -> Coord.t
-     val updateToString : FileLoc.r -> string -> unit
-     val toString : t -> string
-     val compare : t -> t -> int
+    let makeInterval x y =
+      match x, y with
+      | Point x, Point y -> Interval (x, y)
+      | _ -> Set [x; y]
 
-   end
-   =
-   struct
+    let rec toString = function
+      | No -> ""
+      | Point (fil, coord) ->
+        (match fil with "" -> "" | fil -> sprintf "%s: " fil) ^ Coord.toString coord
+      | Interval ((filx, x), (fily, y)) ->
+        let x, y = Coord.toString x, Coord.toString y in
+        (match filx, fily with
+        | "", "" -> sprintf "%s-%s" x y
+        | filx, "" -> sprintf "(%s: %s)-%s" filx x y
+        | "", fily -> sprintf "%s-(%s: %s)" x fily y
+        | filx, fily ->
+           if filx = fily
+           then sprintf "%s: %s-%s" filx x y
+           else sprintf "(%s: %s)-(%s: %s)" filx x fily y
+        )
+      | Set x ->
+        let module M = View.List(struct type x = t type t = x let toString = toString end) in
+        M.toString x
 
-      type t = No | Point of Coord.t | Interval of Coord.t * Coord.t | Set of t list
-      and  l = t
+    let rec least = function
+      | No -> invalid_arg "Locator.least No"
+      | Point x -> x
+      | Interval (x, _) -> x
+      | Set x -> least @@ List.hd x
 
-      let makeInterval x y =
-         match x, y with
-         | Point x, Point y -> Interval (x, y)
-         | _ -> Set [x; y]
+    let rec most = function
+      | No -> invalid_arg "Locator.most No"
+      | Point x -> x
+      | Interval (_, y) -> y
+      | Set x -> most @@ listLast x
 
-      let relocs = ref MC.empty
-      let source = ref ""
-      let defaultWriter _ coord = !relocs, None, Coord.toString coord
-      let writer = ref defaultWriter
+    let unite x y =
+      match (x, y) with
+      | No, x
+      | x, No -> x
+      | x, y -> Interval (least x, most y)
+      (* cba to join sets *)
 
-      let rec least = function
-         | No              -> (0, 0)
-         | Point     x
-         | Interval (x, _) -> x
-         | Set x -> List.hd (List.sort Coord.compare (List.map least x))
+    let compare x y =
+      if Pervasives.compare x y = 0 then 0
+      else
+      match (x, y) with
+      | No, No -> 0
+      | No, _  -> -1
+      | _ , No -> 1
+      | _      ->
+        let filx, x = least x and fily, y = least y in
+        if Pervasives.compare filx fily = 0 then 0
+        else Coord.compare x y
 
-      let rec most = function
-         | No              -> (0, 0)
-         | Point     x
-         | Interval (_, x) -> x
-         | Set x -> List.hd (List.sort (fun x y -> - Coord.compare x y) (List.map most x))
-
-      let updateToString rlcs src =
-         if MC.is_empty rlcs || src = ""
-         then begin
-            relocs := MC.empty;
-            source := "";
-            writer := defaultWriter
-         end
-         else begin
-            relocs := FileLoc.addFirst rlcs;
-            source := src;
-            writer := fun rlcs coord -> let succ, fil, coord = FileLoc.getSuccReloc !source rlcs coord in succ, fil, Coord.toString coord
-         end
-
-      let rec toString = function
-         | No -> ""
-         | Point x ->
-            let _, fil, coord = !writer !relocs x in
-            (match fil with None -> "" | Some fil -> sprintf "%s: " fil) ^ coord
-         | Interval (x, y) ->
-            let succ, filx, x =
-               (*printf "Looking for %s\n" (Coord.toString x);*)
-               !writer !relocs x in
-            let    _, fily, y =
-               (*printf "Looking for %s\n" (Coord.toString y);*)
-               !writer succ    y in
-            (match filx, fily with
-            | None, None -> sprintf "%s-%s" x y
-            | Some filx, None -> sprintf "(%s: %s)-%s" filx x y
-            | None, Some fily -> sprintf "%s-(%s: %s)" x fily y
-            | Some filx, Some fily ->
-               if filx = fily
-               then sprintf "%s: %s-%s" filx x y
-               else sprintf "(%s: %s)-(%s: %s)" filx x fily y
-            )
-         | Set x ->
-            let module M = View.List (struct type t = l let toString = toString end) in
-            M.toString x
-
-      let compare x y =
-         if Pervasives.compare x y = 0 then 0
-         else
-         match (x, y) with
-         | No, No -> 0
-         | No, _  -> -1
-         | _ , No -> 1
-         | _      -> Coord.compare (least x) (least y)
-
-   end
-and FileLoc :
-   sig
-
-      type t = string * Locator.t
-      type r = (int * (string * Coord.t)) list MC.t
-
-      val no           : t
-      val filename     : string ref
-      val debug        : bool ref
-      val interval     : <loc: Locator.t; ..> -> <loc: Locator.t; ..> -> t
-      val toText       : t -> string
-      val unite        : t -> t -> t
-      val toLineDir    : t -> string -> string
-      val getSuccReloc : string -> r -> Coord.t -> r * string option * Coord.t
-      val stripLines   : string -> r * string
-      val addFirst     : r -> r
-      val printRelocs  : r -> unit
-      (** works only before calling Locator.updateToString *)
-      val printReloc   : string -> r -> Locator.t -> unit
-
-   end
-   =
-   struct
-
-      open Locator
-
-      type t = string * Locator.t
-      type r = (int * (string * Coord.t)) list MC.t
-
-      let no = "", No
-      let filename = ref ""
-      let debug  = ref false
-
-      let interval x y = !filename, makeInterval x#loc y#loc
-
-      let toText (fil, loc) = sprintf "at %s in file %s" (toString loc) fil
-
-      let brackLoc loc = if loc = No then "" else sprintf "[%s]" (toString loc)
-
-      let unite (fnx, x) (fny, y) =
-         if fnx = fny
-         then (fnx,
-         (match (x, y) with
-         | No, x
-         | x, No -> x
-         | x, y -> Interval (least x, most y)
-         ))
-         else (sprintf "%s%s, %s%s" fnx (brackLoc x) fny (brackLoc y), No)
-
-      let toLineDir (fil, loc) s = sprintf "\n#line \"%s\" %s\n%s\n#line \"%s\" %s\n" fil (Coord.toString (least loc)) s fil (Coord.toString (most loc))
-
-      let splitSucc c m =
-         let prev, this, succ = MC.split c m in
-         let (key, bnd) as res =
-            match this with
-            | Some item -> c, item
-            | None -> MC.max_binding prev
-         in
-         res, MC.add key bnd succ
-
-      let shift s i loc_from loc_to reloc =
-         let rec inner i loc reloc =
-            if Coord.compare loc loc_to = 0
-            then reloc
-            else let next = Coord.next (s.[i] = '\n') in
-                 inner (i+1) (next loc) (next reloc)
-         in inner i loc_from reloc
-
-      let getSuccReloc s m p =
-         let (loc, relocs), succ = splitSucc p m in
-         let (pos, (fil, reloc)) = List.hd relocs in
-         let reloc = shift s pos loc p reloc in
-         succ, Some fil, reloc
-
-      let line_regexp = Str.regexp "\r?\n#line \"\([^\"]*\)\" (\([0-9]+\):\([0-9]+\))\r?\n"
-
-      let stripLines s =
-         let makeInt i = int_of_string (Str.matched_group i s) in
-         (* pos, loc - position & location in resulting string,
-            from - position in input string (after the last line directive) *)
-         let rec inner from pos loc m acc =
-            try
-               if !debug then printf "loc was: %s\n" (Coord.toString loc);
-               let first = Str.search_forward line_regexp s from in
-               let len = first - from in
-               let newpos = pos + len
-               and loc = if first > from then Coord.shift loc s from first else loc
-               and reloc = (Str.matched_group 1 s, (makeInt 2, makeInt 3))
-               and current = try MC.find loc m with Not_found -> []
-               and last = Str.match_end () in
-               Buffer.add_substring acc s from len;
-               if !debug then begin
-                  printf "loc is: %s\n" (Coord.toString loc);
-                  printf "'";
-                  for i = 0 to min 20 (String.length s - 1 - from) do printf "%c" s.[i+from] done;
-                  printf "'\n";
-               end;
-               inner last newpos loc (MC.add loc ((newpos, reloc)::current) m) acc
-            with Not_found -> Buffer.add_substring acc s from (String.length s-from); m, Buffer.contents acc
-         in inner 0 0 (1, 1) MC.empty (Buffer.create 1024)
-
-      let addFirst m = MC.add (0, 0) [0, ("", (0, 0))] m
-
-      let printRelocs m =
-         let module VL = View.List (View.Pair(View.Integer)(View.Pair(View.String)(Coord))) in
-         MC.iter (fun p lst -> printf "%s: %s\n" (Coord.toString p) (VL.toString lst)) m
-
-      let printReloc s m (Interval (p, q) as intrvl) =
-         let succ, Some fil, beg_c = getSuccReloc s m p in
-         let _, _, end_c = getSuccReloc s succ q in
-         printf "%s -> \"%s\" %s\n" (toString intrvl) fil (toString (Interval (beg_c, end_c)))
-
-   end
+  end
 
 type t = {phrase: string; args: string array; loc: Locator.t} 
 

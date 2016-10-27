@@ -1,4 +1,5 @@
-open Ostap.Combinators
+open Ostap
+open Combinators
 
 type ('a, 'b) stream =
    < getCHAR : ('a, Matcher.Token.t, 'b) parsed;
