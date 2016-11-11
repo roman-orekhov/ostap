@@ -1,0 +1,49 @@
+CAMLP5O = camlp5o
+PARSER_INCLUDES = 
+LOG = 
+
+OCB_FLAGS = -use-ocamlfind -I src -I util -I camlp5 -I camlparser 
+PP  = -pp "$(CAMLP5O) $(PARSER_INCLUDES) pa_checked.cmo pa_ostap.cmo pa_log.cmo $(LOG)" 
+PP0 = -pp "$(CAMLP5O) $(PARSER_INCLUDES) pa_checked.cmo pa_log.cmo $(LOG)" 
+ 
+#OCB = 		ocamlbuild $(OCB_FLAGS)
+
+all: 		 sanity native byte 
+
+clean:
+		ocamlbuild -clean
+
+sanity:
+		ocamlfind query str && \
+		ocamlfind query typeutil && \
+		ocamlfind query settings && \
+		ocamlfind query num && \
+		ocamlfind query checked && \
+		ocamlfind query BinomialHeap && \
+		ocamlfind query PM && \
+		ocamlfind query urray && \
+		ocamlfind query camlp4.extend && \
+		[ -x `which camlp5` ] && \
+		[ -r `camlp5 -where`/pa_log.cmo ]
+#		ocamlfind query logger && \
+# checks for asdl2caml and ocamlcc are removed
+# ghdl and lcc are also not checked for 
+
+extension:
+		ocamlbuild $(OCB_FLAGS) $(PP0) -cflag -I -cflag $(shell $(CAMLP5O) -where) pa_ostap.cmo
+
+byte: extension 
+		ocamlbuild $(OCB_FLAGS) $(PP) ostap.cmo ostap.cmi ostap.cma 
+
+install: all
+		echo "version = \"`svn info | grep Revision`\"" > META
+		echo 'description = "Ostap --- parser combinators library and syntax extension"' >> META
+		echo 'requires = ""' >> META
+		echo 'archive(byte) = "ostap.cma"' >> META
+		echo 'archive(native) = "ostap.cmxa"' >> META
+		ocamlfind install ostap META _build/ostap.cmo _build/ostap.cmi _build/ostap.cma 
+
+uninstall:
+		ocamlfind remove ostap
+
+.PHONY: all clean byte native profile debug sanity extension install uninstall

@@ -1,0 +1,9 @@
+
+true : package(unix), package(str), package(num), package(typeutil), package(settings), package(checked), package(urray), package(pranlib)
+
+<**/*.cmo> or <**/*.ml> or <**/*.mli> : rectypes
+<src/*.ml> or <util/*.ml> : for-pack(Ostap)
+
+
+true: debug
+
