@@ -35,13 +35,16 @@ extension:
 byte: extension 
 		ocamlbuild $(OCB_FLAGS) $(PP) ostap.cmo ostap.cmi ostap.cma 
 
+native: extension 
+		ocamlbuild $(OCB_FLAGS) $(PP) ostap.cmx ostap.cmi ostap.cmxa 
+
 install: all
 		echo "version = \"`svn info | grep Revision`\"" > META
 		echo 'description = "Ostap --- parser combinators library and syntax extension"' >> META
 		echo 'requires = ""' >> META
 		echo 'archive(byte) = "ostap.cma"' >> META
 		echo 'archive(native) = "ostap.cmxa"' >> META
-		ocamlfind install ostap META _build/ostap.cmo _build/ostap.cmi _build/ostap.cma 
+		ocamlfind install ostap META _build/ostap.cmo _build/ostap.cmi _build/ostap.cma _build/ostap.cmx _build/ostap.cmxa _build/ostap.a 
 
 uninstall:
 		ocamlfind remove ostap
