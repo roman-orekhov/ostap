@@ -64,6 +64,7 @@ val (<+>)    : ('stream, 'a, 'result) parse -> ('stream, 'a list, 'result) parse
 val guard    : ('stream, 'token, 'result) parse -> ('token -> bool) -> ('token -> string) option -> ('stream, 'token, 'result) parse
 val comment  : ('stream, 'token, 'result) parse -> string -> ('stream, 'token, 'result) parse
 val altl     : ('stream, 'token, 'result) parse list -> ('stream, 'token, 'result) parse
+val prohibit : ('stream, 'token, 'result) parse -> ('stream, unit, 'result) parse
 val parse    : ('stream, 'token, 'token * 'stream) parse -> 'stream -> 'token * 'stream
 val debug    : bool ref
 val lookahead: int ref

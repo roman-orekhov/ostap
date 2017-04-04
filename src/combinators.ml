@@ -222,4 +222,16 @@ let altl = function
    | [h]  -> h
    | h::t -> List.fold_left (<-|>) h t
 
+let prohibit p k s =
+   let rec inner s' =
+      let step, rest = Ostream.get s' in
+      match step with
+      | Step n     -> inner rest
+      | Fail f     -> k () s
+      | End_alt n  -> inner rest
+      | Result res -> invalid_arg "prohibit" in
+   try
+      inner (p (fun p_result rest -> lastSteps) s)
+   with End_of_file -> fail_stream (Some "prohibited")
+
 let parse p s = eval (finish p s)
