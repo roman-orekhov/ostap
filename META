@@ -1,0 +1,15 @@
+version = "1.0"
+description = "Parser combinator library with error correction"
+requires = "str typeutil"
+archive(byte) = "ostap.cma"
+archive(native) = "ostap.cmxa"
+archive(byte, plugin) = "ostap.cma"
+
+package "syntax" (
+ version = "1.0"
+ description = "Camlp5 syntax extension"
+ requires = "camlp5"
+ archive(syntax, preprocessor) = "pa_ostap.cmo"
+ archive(syntax, toploop) = "pa_ostap.cmo"
+)
+

@@ -1,9 +1,13 @@
 
-true : package(unix), package(str), package(num), package(typeutil), package(settings), package(checked), package(urray), package(pranlib)
+true : rectypes, package(str), package(typeutil)
 
-<**/*.cmo> or <**/*.cmx> or <**/*.ml> or <**/*.mli> : rectypes
-<src/*.ml> or <util/*.ml> : for-pack(Ostap)
+<{src,util}/*.ml> : for-pack(Ostap)
 
+<camlp5/*.ml> : package(camlp5)
+<{src,camlp5}/*.ml> : pp(camlp5o pa_log.cmo)
+<util/util.ml> or <camlparser/parser.ml>: pp(camlp5o ./pa_ostap.cmo pa_log.cmo)
+
+#, package(logger.syntax)
 
 true: debug
 
