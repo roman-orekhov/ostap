@@ -25,7 +25,7 @@ type ('a, 'b) stream =
       ?except:(string -> bool) ->
       string ->
       string ->
-      string -> ('a, Matcher.Token.t, 'b) parsed
+      string -> ('a, Matcher.Token.t, 'b) parsed;
      .. > as 'a
 
 val implementation :  (('a, 'b) stream as 'c, unit, 'b) cont -> 'c -> 'b steps
