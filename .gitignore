@@ -1,3 +1,10 @@
 _build
 *.byte
 *.native
+autom4te.cache
+aclocal.m4
+config**
+!configure.in
+**/Makefile
+Makefile*.in
+Makefile.automake

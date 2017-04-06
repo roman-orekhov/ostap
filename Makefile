@@ -39,4 +39,13 @@ install: all
 uninstall:
 		ocamlfind remove ostap
 
+
+#automake helper goals to maintain old build
+all-am:
+clean-am:
+distclean-am:
+maintainer-clean-am:
+install-am:
+uninstall-am:
+
 .PHONY: all clean byte native profile debug sanity extension install uninstall
