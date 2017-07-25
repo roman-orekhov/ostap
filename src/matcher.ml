@@ -191,7 +191,7 @@ module Errors =
             let row, _ = getCoord (List.hd errs) in
             let rows = row - firstRow + 1 in
             if rows < num + inRow && row - prevRow <= correctRows (* too much errors in one row - distant rows are considered a part of those errors - prohibit this *)
-            then (res, [true, snd (List.hd firstErrors)], firstRow, row, num+inRow)
+            then (res, [true, try snd (List.hd firstErrors) with _ -> List.hd errs], firstRow, row, num+inRow)
             else (List.rev_append firstErrors res, List.map (fun e -> inRow > maxInRow, e) errs, row, row, inRow)
          )
          ([], [], 0, 0, 0) byRow
